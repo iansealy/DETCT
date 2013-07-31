@@ -1,0 +1,1280 @@
+## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
+package DETCT::Pipeline;
+## use critic
+
+# ABSTRACT: Object representing a pipeline
+
+## Author         : is1
+## Maintainer     : is1
+## Created        : 2013-01-09
+## Last commit by : $Author$
+## Last modified  : $Date$
+## Revision       : $Revision$
+## Repository URL : $HeadURL$
+
+use warnings;
+use strict;
+use autodie;
+use Carp;
+use Try::Tiny;
+
+use Readonly;
+use Class::InsideOut qw( private register id );
+use Scalar::Util qw( refaddr );
+use English qw( -no_match_vars );
+use POSIX qw( WIFEXITED WIFSIGNALED WTERMSIG );
+use File::Slurp;
+use File::Spec;
+use File::Path qw( make_path );
+use Hash::Merge;
+use YAML::Tiny qw( DumpFile );
+use Sys::Hostname;
+use File::Basename;
+use File::Find;
+use DETCT;
+use DETCT::Pipeline::Job;
+use DETCT::Pipeline::Stage;
+
+=head1 SYNOPSIS
+
+    # Brief code examples
+
+=cut
+
+# Attributes:
+private scheduler    => my %scheduler;       # e.g. lsf
+private analysis_dir => my %analysis_dir;    # e.g. .
+private analysis     => my %analysis;        # DETCT::Analysis object
+private cmd_line     => my %cmd_line;        # e.g. run_de_pipeline.pl
+private max_retries  => my %max_retries;     # e.g. 10
+private sleep_time   => my %sleep_time;      # e.g. 600
+private stage_to_run => my %stage_to_run;    # DETCT::Pipeline::Stage object
+private component_to_run => my %component_to_run;    # e.g. 5
+private verbose          => my %verbose;             # e.g. 1
+private hash_merge       => my %hash_merge;          # Hash::Merge object
+private stage            => my %stage;               # arrayref of stages
+
+# Constants
+Readonly our %EXTENSION_TO_KEEP => map { $_ => 1 } qw(
+  csv html pdf tsv txt
+);
+
+=method new
+
+  Usage       : my $pipeline = DETCT::Pipeline->new( {
+                    scheduler    => 'lsf',
+                    analysis_dir => '.',
+                    analysis     => $analysis,
+                    cmd_line     => 'run_de_pipeline.pl',
+                    max_retries  => 10,
+                    sleep_time   => 600,
+                    verbose      => 1,
+                } );
+  Purpose     : Constructor for pipeline objects
+  Returns     : DETCT::Pipeline
+  Parameters  : Hashref {
+                    scheduler    => String,
+                    analysis_dir => String,
+                    analysis     => DETCT::Analysis,
+                    cmd_line     => String,
+                    max_retries  => Int,
+                    sleep_time   => Int,
+                    verbose      => Boolean or undef
+                }
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub new {
+    my ( $class, $arg_ref ) = @_;
+    my $self = register($class);
+    $self->set_scheduler( $arg_ref->{scheduler} );
+    $self->set_analysis_dir( $arg_ref->{analysis_dir} );
+    $self->set_analysis( $arg_ref->{analysis} );
+    $self->set_cmd_line( $arg_ref->{cmd_line} );
+    $self->set_max_retries( $arg_ref->{max_retries} );
+    $self->set_sleep_time( $arg_ref->{sleep_time} );
+    $self->set_verbose( $arg_ref->{verbose} );
+    return $self;
+}
+
+=method scheduler
+
+  Usage       : my $scheduler = $pipeline->scheduler;
+  Purpose     : Getter for scheduler attribute
+  Returns     : String (e.g. "lsf")
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub scheduler {
+    my ($self) = @_;
+    return $scheduler{ id $self};
+}
+
+=method set_scheduler
+
+  Usage       : $pipeline->set_scheduler('lsf');
+  Purpose     : Setter for scheduler attribute
+  Returns     : undef
+  Parameters  : String (the scheduler)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_scheduler {
+    my ( $self, $arg ) = @_;
+    $scheduler{ id $self} = _check_scheduler($arg);
+    return;
+}
+
+# Usage       : $scheduler = _check_scheduler($scheduler);
+# Purpose     : Check for valid scheduler
+# Returns     : String (the valid scheduler)
+# Parameters  : String (the scheduler)
+# Throws      : If scheduler is not lsf or local
+# Comments    : None
+sub _check_scheduler {
+    my ($scheduler) = @_;
+
+    confess 'Invalid scheduler specified'
+      if !defined $scheduler
+      || ( $scheduler ne 'lsf' && $scheduler ne 'local' );
+
+    return $scheduler;
+}
+
+=method analysis_dir
+
+  Usage       : my $analysis_dir = $pipeline->analysis_dir;
+  Purpose     : Getter for analysis directory attribute
+  Returns     : String (e.g. ".")
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub analysis_dir {
+    my ($self) = @_;
+    return $analysis_dir{ id $self};
+}
+
+=method set_analysis_dir
+
+  Usage       : $pipeline->set_analysis_dir('.');
+  Purpose     : Setter for analysis directory attribute
+  Returns     : undef
+  Parameters  : String (the analysis directory)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_analysis_dir {
+    my ( $self, $arg ) = @_;
+    $analysis_dir{ id $self} = _check_analysis_dir($arg);
+    return;
+}
+
+# Usage       : $analysis_dir = _check_analysis_dir($analysis_dir);
+# Purpose     : Check for valid analysis directory
+# Returns     : String (the valid analysis directory)
+# Parameters  : String (the analysis directory)
+# Throws      : If analysis directory is missing or invalid
+# Comments    : None
+sub _check_analysis_dir {
+    my ($analysis_dir) = @_;
+
+    # Make sure analysis directory exists
+    if ( defined $analysis_dir && !-d $analysis_dir ) {
+        make_path($analysis_dir);
+    }
+
+    return $analysis_dir if defined $analysis_dir && -d $analysis_dir;
+    confess 'No analysis_dir specified' if !defined $analysis_dir;
+    confess "Invalid analysis_dir ($analysis_dir) specified";
+}
+
+=method analysis
+
+  Usage       : my $analysis = $pipeline->analysis;
+  Purpose     : Getter for analysis attribute
+  Returns     : DETCT::Analysis
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub analysis {
+    my ($self) = @_;
+    return $analysis{ id $self};
+}
+
+=method set_analysis
+
+  Usage       : $pipeline->set_analysis($analysis);
+  Purpose     : Setter for analysis attribute
+  Returns     : undef
+  Parameters  : DETCT::Analysis
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_analysis {
+    my ( $self, $arg ) = @_;
+    $analysis{ id $self} = _check_analysis($arg);
+    return;
+}
+
+# Usage       : $analysis = _check_analysis($analysis);
+# Purpose     : Check for valid analysis object
+# Returns     : DETCT::Analysis
+# Parameters  : DETCT::Analysis
+# Throws      : If analysis object is missing or invalid (i.e. not a
+#               DETCT::Analysis object)
+# Comments    : None
+sub _check_analysis {
+    my ($analysis) = @_;
+    return $analysis if defined $analysis && $analysis->isa('DETCT::Analysis');
+    confess 'No analysis specified' if !defined $analysis;
+    confess 'Class of analysis (', ref $analysis, ') not DETCT::Analysis';
+}
+
+=method cmd_line
+
+  Usage       : my $cmd_line = $pipeline->cmd_line;
+  Purpose     : Getter for command line attribute
+  Returns     : String (e.g. "run_de_pipeline.pl")
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub cmd_line {
+    my ($self) = @_;
+    return $cmd_line{ id $self};
+}
+
+=method set_cmd_line
+
+  Usage       : $pipeline->set_cmd_line('run_de_pipeline.pl');
+  Purpose     : Setter for command line attribute
+  Returns     : undef
+  Parameters  : String (the command line)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_cmd_line {
+    my ( $self, $arg ) = @_;
+    $cmd_line{ id $self} = _check_cmd_line($arg);
+    return;
+}
+
+# Usage       : $cmd_line = _check_cmd_line($cmd_line);
+# Purpose     : Check for valid command line
+# Returns     : String (the valid command line)
+# Parameters  : String (the command line)
+# Throws      : If command line is missing
+# Comments    : None
+sub _check_cmd_line {
+    my ($cmd_line) = @_;
+
+    confess 'No command line specified' if !defined $cmd_line || !$cmd_line;
+
+    return $cmd_line;
+}
+
+=method max_retries
+
+  Usage       : my $max_retries = $pipeline->max_retries;
+  Purpose     : Getter for max retries attribute
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub max_retries {
+    my ($self) = @_;
+    return $max_retries{ id $self};
+}
+
+=method set_max_retries
+
+  Usage       : $pipeline->set_max_retries(10);
+  Purpose     : Setter for max retries attribute
+  Returns     : undef
+  Parameters  : +ve Int (the max retries)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_max_retries {
+    my ( $self, $arg ) = @_;
+    $max_retries{ id $self} = _check_max_retries($arg);
+    return;
+}
+
+# Usage       : $max_retries = _check_max_retries($max_retries);
+# Purpose     : Check for valid max retries
+# Returns     : +ve Int (the valid max retries)
+# Parameters  : +ve Int (the max retries)
+# Throws      : If max retries is missing or not a positive integer
+# Comments    : None
+sub _check_max_retries {
+    my ($max_retries) = @_;
+    return $max_retries
+      if defined $max_retries && $max_retries =~ m/\A \d+ \z/xms;
+    confess 'No max retries specified' if !defined $max_retries;
+    confess "Invalid max retries ($max_retries) specified";
+}
+
+=method sleep_time
+
+  Usage       : my $sleep_time = $pipeline->sleep_time;
+  Purpose     : Getter for sleep time attribute
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub sleep_time {
+    my ($self) = @_;
+    return $sleep_time{ id $self};
+}
+
+=method set_sleep_time
+
+  Usage       : $pipeline->set_sleep_time(600);
+  Purpose     : Setter for sleep time attribute
+  Returns     : undef
+  Parameters  : +ve Int (the sleep time)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_sleep_time {
+    my ( $self, $arg ) = @_;
+    $sleep_time{ id $self} = _check_sleep_time($arg);
+    return;
+}
+
+# Usage       : $sleep_time = _check_sleep_time($sleep_time);
+# Purpose     : Check for valid sleep time
+# Returns     : +ve Int (the valid sleep time)
+# Parameters  : +ve Int (the sleep time)
+# Throws      : If sleep time is missing or not a positive integer
+# Comments    : None
+sub _check_sleep_time {
+    my ($sleep_time) = @_;
+    return $sleep_time
+      if defined $sleep_time && $sleep_time =~ m/\A \d+ \z/xms;
+    confess 'No sleep time specified' if !defined $sleep_time;
+    confess "Invalid sleep time ($sleep_time) specified";
+}
+
+=method stage_to_run
+
+  Usage       : my $stage = $pipeline->stage_to_run;
+  Purpose     : Getter for stage to be run attribute
+  Returns     : DETCT::Pipeline::Stage
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub stage_to_run {
+    my ($self) = @_;
+    return $stage_to_run{ id $self};
+}
+
+=method set_stage_to_run
+
+  Usage       : $pipeline->set_stage_to_run($stage);
+  Purpose     : Setter for stage to be run attribute
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Stage
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_stage_to_run {
+    my ( $self, $arg ) = @_;
+    $stage_to_run{ id $self} = _check_stage_to_run($arg);
+    return;
+}
+
+# Usage       : $stage = _check_stage_to_run($stage);
+# Purpose     : Check for valid stage to be run object
+# Returns     : DETCT::Pipeline::Stage
+# Parameters  : DETCT::Pipeline::Stage
+# Throws      : If stage to be run object is missing or invalid (i.e. not a
+#               DETCT::Pipeline::Stage object)
+# Comments    : None
+sub _check_stage_to_run {
+    my ($stage_to_run) = @_;
+    return $stage_to_run
+      if defined $stage_to_run && $stage_to_run->isa('DETCT::Pipeline::Stage');
+    confess 'No stage to be run specified' if !defined $stage_to_run;
+    confess 'Class of stage to be run (', ref $stage_to_run,
+      ') not DETCT::Pipeline::Stage';
+}
+
+=method component_to_run
+
+  Usage       : my $component = $pipeline->component_to_run;
+  Purpose     : Getter for component to be run attribute
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub component_to_run {
+    my ($self) = @_;
+    return $component_to_run{ id $self};
+}
+
+=method set_component_to_run
+
+  Usage       : $pipeline->set_component_to_run(5);
+  Purpose     : Setter for component to be run attribute
+  Returns     : undef
+  Parameters  : +ve Int (the component to be run)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_component_to_run {
+    my ( $self, $arg ) = @_;
+    $component_to_run{ id $self} = _check_component_to_run($arg);
+    return;
+}
+
+# Usage       : $component = _check_component_to_run($component);
+# Purpose     : Check for valid component to be run
+# Returns     : +ve Int (the valid component to be run)
+# Parameters  : +ve Int (the component to be run)
+# Throws      : If component to be run is missing or not a positive integer
+# Comments    : None
+sub _check_component_to_run {
+    my ($component_to_run) = @_;
+    return $component_to_run
+      if defined $component_to_run && $component_to_run =~ m/\A \d+ \z/xms;
+    confess 'No component to be run specified' if !defined $component_to_run;
+    confess "Invalid component to be run ($component_to_run) specified";
+}
+
+=method verbose
+
+  Usage       : my $verbose = $pipeline->verbose;
+  Purpose     : Getter for verbose flag
+  Returns     : Boolean
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub verbose {
+    my ($self) = @_;
+    return $verbose{ id $self} || 0;
+}
+
+=method set_verbose
+
+  Usage       : $pipeline->set_verbose(1);
+  Purpose     : Setter for verbose flag
+  Returns     : undef
+  Parameters  : Boolean
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_verbose {
+    my ( $self, $arg ) = @_;
+    $verbose{ id $self} = $arg ? 1 : 0;
+    return;
+}
+
+=method hash_merge
+
+  Usage       : %chunk_hmm
+                    = %{ $pipeline->hash_merge->merge(\%chunk_hmm, $seq_hmm) };
+  Purpose     : Return a Hash::Merge object for merging job output
+  Returns     : Hash::Merge
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub hash_merge {
+    my ($self) = @_;
+
+    if ( !exists $hash_merge{ id $self} ) {
+        ## no critic (ProtectPrivateSubs)
+        Hash::Merge::specify_behavior(
+            {
+                SCALAR => {
+                    SCALAR => sub { $_[0] + $_[1] },    # Add scalars
+                    ARRAY  => sub { undef },
+                    HASH   => sub { undef },
+                },
+                ARRAY => {
+                    SCALAR => sub { undef },
+                    ARRAY  => sub { [ @{ $_[0] }, @{ $_[1] } ] },  # Join arrays
+                    HASH   => sub { undef },
+                },
+                HASH => {
+                    SCALAR => sub { undef },
+                    ARRAY  => sub { undef },
+                    HASH => sub { Hash::Merge::_merge_hashes( $_[0], $_[1] ) },
+                },
+            },
+            'detct',
+        );
+        ## use critic
+        $hash_merge{ id $self} = Hash::Merge->new('detct');
+    }
+
+    return $hash_merge{ id $self};
+}
+
+=method add_stages_from_yaml
+
+  Usage       : $pipeline->add_stages_from_yaml( 'detct.yaml' );
+  Purpose     : Add stages from a YAML file
+  Returns     : undef
+  Parameters  : String (the YAML file)
+  Throws      : If YAML file is missing or not readable or invalid
+  Comments    : None
+
+=cut
+
+sub add_stages_from_yaml {
+    my ( $self, $yaml_file ) = @_;
+
+    confess "YAML file ($yaml_file) does not exist or cannot be read"
+      if !-r $yaml_file;
+
+    my $yaml = YAML::Tiny->read($yaml_file);
+
+    if ( !$yaml ) {
+        confess sprintf 'YAML file (%s) is invalid: %s', $yaml_file,
+          YAML::Tiny->errstr;
+    }
+
+    my %tmp_cache;    # Temporarily store stages by name
+
+    foreach my $stage_hash ( @{ $yaml->[0] } ) {
+        my $stage = DETCT::Pipeline::Stage->new(
+            {
+                name           => $stage_hash->{name},
+                default_memory => $stage_hash->{default_memory},
+            }
+        );
+        foreach my $prerequisite_name ( @{ $stage_hash->{prerequisites} } ) {
+            $stage->add_prerequisite( $tmp_cache{$prerequisite_name} );
+        }
+        $self->add_stage($stage);
+
+        $tmp_cache{ $stage_hash->{name} } = $stage;
+    }
+
+    return;
+}
+
+=method add_stage
+
+  Usage       : $pipeline->add_stage($stage);
+  Purpose     : Add a stage to a pipeline
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Stage
+  Throws      : If stage is missing or invalid (i.e. not a
+                DETCT::Pipeline::Stage object)
+  Comments    : None
+
+=cut
+
+sub add_stage {
+    my ( $self, $stage ) = @_;
+
+    confess 'No stage specified' if !defined $stage;
+    confess 'Class of stage (', ref $stage, ') not DETCT::Pipeline::Stage'
+      if !$stage->isa('DETCT::Pipeline::Stage');
+
+    if ( !exists $stage{ id $self} ) {
+        $stage{ id $self} = [$stage];
+    }
+    else {
+        push @{ $stage{ id $self} }, $stage;
+    }
+
+    return;
+}
+
+=method get_all_stages
+
+  Usage       : $stages = $pipeline->get_all_stages();
+  Purpose     : Get all stages of a pipeline
+  Returns     : Arrayref of DETCT::Pipeline::Stage objects
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_all_stages {
+    my ($self) = @_;
+
+    return $stage{ id $self} || [];
+}
+
+=method get_stage_by_name
+
+  Usage       : $stage = $pipeline->get_stage_by_name('run_deseq');
+  Purpose     : Get a named stage of a pipeline
+  Returns     : DETCT::Pipeline::Stage
+  Parameters  : String (the stage name)
+  Throws      : If stage with specified name does not exist
+  Comments    : None
+
+=cut
+
+sub get_stage_by_name {
+    my ( $self, $name ) = @_;
+
+    foreach my $stage ( @{ $stage{ id $self} } ) {
+        return $stage if $stage->name eq $name;
+    }
+
+    confess "Invalid stage name ($name)";
+}
+
+=method run
+
+  Usage       : $pipeline->run();
+  Purpose     : Run pipeline
+  Returns     : undef
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run {
+    my ($self) = @_;
+
+    $self->init_run();
+
+    my $all_stages_run = 0;
+
+    while ( !$all_stages_run ) {
+        $all_stages_run = 1;
+
+        my $jobs_running_or_run = 0;
+
+        # Iterate over all stages of pipeline
+      STAGE: foreach my $stage ( @{ $self->get_all_stages() } ) {
+
+            # Check prerequisites have already run and skip this stage if not
+            foreach my $prereq_stage ( @{ $stage->get_all_prerequisites() } ) {
+                if ( !$prereq_stage->all_jobs_run ) {
+                    $self->say_if_verbose(
+                        sprintf 'Skipping %s because %s not run',
+                        $stage->name, $prereq_stage->name );
+                    next STAGE;
+                }
+            }
+
+            # Create directory for current stage of analysis
+            my $dir = $self->get_and_create_stage_dir($stage);
+
+            # Assume all jobs have run OK until we know otherwise
+            $stage->set_all_jobs_run(1);
+
+            # All jobs marked as having run OK?
+            my $done_marker_file = $dir . '.done';
+            if ( -e $done_marker_file ) {
+                $self->say_if_verbose( sprintf 'Stage %s has finished',
+                    $stage->name );
+                next STAGE;
+            }
+
+            # Running a specific stage, but not this one
+            if ( $self->stage_to_run
+                && refaddr( $self->stage_to_run ) != refaddr($stage) )
+            {
+                next STAGE;
+            }
+
+            # Get all parameters for all components of current stage
+            my @all_parameters = $self->all_parameters($stage);
+
+            $self->say_if_verbose( sprintf 'Stage %s has %d components',
+                $stage->name, scalar @all_parameters );
+
+            my $component = 0;    # Index for current component of current stage
+            foreach my $parameters (@all_parameters) {
+                $component++;
+
+                # Running a specific component, but not this one
+                if (
+                       $self->stage_to_run
+                    && $self->component_to_run
+                    && ( refaddr( $self->stage_to_run ) != refaddr($stage)
+                        || $self->component_to_run != $component )
+                  )
+                {
+                    next;
+                }
+
+                my $job = DETCT::Pipeline::Job->new(
+                    {
+                        stage     => $stage,
+                        component => $component,
+                        scheduler => $self->scheduler,
+                        base_filename =>
+                          File::Spec->catfile( $dir, $component ),
+                        parameters => $parameters,
+                    }
+                );
+
+                # Run job if running a specific component of a specific stage
+                if ( $self->stage_to_run && $self->component_to_run ) {
+                    $self->run_job($job);
+                    return;
+                }
+
+                $jobs_running_or_run += $self->process_job($job);
+            }
+
+            if ( $stage->all_jobs_run ) {
+                write_file( $done_marker_file, '1' );
+            }
+            else {
+                $all_stages_run = 0;
+            }
+        }
+
+        if ( !$all_stages_run && !$jobs_running_or_run ) {
+            $self->_delete_lock();
+            die 'Stopping pipeline - no jobs to run' . "\n";
+        }
+
+        if ( !$all_stages_run ) {
+            $self->say_if_verbose( sprintf 'Sleeping for %d seconds',
+                $self->sleep_time );
+            sleep $self->sleep_time;
+        }
+    }
+
+    print 'Pipeline finished - all jobs run' . "\n";
+
+    $self->clean_up();
+
+    $self->_delete_lock();
+
+    return;
+}
+
+=method init_run
+
+  Usage       : $self->init_run();
+  Purpose     : Initialise a pipeline run
+  Returns     : undef
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub init_run {
+    my ($self) = @_;
+
+    if ( !$self->stage_to_run && !$self->component_to_run ) {
+        ## no critic (RequireLocalizedPunctuationVars)
+        $SIG{INT} = sub {
+            $self->_delete_lock();
+            die "\n" . 'Interrupted' . "\n";
+        };
+        ## use critic
+        $self->_create_lock();
+    }
+
+    return;
+}
+
+=method get_and_create_stage_dir
+
+  Usage       : my $dir = $pipeline->get_and_create_stage_dir( $stage );
+  Purpose     : Get (and create if necessary) a directory for the current stage
+  Returns     : String (the directory)
+  Parameters  : DETCT::Pipeline::Stage
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_and_create_stage_dir {
+    my ( $self, $stage ) = @_;
+
+    my $stage_dir = File::Spec->catdir( $self->analysis_dir, $stage->name );
+    if ( !-d $stage_dir ) {
+        make_path($stage_dir);
+    }
+
+    return $stage_dir;
+}
+
+=method get_and_check_output_file
+
+  Usage       : my $file = $pipeline->get_and_check_output_file('run_deseq', 1);
+  Purpose     : Get an output file for a particular component of a stage
+  Returns     : String (the file)
+  Parameters  : String (the stage)
+                Int (the component)
+  Throws      : If output file doesn't exist
+  Comments    : None
+
+=cut
+
+sub get_and_check_output_file {
+    my ( $self, $stage_name, $component ) = @_;
+
+    my $output_file = File::Spec->catfile( $self->analysis_dir, $stage_name,
+        $component . '.out' );
+    if ( !-e $output_file ) {
+        confess "$output_file doesn't exist, but should";
+    }
+
+    return $output_file;
+}
+
+=method process_job
+
+  Usage       : $jobs_running_or_run += $pipeline->process_job($job);
+  Purpose     : Process a job to see if needs to be submitted
+  Returns     : Boolean
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : Returns whether or not job has been run or was already running
+
+=cut
+
+sub process_job {
+    my ( $self, $job ) = @_;
+
+    my $job_running_or_run = 0;
+
+    if ( $job->status_code eq 'NOT_RUN' ) {
+
+        # Job not yet run so submit it
+        $job->stage->set_all_jobs_run(0);
+        $self->say_if_verbose( sprintf '  Running component %d of %s',
+            $job->component, $job->stage->name );
+        $job_running_or_run = 1;
+        $self->submit_job($job);
+    }
+    elsif ( $job->status_code eq 'RUNNING' ) {
+
+        # Job is running
+        $job->stage->set_all_jobs_run(0);
+        $self->say_if_verbose( sprintf '  Component %d of %s is still running',
+            $job->component, $job->stage->name );
+        $job_running_or_run = 1;
+    }
+    elsif ( $job->status_code eq 'FAILED' ) {
+
+        # Job has failed, so submit again
+        $job->stage->set_all_jobs_run(0);
+        $self->say_if_verbose( sprintf '  Component %d of %s has FAILED: %s',
+            $job->component, $job->stage->name, $job->status_text );
+        if ( $job->retries < $self->max_retries ) {
+            $self->say_if_verbose( sprintf '  Running component %d of %s',
+                $job->component, $job->stage->name );
+            $job_running_or_run = 1;
+            $self->submit_job($job);
+        }
+        else {
+            $self->say_if_verbose(
+                sprintf
+                  '  Not running component %d of %s because retried %d times',
+                $job->component, $job->stage->name, $job->retries );
+        }
+    }
+
+    return $job_running_or_run;
+}
+
+=method submit_job
+
+  Usage       : $pipeline->submit_job($job);
+  Purpose     : Submit a job
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : If job or bsub can't be run
+                If job id can't be extracted from bsub output
+  Comments    : None
+
+=cut
+
+sub submit_job {
+    my ( $self, $job ) = @_;
+
+    my $stdout_file = $job->base_filename . '.o';
+    my $stderr_file = $job->base_filename . '.e';
+
+    my $cmd =
+        $self->cmd_line
+      . ' --stage '
+      . $job->stage->name
+      . ' --component '
+      . $job->component;
+
+    if ( $job->scheduler eq 'local' ) {
+
+        # Just run job
+        $cmd .= ' 1>' . $stdout_file;
+        $cmd .= ' 2>' . $stderr_file;
+        my $cmd_status = system $cmd;
+
+        # Die if the command was interrupted
+        if ( WIFSIGNALED($cmd_status) && WTERMSIG($cmd_status) == 2 ) {
+            $self->_delete_lock();
+            die "\n" . 'Interrupted' . "\n";
+        }
+
+        # Die if the command couldn't be run
+        confess "Couldn't run $cmd ($OS_ERROR)" if !WIFEXITED($cmd_status);
+
+        if ( defined $job->retries ) {
+            $job->set_retries( $job->retries + 1 );
+        }
+        else {
+            $job->set_retries(0);
+        }
+        my $dump = { retries => $job->retries, };
+        my $job_file = $job->base_filename . '.job';
+        DumpFile( $job_file, $dump );
+    }
+    elsif ( $job->scheduler eq 'lsf' ) {
+
+        # Either use default memory or increase by 50% (if retrying failed job)
+        if ( !$job->memory ) {
+            $job->set_memory( $job->stage->default_memory );
+        }
+        elsif ( $job->status_text =~ m/\A MEMLIMIT /xms ) {
+            ## no critic (ProhibitMagicNumbers)
+            $job->set_memory( int( $job->memory * 1.5 ) );
+            ## use critic
+        }
+
+        # bsub job
+        my $bsub_stdout_file = $job->base_filename . '.bsub.o';
+        my $bsub_stderr_file = $job->base_filename . '.bsub.e';
+        ## no critic (ProhibitMagicNumbers)
+        my $memory_clause = sprintf q{ -R'select[mem>%d] rusage[mem=%d]' -M%d },
+          $job->memory, $job->memory, $job->memory * 1000;
+        ## use critic
+        $cmd =
+            'bsub' . ' -oo '
+          . $stdout_file . ' -eo '
+          . $stderr_file
+          . $memory_clause
+          . $cmd . ' 1>'
+          . $bsub_stdout_file . ' 2>'
+          . $bsub_stderr_file;
+        WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
+
+        # Extract job id from bsub output and store along with other parameters
+        my $bsub_stdout = read_file($bsub_stdout_file);
+        if ( $bsub_stdout =~ m/Job \s <(\d+)> \s is \s submitted/xms ) {
+            my $id = $1;
+            if ( defined $job->retries ) {
+                $job->set_retries( $job->retries + 1 );
+            }
+            else {
+                $job->set_retries(0);
+            }
+            my $dump = {
+                id      => $id,
+                retries => $job->retries,
+                memory  => $job->memory,
+            };
+            my $job_file = $job->base_filename . '.job';
+            DumpFile( $job_file, $dump );
+        }
+        else {
+            confess "Couldn't get job id from $bsub_stdout_file";
+        }
+    }
+
+    return;
+}
+
+=method all_parameters
+
+  Usage       : @all_parameters = $pipeline->all_parameters( $stage );
+  Purpose     : Get all the parameters for a stage
+  Returns     : Array
+  Parameters  : DETCT::Pipeline::Stage
+  Throws      : No exceptions
+  Comments    : This function calls the all_parameters_for_ method associated
+                with the current stage and gets all the parameters for that
+                stage as an array of arbitrary data (e.g. arrayref or scalar)
+
+=cut
+
+sub all_parameters {
+    my ( $self, $stage ) = @_;
+
+    my $sub_name = 'all_parameters_for_' . $stage->name;
+
+    return $self->$sub_name();
+}
+
+=method run_job
+
+  Usage       : $pipeline->run_job($job);
+  Purpose     : Run a job
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : This function calls the run_ method associated with the current
+                stage and passes along the parameters for the current component,
+                which are arbitrary (e.g. arrayref or scalar)
+
+=cut
+
+sub run_job {
+    my ( $self, $job ) = @_;
+
+    my $sub_name = 'run_' . $job->stage->name;
+
+    $self->$sub_name($job);
+
+    return;
+}
+
+=method input_overview
+
+  Usage       : $pipeline->say_if_verbose($pipeline->input_overview);
+  Purpose     : Return textual overview of pipeline's input
+  Returns     : Array of Strings
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub input_overview {
+    my ($self) = @_;
+
+    my @output;
+
+    push @output, 'Command line:', $self->cmd_line;
+    if ( defined $DETCT::VERSION ) {
+        push @output, 'DETCT version:' . $DETCT::VERSION;
+    }
+    push @output, 'Working directory: ' . $self->analysis_dir;
+
+    push @output, 'BAM files: ' . join q{ },
+      $self->analysis->list_all_bam_files();
+
+    push @output, sprintf 'Number of samples: %d',
+      scalar @{ $self->analysis->get_all_samples };
+    push @output, sprintf 'Number of sequences: %d',
+      scalar @{ $self->analysis->get_all_sequences };
+    push @output, sprintf 'Number of chunks: %d', $self->analysis->chunk_total;
+
+    push @output, 'Number of sequences per chunk:';
+    my $chunk_component = 0;
+    foreach my $chunk ( @{ $self->analysis->get_all_chunks } ) {
+        $chunk_component++;
+        push @output, sprintf "  Chunk $chunk_component: %d sequences",
+          scalar @{$chunk};
+    }
+
+    return @output;
+}
+
+=method say_if_verbose
+
+  Usage       : $pipeline->say_if_verbose( 'Command line:', $cmd_line );
+  Purpose     : Print output if pipeline is set to verbose
+  Returns     : undef
+  Parameters  : Array of Strings
+  Throws      : No exceptions
+  Comments    : Each string is a line without carriage returns or newlines
+
+=cut
+
+sub say_if_verbose {
+    my ( $self, @output ) = @_;
+    if ( $self->verbose ) {
+        print join "\n", @output;
+        print "\n";
+    }
+    return;
+}
+
+=method write_log_file
+
+  Usage       : $pipeline->write_log_file( @output );
+  Purpose     : Write data to a specified log file
+  Returns     : undef
+  Parameters  : String (the filename)
+                Array of Strings
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub write_log_file {
+    my ( $self, $filename, @output ) = @_;
+
+    my $log_file = File::Spec->catfile( $self->analysis_dir, $filename );
+    write_file( $log_file, @output );
+
+    return;
+}
+
+# Usage       : $self->_create_lock();
+# Purpose     : Create lock file
+# Returns     : undef
+# Parameters  : None
+# Throws      : If lock file already exists
+# Comments    : None
+sub _create_lock {
+    my ($self) = @_;
+
+    my $lock_file = File::Spec->catfile( $self->analysis_dir, 'pipeline.lock' );
+
+    if ( -e $lock_file ) {
+        my $message =
+            "\nERROR: Is another pipeline running?\n"
+          . "Make sure before deleting $lock_file and restarting.\n"
+          . "Lock file contains:\n\n";
+        $message .= read_file($lock_file);
+        die $message . "\n";
+    }
+
+    my $hostname  = hostname();
+    my $timestamp = localtime;
+    write_file( $lock_file, $hostname . "\n" . $timestamp . "\n" );
+
+    return;
+}
+
+# Usage       : $self->_delete_lock();
+# Purpose     : Delete lock file
+# Returns     : undef
+# Parameters  : None
+# Throws      : No exceptions
+# Comments    : None
+sub _delete_lock {
+    my ($self) = @_;
+
+    my $lock_file = File::Spec->catfile( $self->analysis_dir, 'pipeline.lock' );
+
+    unlink $lock_file;
+
+    return;
+}
+
+=method clean_up
+
+  Usage       : $self->clean_up();
+  Purpose     : Move results, archive stages and delete data
+  Returns     : undef
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub clean_up {
+    my ($self) = @_;
+
+    # Already cleaned up?
+    my $done_marker_file =
+      File::Spec->catfile( $self->analysis_dir, 'cleanup.done' );
+    return if -e $done_marker_file;
+
+    print 'Cleaning up...' . "\n";
+
+    # Tar all stages
+    my @stage_dirs =
+      map { $self->get_and_create_stage_dir($_) } @{ $self->get_all_stages() };
+    my $tarball_file =
+      File::Spec->catfile( $self->analysis_dir, 'archive.tar.gz' );
+    my $cmd = join q{ }, 'tar', 'cf', q{-}, @stage_dirs, q{|}, 'gzip', '-9',
+      '-c', q{>}, $tarball_file;
+    WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
+
+    # Delete or move files
+    my $wanted = \&_move_or_delete;
+    find(
+        {
+            wanted      => sub { $wanted->( $self->analysis_dir ) },
+            postprocess => sub { rmdir $File::Find::dir },
+            no_chdir    => 1,
+        },
+        @stage_dirs
+    );
+
+    write_file( $done_marker_file, '1' );
+
+    print 'Done' . "\n";
+
+    return;
+}
+
+# Usage       : find(\&_move_or_delete, $dir);
+# Purpose     : Move results files and delete other files
+# Returns     : undef
+# Parameters  : None
+# Throws      : No exceptions
+# Comments    : None
+sub _move_or_delete {
+    my ($archive_dir) = @_;
+
+    return if -d;    # Ignore directories
+
+    my ( $filename, undef, $extension ) = fileparse($File::Find::name);
+
+    # Move or delete?
+    if ( $EXTENSION_TO_KEEP{$extension} ) {
+        rename $File::Find::name,
+          File::Spec->catfile( $archive_dir, $filename );
+    }
+    else {
+        unlink $File::Find::name;
+    }
+    
+    return;
+}
+
+1;

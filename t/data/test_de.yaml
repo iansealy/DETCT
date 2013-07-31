@@ -1,0 +1,75 @@
+-
+  name:           count_tags
+  default_memory: 3000
+-
+  name:           bin_reads
+  default_memory: 3000
+-
+  name:           get_read_peaks
+  default_memory: 3000
+-
+  name:           merge_read_peaks
+  default_memory: 50
+  prerequisites:
+    - get_read_peaks
+-
+  name:           summarise_read_peaks
+  default_memory: 200
+  prerequisites:
+    - merge_read_peaks
+-
+  name:           run_peak_hmm
+  default_memory: 300
+  prerequisites:
+    - bin_reads
+    - summarise_read_peaks
+-
+  name:           join_hmm_bins
+  default_memory: 50
+  prerequisites:
+    - run_peak_hmm
+-
+  name:           get_three_prime_ends
+  default_memory: 1000
+  prerequisites:
+    - join_hmm_bins
+-
+  name:           merge_three_prime_ends
+  default_memory: 50
+  prerequisites:
+    - get_three_prime_ends
+-
+  name:           filter_three_prime_ends
+  default_memory: 50
+  prerequisites:
+    - merge_three_prime_ends
+-
+  name:           choose_three_prime_end
+  default_memory: 50
+  prerequisites:
+    - filter_three_prime_ends
+-
+  name:           count_reads
+  default_memory: 300
+  prerequisites:
+    - choose_three_prime_end
+-
+  name:           merge_read_counts
+  default_memory: 50
+  prerequisites:
+    - count_reads
+-
+  name:           run_deseq
+  default_memory: 2000
+  prerequisites:
+    - merge_read_counts
+-
+  name:           add_gene_annotation
+  default_memory: 3000
+  prerequisites:
+    - run_deseq
+-
+  name:           dump_as_table
+  default_memory: 3000
+  prerequisites:
+    - add_gene_annotation

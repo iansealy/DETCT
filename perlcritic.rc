@@ -1,0 +1,12 @@
+severity = 1
+exclude = RequirePodSections RequireVersionVar
+
+[Documentation::PodSpelling]
+stop_words_file = pod-stop-words.txt
+
+[Perl::Critic::Policy::BuiltinFunctions::ProhibitStringyEval]
+allow_includes = 1
+
+[InputOutput::RequireCheckedSyscalls]
+functions = :builtins
+exclude_functions = print sleep
