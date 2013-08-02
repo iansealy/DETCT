@@ -1096,7 +1096,7 @@ sub input_overview {
 
     push @output, 'Command line:', $self->cmd_line;
     if ( defined $DETCT::VERSION ) {
-        push @output, 'DETCT version:' . $DETCT::VERSION;
+        push @output, 'DETCT version: ' . $DETCT::VERSION;
     }
     push @output, 'Working directory: ' . $self->analysis_dir;
 
