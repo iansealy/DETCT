@@ -1263,7 +1263,10 @@ sub _move_or_delete {
 
     return if -d;    # Ignore directories
 
-    my ( $filename, undef, $extension ) = fileparse($File::Find::name);
+    my ( $filename, undef, $extension ) =
+      fileparse( $File::Find::name, qr/[.][^.]+/xms );
+    $filename .= $extension;
+    $extension =~ s/\A [.]//xms;
 
     # Move or delete?
     if ( $EXTENSION_TO_KEEP{$extension} ) {
@@ -1273,7 +1276,7 @@ sub _move_or_delete {
     else {
         unlink $File::Find::name;
     }
-    
+
     return;
 }
 
