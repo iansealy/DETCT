@@ -10,6 +10,7 @@ plan tests => 146;
 use DETCT::Analysis;
 
 use File::Path qw( make_path );
+use IO::Socket::INET;
 use POSIX qw( WIFEXITED);
 
 # Compile quince_chiphmmnew if necessary
