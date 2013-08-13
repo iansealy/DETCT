@@ -395,6 +395,9 @@ qr/No reference FASTA or Ensembl database/ms, 'No FASTA or Ensembl';
 SKIP: {
     skip 'Ensembl not reachable', 2 if !$is_ensembl_reachable;
 
+    # Avoid warnings about loading the same databases again
+    Bio::EnsEMBL::Registry::clear();
+
     $analysis = DETCT::Analysis->new(
         {
             name               => 'zmp_ph1',
@@ -450,7 +453,7 @@ SKIP: {
             ensembl_port       => 5306,
             ensembl_user       => 'anonymous',
             ensembl_pass       => '',
-            ensembl_name       => 'danio_rerio_core_69_9',
+            ensembl_name       => 'danio_rerio_core_72_9',
         }
     );
     $seq = $analysis->get_subsequence( '1', 1, 10, 1 );
