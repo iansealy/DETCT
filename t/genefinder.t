@@ -168,6 +168,8 @@ throws_ok { $gene_finder->add_gene_annotation() } qr/No regions specified/ms,
   'No regions';
 
 my $regions;
+my $annotated_regions;
+my $gv;
 
 # Adding gene annotation
 $regions = [
@@ -176,8 +178,8 @@ $regions = [
     [ '1', 1, 1000, 10, -10, '1', 100, 1,  10, [], undef, undef, [], [] ],
     [ '1', 1, 1000, 10, -10, '1', 300, -1, 10, [], undef, undef, [], [] ],
 ];
-my $annotated_regions = $gene_finder->add_gene_annotation($regions);
-my ($gv) = keys %{ $annotated_regions->[0]->[-1] };   # Genebuild version varies
+$annotated_regions = $gene_finder->add_gene_annotation($regions);
+($gv) = keys %{ $annotated_regions->[0]->[-1] };   # Genebuild version varies
 is( scalar keys %{ $annotated_regions->[0]->[-1] },   1, '1 genebuild' );
 is( scalar @{ $annotated_regions->[0]->[-1]->{$gv} }, 1, '1 gene' );
 is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[0],
@@ -289,8 +291,8 @@ $regions = [
     [ '1', 1, 1000, 10, -10, '1', 110, 1,  10, [], undef, undef, [], [] ],
     [ '1', 1, 1000, 10, -10, '1', 290, -1, 10, [], undef, undef, [], [] ],
 ];
-my $annotated_regions = $gene_finder->add_gene_annotation($regions);
-my ($gv) = keys %{ $annotated_regions->[0]->[-1] };   # Genebuild version varies
+$annotated_regions = $gene_finder->add_gene_annotation($regions);
+($gv) = keys %{ $annotated_regions->[0]->[-1] };   # Genebuild version varies
 is( scalar keys %{ $annotated_regions->[0]->[-1] },   1, '1 genebuild' );
 is( scalar @{ $annotated_regions->[0]->[-1]->{$gv} }, 1, '1 gene' );
 is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[0],
