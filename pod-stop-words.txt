@@ -1,0 +1,14 @@
+API
+BAM
+biotype
+bp
+detagging
+DETCT
+dir
+FASTA
+FASTQ
+HMM
+lsf
+polyT
+Sealy
+YAML
