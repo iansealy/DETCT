@@ -75,7 +75,7 @@ my $read_name;
 my $read_seq;
 my $read_qual;
 
-@fastq = read_file( $tmp_dir . '/test1_NNNNBGAGGC_1.fastq' );
+@fastq     = read_file( $tmp_dir . '/test1_NNNNBGAGGC_1.fastq' );
 $read_name = $fastq[0];
 chomp $read_name;
 is( substr( $read_name, -7 ), 'GAGGC/1', 'Tag added to read name' );
@@ -86,7 +86,7 @@ $read_qual = $fastq[3];
 chomp $read_qual;
 is( length $read_qual, 30, 'Quality trimmed to 30 bp' );
 
-@fastq = read_file( $tmp_dir . '/test1_NNNNBGAGGC_2.fastq' );
+@fastq     = read_file( $tmp_dir . '/test1_NNNNBGAGGC_2.fastq' );
 $read_name = $fastq[0];
 chomp $read_name;
 is( substr( $read_name, -7 ), 'GAGGC/2', 'Tag added to read name' );
@@ -97,7 +97,7 @@ $read_qual = $fastq[3];
 chomp $read_qual;
 is( length $read_qual, 54, 'Quality trimmed to 54 bp' );
 
-@fastq = read_file( $tmp_dir . '/test1_XXXXXXXXXX_1.fastq' );
+@fastq     = read_file( $tmp_dir . '/test1_XXXXXXXXXX_1.fastq' );
 $read_name = $fastq[0];
 chomp $read_name;
 is( substr( $read_name, -13 ), '#XXXXXXXXXX/1', 'Tag added to read name' );
@@ -108,7 +108,7 @@ $read_qual = $fastq[3];
 chomp $read_qual;
 is( length $read_qual, 54, 'Quality trimmed to 54 bp' );
 
-@fastq = read_file( $tmp_dir . '/test1_XXXXXXXXXX_2.fastq' );
+@fastq     = read_file( $tmp_dir . '/test1_XXXXXXXXXX_2.fastq' );
 $read_name = $fastq[0];
 chomp $read_name;
 is( substr( $read_name, -13 ), '#XXXXXXXXXX/2', 'Tag added to read name' );

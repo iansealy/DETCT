@@ -179,7 +179,7 @@ $regions = [
     [ '1', 1, 1000, 10, -10, '1', 300, -1, 10, [], undef, undef, [], [] ],
 ];
 $annotated_regions = $gene_finder->add_gene_annotation($regions);
-($gv) = keys %{ $annotated_regions->[0]->[-1] };   # Genebuild version varies
+($gv) = keys %{ $annotated_regions->[0]->[-1] };    # Genebuild version varies
 is( scalar keys %{ $annotated_regions->[0]->[-1] },   1, '1 genebuild' );
 is( scalar @{ $annotated_regions->[0]->[-1]->{$gv} }, 1, '1 gene' );
 is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[0],
@@ -292,7 +292,7 @@ $regions = [
     [ '1', 1, 1000, 10, -10, '1', 290, -1, 10, [], undef, undef, [], [] ],
 ];
 $annotated_regions = $gene_finder->add_gene_annotation($regions);
-($gv) = keys %{ $annotated_regions->[0]->[-1] };   # Genebuild version varies
+($gv) = keys %{ $annotated_regions->[0]->[-1] };    # Genebuild version varies
 is( scalar keys %{ $annotated_regions->[0]->[-1] },   1, '1 genebuild' );
 is( scalar @{ $annotated_regions->[0]->[-1]->{$gv} }, 1, '1 gene' );
 is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[0],
