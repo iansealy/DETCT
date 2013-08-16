@@ -1,0 +1,5 @@
+bin
+.build
+DETCT-*.tar.gz
+DETCT-*/
+perltidy.LOG
