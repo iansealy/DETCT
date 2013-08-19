@@ -22,6 +22,7 @@ use Readonly;
 use Class::InsideOut qw( private register id );
 use Scalar::Util qw( refaddr );
 use English qw( -no_match_vars );
+use IPC::System::Simple qw( capture );
 use POSIX qw( WIFEXITED WIFSIGNALED WTERMSIG );
 use File::Slurp;
 use File::Spec;
@@ -48,6 +49,7 @@ private analysis     => my %analysis;        # DETCT::Analysis object
 private cmd_line     => my %cmd_line;        # e.g. run_de_pipeline.pl
 private max_retries  => my %max_retries;     # e.g. 10
 private sleep_time   => my %sleep_time;      # e.g. 600
+private memory_limit_multiplier => my %memory_limit_multiplier;    # e.g. 1000
 private stage_to_run => my %stage_to_run;    # DETCT::Pipeline::Stage object
 private component_to_run => my %component_to_run;    # e.g. 5
 private verbose          => my %verbose;             # e.g. 1
@@ -386,6 +388,72 @@ sub _check_sleep_time {
       if defined $sleep_time && $sleep_time =~ m/\A \d+ \z/xms;
     confess 'No sleep time specified' if !defined $sleep_time;
     confess "Invalid sleep time ($sleep_time) specified";
+}
+
+=method memory_limit_multiplier
+
+  Usage       : my $multiplier = $pipeline->memory_limit_multiplier;
+  Purpose     : Getter for memory limit multiplier attribute
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub memory_limit_multiplier {
+    my ($self) = @_;
+
+    # For LSF, units for memory limit (-M option) can vary by compute farm
+    if ( !defined $memory_limit_multiplier{ id $self}
+        && $self->scheduler eq 'lsf' )
+    {
+        ## no critic (ProhibitMagicNumbers)
+        my $memory_limit_multiplier = 1000;    # Default
+        ## use critic
+        my $output = capture('lsadmin showconf lim');
+        if ( $output =~ m/LSF_UNIT_FOR_LIMITS\s=\sMB/xms ) {
+            $memory_limit_multiplier = 1;      # Only currently handle MB
+        }
+        $self->set_memory_limit_multiplier($memory_limit_multiplier);
+    }
+
+    return $memory_limit_multiplier{ id $self};
+}
+
+=method set_memory_limit_multiplier
+
+  Usage       : $pipeline->set_memory_limit_multiplier(1000);
+  Purpose     : Setter for memory limit multiplier attribute
+  Returns     : undef
+  Parameters  : +ve Int (the memory limit multiplier)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_memory_limit_multiplier {
+    my ( $self, $arg ) = @_;
+    $memory_limit_multiplier{ id $self} = _check_memory_limit_multiplier($arg);
+    return;
+}
+
+# Usage       : $multiplier
+#                   = _check_memory_limit_multiplier($memory_limit_multiplier);
+# Purpose     : Check for valid memory limit multiplier
+# Returns     : +ve Int (the valid memory limit multiplier)
+# Parameters  : +ve Int (the memory limit multiplier)
+# Throws      : If memory limit multiplier is missing or not a positive integer
+# Comments    : None
+sub _check_memory_limit_multiplier {
+    my ($memory_limit_multiplier) = @_;
+    return $memory_limit_multiplier
+      if defined $memory_limit_multiplier
+      && $memory_limit_multiplier =~ m/\A \d+ \z/xms;
+    confess 'No memory limit multiplier specified'
+      if !defined $memory_limit_multiplier;
+    confess
+      "Invalid memory limit multiplier ($memory_limit_multiplier) specified";
 }
 
 =method stage_to_run
@@ -994,10 +1062,9 @@ sub submit_job {
         # bsub job
         my $bsub_stdout_file = $job->base_filename . '.bsub.o';
         my $bsub_stderr_file = $job->base_filename . '.bsub.e';
-        ## no critic (ProhibitMagicNumbers)
         my $memory_clause = sprintf q{ -R'select[mem>%d] rusage[mem=%d]' -M%d },
-          $job->memory, $job->memory, $job->memory * 1000;
-        ## use critic
+          $job->memory, $job->memory,
+          $job->memory * $self->memory_limit_multiplier;
         $cmd =
             'bsub' . ' -oo '
           . $stdout_file . ' -eo '
