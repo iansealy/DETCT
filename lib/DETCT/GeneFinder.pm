@@ -340,7 +340,7 @@ sub _fill_cache_from_ensembl {
                         }
                     ],
                     ... (regions)
-                }
+                ]
   Parameters  : Arrayref (of regions)
   Throws      : If regions are missing
   Comments    : None
