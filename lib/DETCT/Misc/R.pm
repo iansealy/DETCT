@@ -82,7 +82,7 @@ our @EXPORT_OK = qw(
                         ]
                     ],
                     ... (regions)
-                }
+                ]
   Parameters  : Hashref {
                     dir          => String (the working directory),
                     regions      => Hashref (of arrayrefs of regions),
@@ -110,9 +110,9 @@ sub run_deseq {
     confess 'No DESeq script specified' if !defined $arg_ref->{deseq_script};
 
     # Get conditions and groups
-    my @samples    = @{ $arg_ref->{samples} };
+    my @samples = @{ $arg_ref->{samples} };
     my @conditions = uniq( nsort( map { $_->condition } @samples ) );
-    my @groups     = uniq( nsort( map { $_->group } grep { $_->group } @samples ) );
+    my @groups = uniq( nsort( map { $_->group } grep { $_->group } @samples ) );
     @groups = grep { defined $_ } @groups;
 
     # Make sure working directory exists
@@ -210,37 +210,91 @@ sub run_deseq {
             # Add p value and adjusted p value
             push @{$region}, $pval_for{$region_text}, $padj_for{$region_text};
 
-            # Calculate fold change if two conditions
-            my $fold_change;
-            my $log2_fold_change;
-            if ( scalar @conditions == 2 ) {
-                ( $fold_change, $log2_fold_change ) = calc_fold_change(
-                    $counts_for_condition{ $conditions[0] },
-                    $counts_for_condition{ $conditions[1] }
-                );
-            }
-            push @{$region}, [ $fold_change, $log2_fold_change ];
+            # Add condition fold change
+            push @{$region},
+              calc_condition_fold_change( \@conditions,
+                \%counts_for_condition );
 
-            # Calculate fold change for each group if two conditions
-            my @group_fold_changes;
-            if ( scalar @conditions == 2 && scalar @groups > 1 ) {
-                foreach my $group (@groups) {
-                    my ( $group_fold_change, $group_log2_fold_change ) =
-                      calc_fold_change(
-                        $counts_for_group_condition{$group}{ $conditions[0] },
-                        $counts_for_group_condition{$group}{ $conditions[1] }
-                      );
-                    push @group_fold_changes,
-                      [ $group_fold_change, $group_log2_fold_change ];
-                }
-            }
-            push @{$region}, \@group_fold_changes;
+            #
+            push @{$region},
+              calc_group_fold_changes( \@conditions, \@groups,
+                \%counts_for_group_condition );
 
             push @output, $region;
         }
     }
 
     return \@output;
+}
+
+=func calc_condition_fold_change
+
+  Usage       : calc_condition_fold_change( \@conditions, \%counts );
+  Purpose     : Calculate the condition fold change if two conditions
+  Returns     : Arrayref [
+                    Int (condition fold change) or undef,
+                    Int (log2 condition fold change) or undef,
+                ],
+  Parameters  : Arrayref (of conditions)
+                Hashref (of counts)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub calc_condition_fold_change {
+    my ( $conditions, $counts_for_condition ) = @_;
+
+    my $fold_change;
+    my $log2_fold_change;
+
+    if ( scalar @{$conditions} == 2 ) {
+        ( $fold_change, $log2_fold_change ) = calc_fold_change(
+            $counts_for_condition->{ $conditions->[0] },
+            $counts_for_condition->{ $conditions->[1] }
+        );
+    }
+
+    return [ $fold_change, $log2_fold_change ];
+}
+
+=func calc_group_fold_changes
+
+  Usage       : calc_group_fold_changes( \@conditions, \@groups, \%counts );
+  Purpose     : Calculate fold change for each group if two conditions
+  Returns     : Arrayref [
+                    Arrayref [
+                        Int (group fold change) or undef,
+                        Int (log2 group fold change) or undef,
+                    ],
+                    ... (groups)
+                ]
+  Parameters  : Arrayref (of conditions)
+                Arrayref (of groups)
+                Hashref (of counts)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub calc_group_fold_changes {
+    my ( $conditions, $groups, $counts_for_group_condition ) = @_;
+
+    my @group_fold_changes;
+
+    if ( scalar @{$conditions} == 2 && scalar @{$groups} > 1 ) {
+        foreach my $group ( @{$groups} ) {
+            my ( $group_fold_change, $group_log2_fold_change ) =
+              calc_fold_change(
+                $counts_for_group_condition->{$group}{ $conditions->[0] },
+                $counts_for_group_condition->{$group}{ $conditions->[1] }
+              );
+            push @group_fold_changes,
+              [ $group_fold_change, $group_log2_fold_change ];
+        }
+    }
+
+    return \@group_fold_changes;
 }
 
 =func calc_fold_change
