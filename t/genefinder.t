@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 93;
+plan tests => 95;
 
 use DETCT::GeneFinder;
 
@@ -310,4 +310,18 @@ is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[0],
 is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[1],
     'protein_coding', 'Transcript biotype' );
 is( scalar keys %{ $annotated_regions->[1]->[-1] },
+    0, 'No genes on reverse strand' );
+
+# Mock slice adaptor with non-existent slice
+$slice_adaptor = Test::MockObject->new();
+$slice_adaptor->set_isa('Bio::EnsEMBL::DBSQL::SliceAdaptor');
+$slice_adaptor->set_always( 'fetch_by_region', undef );
+
+$gene_finder = DETCT::GeneFinder->new( { slice_adaptor => $slice_adaptor, } );
+
+isa_ok( $gene_finder, 'DETCT::GeneFinder' );
+
+$annotated_regions = $gene_finder->add_gene_annotation($regions);
+
+is( scalar keys %{ $annotated_regions->[0]->[-1] },
     0, 'No genes on reverse strand' );
