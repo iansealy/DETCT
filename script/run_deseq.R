@@ -15,12 +15,9 @@ design        <- read.table( designFile, header=TRUE, row.names=1 )
 numFactors    <- ncol(design)
 numConditions <- nlevels(design$condition)
 
-# Check design
+# Can only handle one or two factors
 if (numFactors > 2) {
     stop("Too many factors")
-}
-if (numConditions != 2) {
-    stop("Must be two conditions")
 }
 
 # Write QC graphs to PDF
@@ -51,6 +48,13 @@ if (numFactors == 2) {
 }
 write.table( sizeFactors( cdsOneFactFull ), file=sizeFactorsFile,
     col.names=FALSE, row.names=FALSE, quote=FALSE, sep="\t" )
+
+# If not two conditions then write empty output
+if (numConditions != 2) {
+    write.table( c(), file=outputFile, col.names=FALSE, row.names=FALSE,
+        quote=FALSE, sep="\t" )
+    stop("Not two conditions")
+}
 
 # Estimate variance
 cdsOneFactFiltPooled <- tryCatch({

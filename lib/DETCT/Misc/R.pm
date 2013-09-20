@@ -112,7 +112,7 @@ sub run_deseq {
     # Get conditions and groups
     my @samples    = @{ $arg_ref->{samples} };
     my @conditions = uniq( nsort( map { $_->condition } @samples ) );
-    my @groups     = uniq( nsort( map { $_->group } @samples ) );
+    my @groups     = uniq( nsort( map { $_->group } grep { $_->group } @samples ) );
     @groups = grep { defined $_ } @groups;
 
     # Make sure working directory exists
@@ -195,10 +195,14 @@ sub run_deseq {
                 my $normalised_count =
                   $counts->[$sample_index] / $size_factors[$sample_index];
                 push @normalised_counts, $normalised_count;
-                push @{ $counts_for_condition{ $sample->condition } },
-                  $normalised_count;
-                push @{ $counts_for_group_condition{ $sample->group }
-                      { $sample->condition } }, $normalised_count;
+                if ( scalar @conditions == 2 ) {
+                    push @{ $counts_for_condition{ $sample->condition } },
+                      $normalised_count;
+                }
+                if ( scalar @conditions == 2 && scalar @groups > 1 ) {
+                    push @{ $counts_for_group_condition{ $sample->group }
+                          { $sample->condition } }, $normalised_count;
+                }
                 $sample_index++;
             }
             push @{$region}, \@normalised_counts;
