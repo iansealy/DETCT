@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 54;
+plan tests => 55;
 
 use DETCT::Gene;
 
@@ -71,6 +71,7 @@ throws_ok { $gene->set_biotype('#invalid#') } qr/Invalid biotype/ms,
 is( $gene->seq_name,          '5',   'Get sequence name' );
 is( $gene->set_seq_name('6'), undef, 'Set sequence name' );
 is( $gene->seq_name,          '6',   'Get new sequence name' );
+is( $gene->set_seq_name('GL456210.1'), undef, 'Set sequence name with full stop' );
 throws_ok { $gene->set_seq_name() } qr/No sequence name specified/ms,
   'No sequence name';
 throws_ok { $gene->set_seq_name('#invalid#') } qr/Invalid sequence name/ms,
