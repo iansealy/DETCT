@@ -314,7 +314,7 @@ sub set_seq_name {
 
 sub check_seq_name {
     my ($seq_name) = @_;
-    return $seq_name if defined $seq_name && $seq_name =~ m/\A \w+ \z/xms;
+    return $seq_name if defined $seq_name && $seq_name =~ m/\A [\w.]+ \z/xms;
     confess 'No sequence name specified' if !defined $seq_name;
     confess "Invalid sequence name ($seq_name) specified";
 }

@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 47;
+plan tests => 48;
 
 use DETCT::Transcript;
 
@@ -63,6 +63,8 @@ throws_ok { $transcript->set_biotype('#invalid#') } qr/Invalid biotype/ms,
 is( $transcript->seq_name,          '5',   'Get sequence name' );
 is( $transcript->set_seq_name('6'), undef, 'Set sequence name' );
 is( $transcript->seq_name,          '6',   'Get new sequence name' );
+is( $transcript->set_seq_name('GL456210.1'),
+    undef, 'Set sequence name with full stop' );
 throws_ok { $transcript->set_seq_name() } qr/No sequence name specified/ms,
   'No sequence name';
 throws_ok { $transcript->set_seq_name('#invalid#') }
