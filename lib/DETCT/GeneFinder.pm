@@ -232,7 +232,7 @@ sub _fill_cache_from_ensembl {
     $cache{ id $self}->{$seq_name} = {};
 
     my $slice = $self->slice_adaptor->fetch_by_region( 'toplevel', $seq_name );
-    return if !defined $slice; # No genes if non-existent sequence name
+    return if !defined $slice;    # No genes if non-existent sequence name
 
     require Bio::EnsEMBL::ApiVersion;
     my $genebuild_version = 'e' . Bio::EnsEMBL::ApiVersion::software_version();
