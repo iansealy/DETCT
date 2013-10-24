@@ -453,7 +453,7 @@ SKIP: {
             ensembl_port       => 5306,
             ensembl_user       => 'anonymous',
             ensembl_pass       => '',
-            ensembl_name       => 'danio_rerio_core_72_9',
+            ensembl_name       => 'danio_rerio_core_73_9',
         }
     );
     $seq = $analysis->get_subsequence( '1', 1, 10, 1 );
