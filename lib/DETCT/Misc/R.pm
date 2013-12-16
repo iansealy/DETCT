@@ -137,15 +137,21 @@ sub run_deseq {
     # Write samples to input file
     my $samples_file = File::Spec->catfile( $arg_ref->{dir}, 'samples.txt' );
     my $last_col_to_print = @groups > 1 ? 2 : 1;
-    my @header = ( q{}, 'condition', 'group' )[ 0 .. $last_col_to_print ];
-    open my $samples_fh, '>', $samples_file;
-    print {$samples_fh} ( join "\t", @header ), "\n";
+    my $condition_prefix  = condition_prefix( \@samples );
+    my $group_prefix      = group_prefix( \@samples );
+    my $samples_text;
     foreach my $sample (@samples) {
-        my @row =
-          ( $sample->name, $sample->condition, $sample->group )
-          [ 0 .. $last_col_to_print ];
-        print {$samples_fh} ( join "\t", @row ), "\n";
+        my @row = (
+            $sample->name,
+            $condition_prefix . $sample->condition,
+            $group_prefix . $sample->group,
+        )[ 0 .. $last_col_to_print ];
+        $samples_text .= ( join "\t", @row ) . "\n";
     }
+    open my $samples_fh, '>', $samples_file;
+    my @header = ( q{}, 'condition', 'group' )[ 0 .. $last_col_to_print ];
+    print {$samples_fh} ( join "\t", @header ), "\n";
+    print {$samples_fh} $samples_text;
     close $samples_fh;
 
     my $output_file = File::Spec->catfile( $arg_ref->{dir}, 'output.txt' );
@@ -225,6 +231,64 @@ sub run_deseq {
     }
 
     return \@output;
+}
+
+=func condition_prefix
+
+  Usage       : condition_prefix( \@samples );
+  Purpose     : Return a prefix if all conditions are numeric
+  Returns     : String (the prefix)
+  Parameters  : Arrayref (of samples)
+  Throws      : No exceptions
+  Comments    : Numeric conditions won't be treated as R factors
+
+=cut
+
+sub condition_prefix {
+    my ($samples) = @_;
+
+    return prefix( 'condition', $samples );
+}
+
+=func group_prefix
+
+  Usage       : group_prefix( \@samples );
+  Purpose     : Return a prefix if all groups are numeric
+  Returns     : String (the prefix)
+  Parameters  : Arrayref (of samples)
+  Throws      : No exceptions
+  Comments    : Numeric groups won't be treated as R factors
+
+=cut
+
+sub group_prefix {
+    my ($samples) = @_;
+
+    return prefix( 'group', $samples );
+}
+
+=func prefix
+
+  Usage       : prefix( 'condition', \@samples );
+  Purpose     : Return a prefix if all of chosen attribute are numeric
+  Returns     : String (the prefix)
+  Parameters  : String (the attribute)
+                Arrayref (of samples)
+  Throws      : No exceptions
+  Comments    : Numeric attributes won't be treated as R factors
+
+=cut
+
+sub prefix {
+    my ( $attribute, $samples ) = @_;
+
+    foreach my $sample ( @{$samples} ) {
+        if ( $sample->$attribute !~ m/\A [\d.]+ \z/xms ) {
+            return q{};
+        }
+    }
+
+    return $attribute;
 }
 
 =func calc_condition_fold_change
