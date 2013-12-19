@@ -1,4 +1,4 @@
-library(DESeq)
+library(DESeq2)
 library(RColorBrewer)
 library(gplots)
 
@@ -8,10 +8,11 @@ designFile      <- Args[5]
 outputFile      <- Args[6]
 sizeFactorsFile <- Args[7]
 qcPdfFile       <- Args[8]
+outputFile_Wald      <- Args[9]
 
-# Get data and design
-countTable    <- read.table(  countFile, header=TRUE, row.names=1 )
+countTable    <- read.table(  countFile , header=TRUE, row.names=1 )
 design        <- read.table( designFile, header=TRUE, row.names=1 )
+
 numFactors    <- ncol(design)
 numConditions <- nlevels(design$condition)
 
@@ -24,9 +25,10 @@ if (numFactors > 2) {
 pdf(qcPdfFile)
 
 # Create CountDataSets
-cdsOneFactFull <- newCountDataSet( countTable, design$condition )
+
+cdsOneFactFull <- DESeqDataSetFromMatrix(countTable, design, formula(~ condition))
 if (numFactors == 2) {
-    cdsTwoFactFull <- newCountDataSet( countTable, design )
+    cdsTwoFactFull <- DESeqDataSetFromMatrix(countTable, design, formula(~ group + condition))
 }
 
 # Remove regions with sum of counts below the 40th quantile
@@ -46,6 +48,7 @@ if (numFactors == 2) {
     cdsTwoFactFull <- estimateSizeFactors( cdsTwoFactFull )
     cdsTwoFactFilt <- estimateSizeFactors( cdsTwoFactFilt )
 }
+
 write.table( sizeFactors( cdsOneFactFull ), file=sizeFactorsFile,
     col.names=FALSE, row.names=FALSE, quote=FALSE, sep="\t" )
 
@@ -63,66 +66,63 @@ cdsOneFactFiltPooled <- tryCatch({
     estimateDispersions( cdsOneFactFilt, fitType="local" )
 })
 cdsOneFactFullBlind <- tryCatch({
-    estimateDispersions( cdsOneFactFull, method="blind" )
+    estimateDispersions( cdsOneFactFull)
 }, error = function(e) {
-    estimateDispersions( cdsOneFactFull, method="blind", fitType="local" )
+    estimateDispersions( cdsOneFactFull, fitType="local" )
 })
 if (numFactors == 1) {
     plotDispEsts( cdsOneFactFiltPooled )
 } else if (numFactors == 2) {
     cdsTwoFactFiltPooledCR <- tryCatch({
-        estimateDispersions( cdsTwoFactFilt, method="pooled-CR" )
+        estimateDispersions( cdsTwoFactFilt )
     }, error = function(e) {
-        estimateDispersions( cdsTwoFactFilt, method="pooled-CR", fitType="local" )
+        estimateDispersions( cdsTwoFactFilt,fitType="local" )
     })
     cdsTwoFactFullBlind <- tryCatch({
-        estimateDispersions( cdsTwoFactFull, method="blind" )
+        estimateDispersions( cdsTwoFactFull )
     }, error = function(e) {
-        estimateDispersions( cdsTwoFactFull, method="blind", fitType="local" )
+        estimateDispersions( cdsTwoFactFull, fitType="local" )
     })
     plotDispEsts( cdsTwoFactFiltPooledCR )
 }
 
-# Compare conditions
-conditions <- levels(design$condition)
-res <- nbinomTest( cdsOneFactFiltPooled, conditions[1], conditions[2] )
+
+res <- nbinomLRT(cdsOneFactFiltPooled, full = ~ condition ,reduced = ~ 1)
+results = results(res);
+regions = rownames(results);
+pval = results$pvalue
+padj = results$padj	
+
+dds <- nbinomWaldTest(cdsOneFactFiltPooled)
+res_wald = results(dds)
+
+
 if (numFactors == 2) {
-    fit1 <- fitNbinomGLMs( cdsTwoFactFiltPooledCR, count ~ group + condition )
-    fit0 <- fitNbinomGLMs( cdsTwoFactFiltPooledCR, count ~ group )
-    res$pval <- nbinomGLMTest( fit1, fit0 )
-    res$padj <- p.adjust( res$pval, method="BH" )
+    
+    res<-nbinomLRT(cdsTwoFactFiltPooledCR,full= ~ group + condition,reduced= ~ group )
+    results = results(res);
+   	regions = rownames(results);
+	pval = results$pvalue
+	padj = results$padj
+	
+	dds <- nbinomWaldTest(cdsTwoFactFiltPooledCR)
+	res_wald = results(dds)
 }
+
 plotMA(res)
-hist(res$pval, breaks=100, col="skyblue", border="slateblue",
+hist(pval, breaks=100, col="skyblue", border="slateblue",
     main="Histogram of p values")
 
 # Write output
-res = data.frame(id=res$id, pval=res$pval, padj=res$padj)
+res = data.frame(id=regions, pval=pval, padj=padj)
 write.table( res, file=outputFile, col.names=FALSE, row.names=FALSE,
     quote=FALSE, sep="\t" )
 
-# Variance stabilising transformation
-vsdOneFactFull <- varianceStabilizingTransformation( cdsOneFactFullBlind )
-if (numFactors == 2) {
-    vsdTwoFactFull <- varianceStabilizingTransformation( cdsTwoFactFullBlind )
-}
-
-# Plot heatmap of counts
-select <- order(rowMeans(counts(cdsOneFactFull)), decreasing=TRUE)[1:30]
-hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
-heatmap.2(exprs(vsdOneFactFull)[select,], col=hmcol, trace="none",
-    margin=c(10, 6))
-
-# Plot heatmap of sample to sample distances
-dists <- dist( t( exprs(vsdOneFactFull) ) )
-mat <- as.matrix( dists )
-heatmap.2(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
-
-# Plot PCA of samples
-print(plotPCA(vsdOneFactFull, intgroup=c("condition")))
-if (numFactors == 2) {
-    print(plotPCA(vsdTwoFactFull, intgroup=c("group")))
-    print(plotPCA(vsdTwoFactFull, intgroup=c("condition", "group")))
-}
-
-dev.off()
+res_wald = data.frame(id= rownames(res_wald),
+					intercept=res_wald$baseMean,
+					log2FoldChange=res_wald$log2FoldChange,
+					standard_error=res_wald$lfcSE,
+					pval=res_wald$pvalue,
+					padj=res_wald$padj)
+					
+write.table( res_wald, file=outputFile_Wald, col.names=FALSE, row.names=FALSE, quote=FALSE, sep="\t" )		
