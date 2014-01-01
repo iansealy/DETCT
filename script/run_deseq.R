@@ -15,22 +15,35 @@ estimate_power<-function(design=design,
 	non_ref_level_name =  sort(levels(design$condition))[2];
 	sd = res_wald$lfcSE * sqrt(non_ref_sample_size )
 	
+	
 	potential_regions<-c();
 	for(sample_size in 1:max_sample_size){
-		
 		z = diff_vector / (sd / sqrt(sample_size ))
 		pvalue = (1-pnorm(z))+pnorm(-z)
 		padj=p.adjust(pvalue,"BH")
 		potential_regions<-c(potential_regions,length(which(padj <= 0.05)))
 	}
-	power_data = data.frame(c(1:max_sample_size),potential_regions)
-	colnames(power_data)=c(paste("sample_size",non_ref_level_name,sep="__"),"potential_regions")
+	
+	increase_vector<-c(0);
+	for(i in 2:length(potential_regions)){
+		increase = potential_regions[i] - potential_regions[i-1];
+		increase_vector<-c(increase_vector,increase);
+	}
+	
+	asterisk_vector = rep('',length(potential_regions))
+	max_increase_index = which.max(increase_vector)	
+	asterisk_vector[max_increase_index]='*'
+	
+	power_data = data.frame(c(1:max_sample_size),potential_regions,increase_vector,asterisk_vector)
+	colnames(power_data)=c(paste("sample_size",non_ref_level_name,sep="__"),"potential_regions","increase","best")
 	
 	
 	write.table( power_data, file=outputFilePowerMatrix, col.names=colnames(power_data), row.names=FALSE, quote=FALSE, sep="\t" )
 	pdf(file = outputPdfPowerCurve);
 	plot(power_data$sample_size,power_data$potential_regions,
 		type="l", main="z stat power curve",xlab=colnames(power_data)[1],ylab=colnames(power_data)[2])
+	abline(v=max_increase_index)
+
 	dev.off();
 	
 	return(power_data);
