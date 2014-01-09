@@ -499,17 +499,22 @@ sub run_run_peak_hmm {
 
     # Run peak HMM for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        my $seq_hmm = run_peak_hmm(
-            {
-                dir           => $job->base_filename,
-                hmm_sig_level => $self->analysis->hmm_sig_level,
-                seq_name      => $seq->name,
-                read_bins     => $read_bins{ $seq->name },
-                summary       => $summary->{ $seq->name },
-                hmm_binary    => $self->analysis->hmm_binary,
-            }
-        );
-        %chunk_hmm = %{ $self->hash_merge->merge( \%chunk_hmm, $seq_hmm ) };
+        # Run peak HMM on each strand separately
+        foreach my $strand (1, -1) {
+            my $seq_hmm = run_peak_hmm(
+                {
+                    dir           => $job->base_filename,
+                    hmm_sig_level => $self->analysis->hmm_sig_level,
+                    seq_name      => $seq->name,
+                    read_bins     => $read_bins{ $seq->name }->{ $strand },
+                    summary       => $summary->{ $seq->name }->{ $strand },
+                    hmm_binary    => $self->analysis->hmm_binary,
+                }
+            );
+            # Add strand to HMM
+            $seq_hmm = { $seq->name => { $strand => $seq_hmm->{$seq->name} } };
+            %chunk_hmm = %{ $self->hash_merge->merge( \%chunk_hmm, $seq_hmm ) };
+        }
     }
 
     my $output_file = $job->base_filename . '.out';
