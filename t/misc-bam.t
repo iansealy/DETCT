@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 323;
+plan tests => 340;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -327,13 +327,21 @@ throws_ok {
 qr/No tags specified/ms, 'No tags';
 
 # Check read bins returned by test BAM file
-# Should be 35 bins according to:
+# Should be 25 bins on forward strand according to:
 
 =for comment
-(samtools view -f 16 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
-| awk '{ print ($4) / 100 "\t" ($4 + 53 - 1) / 100 }'; \
-samtools view -f 32 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
-| awk '{ print ($4) / 100 "\t" ($4 + 53 - 1) / 100 }') \
+samtools view -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+| awk '{ print ($4) / 100 "\t" ($4 + 53 - 1) / 100 }' \
+| sed -e 's/\.[0-9]*//g' \
+| awk '{ if ($1 == $2) print $1; else print $1 "\n" $2 }' \
+| sort | uniq -c | wc -l
+=cut
+
+# And 13 bins on reverse strand according to:
+
+=for comment
+samtools view -f 16 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+| awk '{ print ($4) / 100 "\t" ($4 + 53 - 1) / 100 }' \
 | sed -e 's/\.[0-9]*//g' \
 | awk '{ if ($1 == $2) print $1; else print $1 "\n" $2 }' \
 | sort | uniq -c | wc -l
@@ -348,8 +356,10 @@ $count = bin_reads(
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
     }
 );
-is( scalar keys %{$count},          1,  '1 sequence' );
-is( scalar keys %{ $count->{'2'} }, 35, '35 bins' );
+is( scalar keys %{$count}, 1,  '1 sequence' );
+is( scalar keys %{ $count->{'2'} }, 2, '2 strands' );
+is( scalar keys %{ $count->{'2'}->{'1'} }, 25, '25 forward strand bins' );
+is( scalar keys %{ $count->{'2'}->{'-1'} }, 13, '13 reverse strand bins' );
 
 # Check read bins returned with non-existent tag
 $count = bin_reads(
@@ -361,8 +371,8 @@ $count = bin_reads(
         tags               => ['NNNNTTTTTT'],
     }
 );
-is( scalar keys %{$count},          1, '1 sequence' );
-is( scalar keys %{ $count->{'1'} }, 0, '0 bins' );
+is( scalar keys %{$count}, 1, '1 sequence' );
+is( scalar keys %{ $count->{'1'}->{'1'} }, 0, '0 bins' );
 
 # Check getting read peaks required parameters
 throws_ok {

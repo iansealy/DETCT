@@ -258,7 +258,9 @@ sub count_tags {
                 } );
   Purpose     : Bin reads in a BAM file
   Returns     : Hashref {
-                    Int (bin) => Int (count)
+                    Int (1 or -1) (strand) => Hashref {
+                        Int (bin) => Int (count)
+                    }
                 }
   Parameters  : Hashref {
                     bam_file           => String (the BAM file)
@@ -311,7 +313,7 @@ sub bin_reads {
         my $end_bin   = int( ( $alignment->end - 1 ) / $arg_ref->{bin_size} );
 
         foreach my $bin ( $start_bin .. $end_bin ) {
-            $read_count_for{$bin}++;
+            $read_count_for{$alignment->strand}{$bin}++;
         }
 
         return;
