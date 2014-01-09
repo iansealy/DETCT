@@ -656,17 +656,26 @@ sub run_get_three_prime_ends {
 
     # Get 3' ends for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        my $seq_regions = get_three_prime_ends(
-            {
-                bam_file           => $bam_file,
-                mismatch_threshold => $self->analysis->mismatch_threshold,
-                seq_name           => $seq->name,
-                tags               => \@tags,
-                regions            => $regions->{ $seq->name },
-            }
-        );
-        %chunk_regions =
-          %{ $self->hash_merge->merge( \%chunk_regions, $seq_regions ) };
+        # Get 3' ends on each strand separately
+        foreach my $strand (-1, 1) {
+            my $seq_regions = get_three_prime_ends(
+                {
+                    bam_file           => $bam_file,
+                    mismatch_threshold => $self->analysis->mismatch_threshold,
+                    seq_name           => $seq->name,
+                    strand             => $strand,
+                    tags               => \@tags,
+                    regions            => $regions->{ $seq->name }->{ $strand },
+                }
+            );
+            %chunk_regions =
+              %{ $self->hash_merge->merge( \%chunk_regions, $seq_regions ) };
+        }
+    }
+
+    # Sort regions by start then end
+    foreach my $seq_name (keys %chunk_regions) {
+        @{ $chunk_regions{$seq_name} } = sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] } @{ $chunk_regions{$seq_name} };
     }
 
     my $output_file = $job->base_filename . '.out';

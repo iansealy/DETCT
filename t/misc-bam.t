@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 340;
+plan tests => 344;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -559,6 +559,7 @@ throws_ok {
         {
             mismatch_threshold => 0,
             seq_name           => '1',
+            strand             => 1,
             tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
             regions            => [ [ 1, 1000, 10, -10 ] ],
         }
@@ -570,6 +571,7 @@ throws_ok {
         {
             bam_file => 't/data/test1.bam',
             seq_name => '1',
+            strand             => 1,
             tags     => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
             regions  => [ [ 1, 1000, 10, -10 ] ],
         }
@@ -581,6 +583,7 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 0,
+            strand             => 1,
             tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
             regions            => [ [ 1, 1000, 10, -10 ] ],
         }
@@ -593,6 +596,19 @@ throws_ok {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 0,
             seq_name           => '1',
+            tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
+            regions            => [ [ 1, 1000, 10, -10 ] ],
+        }
+    );
+}
+qr/No strand specified/ms, 'No strand';
+throws_ok {
+    get_three_prime_ends(
+        {
+            bam_file           => 't/data/test1.bam',
+            mismatch_threshold => 0,
+            seq_name           => '1',
+            strand             => 1,
             regions            => [ [ 1, 1000, 10, -10 ] ],
         }
     );
@@ -604,6 +620,7 @@ throws_ok {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 0,
             seq_name           => '1',
+            strand             => 1,
             tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
         }
     );
@@ -613,27 +630,30 @@ qr/No regions specified/ms, 'No regions';
 my $three_prime_ends;
 
 # Check 3' ends returned in first 2000 bp of chromosome 1 of test BAM file
-# Should be 9 3' ends according to:
+# Should be 7 forward strand 3' ends according to:
 
 =for comment
-(samtools view -f 160 -F 1036 t/data/test1.bam 1:1-2000 \
-| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 + 29 ":1" }'; \
-samtools view -f 128 -F 1068 t/data/test1.bam 1:1-2000 \
-| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }') \
-| wc -l
+samtools view -f 128 -F 1052 t/data/test1.bam 1:1-2000 \
+| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 + 29 ":1" }' | wc -l
+=cut
+
+# Should be 2 reverse strand 3' ends according to:
+=for comment
+samtools view -f 144 -F 1036 t/data/test1.bam 1:1-2000 \
+| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }' | wc -l
 =cut
 
 # One forward strand 3' end should be 1:2642:1 with 1 read according to:
 
 =for comment
-samtools view -f 160 -F 1036 t/data/test1.bam 1:1-2000 \
+samtools view -f 128 -F 1052 t/data/test1.bam 1:1-2000 \
 | grep NM:i:0 | grep 54M | awk '{ print "1:" $8 + 29 ":1" }' | sort | uniq -c
 =cut
 
 # One reverse strand 3' end should be 1:632:-1 with 1 read according to:
 
 =for comment
-samtools view -f 128 -F 1068 t/data/test1.bam 1:1-2000 \
+samtools view -f 144 -F 1036 t/data/test1.bam 1:1-2000 \
 | grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }' | sort | uniq -c
 =cut
 
@@ -642,26 +662,45 @@ $three_prime_ends = get_three_prime_ends(
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
         seq_name           => '1',
+        strand             => 1,
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
         regions            => [ [ 1, 2000, 10, -10 ] ],
     }
 );
-is( scalar keys %{$three_prime_ends},               1, '1 sequence' );
-is( scalar @{ $three_prime_ends->{'1'} },           1, '1 region' );
-is( scalar @{ $three_prime_ends->{'1'}->[0]->[4] }, 9, q{9 3' ends} );
+is( scalar keys %{$three_prime_ends}, 1, '1 sequence' );
+is( scalar @{ $three_prime_ends->{'1'} }, 1, '1 region' );
+is( scalar @{ $three_prime_ends->{'1'}->[0]->[4] }, 7, q{7 forward strand 3' ends} );
 my $got_forward = 0;
-my $got_reverse = 0;
 foreach my $three_prime_end ( @{ $three_prime_ends->{'1'}->[0]->[4] } ) {
     my ( $seq, $pos, $strand, $read_count ) = @{$three_prime_end};
     my $string_form = join q{:}, $seq, $pos, $strand;
     if ( $string_form eq '1:2642:1' ) {
         $got_forward = 1;
     }
+}
+ok( $got_forward, q{1 forward strand 3' end} );
+
+$three_prime_ends = get_three_prime_ends(
+    {
+        bam_file           => 't/data/test1.bam',
+        mismatch_threshold => 0,
+        seq_name           => '1',
+        strand             => -1,
+        tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
+        regions            => [ [ 1, 2000, 10, -10 ] ],
+    }
+);
+is( scalar keys %{$three_prime_ends}, 1, '1 sequence' );
+is( scalar @{ $three_prime_ends->{'1'} }, 1, '1 region' );
+is( scalar @{ $three_prime_ends->{'1'}->[0]->[4] }, 2, q{2 reverse strand 3' ends} );
+my $got_reverse = 0;
+foreach my $three_prime_end ( @{ $three_prime_ends->{'1'}->[0]->[4] } ) {
+    my ( $seq, $pos, $strand, $read_count ) = @{$three_prime_end};
+    my $string_form = join q{:}, $seq, $pos, $strand;
     if ( $string_form eq '1:632:-1' ) {
         $got_reverse = 1;
     }
 }
-ok( $got_forward, q{1 forward strand 3' end} );
 ok( $got_reverse, q{1 reverse strand 3' end} );
 
 # Get 3' ends returned with non-existent tag
@@ -670,6 +709,7 @@ $three_prime_ends = get_three_prime_ends(
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
         seq_name           => '1',
+        strand             => 1,
         tags               => ['NNNNTTTTTT'],
         regions            => [ [ 1, 2000, 10, -10 ] ],
     }
@@ -684,6 +724,7 @@ $three_prime_ends = get_three_prime_ends(
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
         seq_name           => '3',
+        strand             => 1,
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
         regions            => [ [ 1, 10000, 10, -10 ] ],
     }

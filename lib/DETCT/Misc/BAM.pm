@@ -462,6 +462,7 @@ sub get_read_peaks {
                     bam_file           => $bam_file,
                     mismatch_threshold => 2,
                     seq_name           => '1',
+                    strand             => 1,
                     tags               => ['NNNNBGAGGC', 'NNNNBAGAAG'],
                     regions            => $regions_ary_ref,
                 } );
@@ -489,12 +490,14 @@ sub get_read_peaks {
                     bam_file           => String (the BAM file)
                     mismatch_threshold => Int (the mismatch threshold)
                     seq_name           => String (the sequence name)
+                    strand             => Int ( 1 or -1 ) (the 3' end strand)
                     tags               => Arrayref of strings (the tags)
                     regions            => Arrayref (of regions)
                 }
   Throws      : If BAM file is missing
                 If mismatch threshold is missing
                 If sequence name is missing
+                If strand is missing
                 If tags are missing
                 If regions are missing
   Comments    : regions parameter is a list of regions, unlike the regions
@@ -510,10 +513,13 @@ sub get_three_prime_ends {
     confess 'No mismatch threshold specified'
       if !defined $arg_ref->{mismatch_threshold};
     confess 'No sequence name specified' if !defined $arg_ref->{seq_name};
+    confess 'No strand specified'        if !defined $arg_ref->{strand};
     confess 'No tags specified'          if !defined $arg_ref->{tags};
     confess 'No regions specified'       if !defined $arg_ref->{regions};
 
     my @tags = @{ $arg_ref->{tags} };
+
+    my $three_prime_strand = $arg_ref->{strand};
 
     # Convert tags to regular expressions
     my %re_for = DETCT::Misc::Tag::convert_tag_to_regexp(@tags);
@@ -547,6 +553,11 @@ sub get_three_prime_ends {
                 $arg_ref->{mismatch_threshold} );
             next if !matched_tag( $alignment, \%re_for );
 
+            # Strand of read 1 is opposite to 3' end strand
+            next if $alignment->mstrand == $three_prime_strand;
+            # Strand of read 2 is same as 3' end strand
+            next if $alignment->strand  != $three_prime_strand;
+
             # Skip if 3' end is on a different chromosome
             # Hopefully not significant number of real 3' ends on different
             # chromosomes because are hard to deal with
@@ -556,22 +567,12 @@ sub get_three_prime_ends {
             # sorted by coordinate)
             next if $alignment->mate_seq_id ne $arg_ref->{seq_name};
 
-            # Identify 3' end position and strand based on alignment of read 1
+            # Identify 3' end position based on alignment of read 1
             my $three_prime_seq = $alignment->mate_seq_id;
-            my $three_prime_pos;
-            my $three_prime_strand;
-            if ( $alignment->mstrand == 1 ) {
-                $three_prime_pos = $alignment->mate_start;
-                $three_prime_strand = -1;    ## no critic (ProhibitMagicNumbers)
-            }
-            else {
-                $three_prime_pos    = $alignment->mate_end;
-                $three_prime_strand = 1;
-            }
+            my $three_prime_pos = $three_prime_strand == 1 ? $alignment->mate_end : $alignment->mate_start;
 
             # Count number of reads supporting each 3' end
-            my $three_prime = join q{:}, $three_prime_seq, $three_prime_pos,
-              $three_prime_strand;
+            my $three_prime = join q{:}, $three_prime_seq, $three_prime_pos;
             $count_for{$three_prime}++;
         }
 
@@ -582,9 +583,9 @@ sub get_three_prime_ends {
             keys %count_for
           )
         {
-            my ( $seq, $pos, $strand ) = split /:/xms, $three_prime;
+            my ( $seq, $pos ) = split /:/xms, $three_prime;
             push @three_prime_ends,
-              [ $seq, $pos, $strand, $count_for{$three_prime} ];
+              [ $seq, $pos, $three_prime_strand, $count_for{$three_prime} ];
         }
 
         # Add three prime ends to regions
