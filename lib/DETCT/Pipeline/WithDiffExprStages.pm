@@ -576,15 +576,20 @@ sub run_join_hmm_bins {
 
     # Join HMM bins for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        my $seq_regions = join_hmm_bins(
-            {
-                bin_size => $self->analysis->bin_size,
-                seq_name => $seq->name,
-                hmm_bins => $hmm_bins->{ $seq->name },
-            }
-        );
-        %chunk_regions =
-          %{ $self->hash_merge->merge( \%chunk_regions, $seq_regions ) };
+        # Join HMM bins on each strand separately
+        foreach my $strand (1, -1) {
+            my $seq_regions = join_hmm_bins(
+                {
+                    bin_size => $self->analysis->bin_size,
+                    seq_name => $seq->name,
+                    hmm_bins => $hmm_bins->{ $seq->name }->{ $strand },
+                }
+            );
+            # Add strand to regions
+            $seq_regions = { $seq->name => { $strand => $seq_regions->{$seq->name} } };
+            %chunk_regions =
+              %{ $self->hash_merge->merge( \%chunk_regions, $seq_regions ) };
+        }
     }
 
     my $output_file = $job->base_filename . '.out';
