@@ -447,7 +447,7 @@ sub get_read_peaks {
     $sam->fetch( $arg_ref->{seq_name}, $callback );
 
     # Finish last peaks
-    foreach my $strand ( 1, -1 ) {
+    foreach my $strand ( 1, -1 ) { ## no critic (ProhibitMagicNumbers)
         if ( $current_peak_read_count{$strand} ) {
             push @{ $peaks{$strand} },
               [
