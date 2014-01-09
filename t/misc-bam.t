@@ -356,9 +356,9 @@ $count = bin_reads(
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
     }
 );
-is( scalar keys %{$count}, 1,  '1 sequence' );
-is( scalar keys %{ $count->{'2'} }, 2, '2 strands' );
-is( scalar keys %{ $count->{'2'}->{'1'} }, 25, '25 forward strand bins' );
+is( scalar keys %{$count},                  1,  '1 sequence' );
+is( scalar keys %{ $count->{'2'} },         2,  '2 strands' );
+is( scalar keys %{ $count->{'2'}->{'1'} },  25, '25 forward strand bins' );
 is( scalar keys %{ $count->{'2'}->{'-1'} }, 13, '13 reverse strand bins' );
 
 # Check read bins returned with non-existent tag
@@ -371,7 +371,7 @@ $count = bin_reads(
         tags               => ['NNNNTTTTTT'],
     }
 );
-is( scalar keys %{$count}, 1, '1 sequence' );
+is( scalar keys %{$count},                 1, '1 sequence' );
 is( scalar keys %{ $count->{'1'}->{'1'} }, 0, '0 bins' );
 
 # Check getting read peaks required parameters
@@ -471,20 +471,32 @@ $peaks = get_read_peaks(
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
     }
 );
-is( scalar keys %{$peaks}, 1, '1 sequence' );
+is( scalar keys %{$peaks},          1, '1 sequence' );
 is( scalar keys %{ $peaks->{'2'} }, 2, '2 strands' );
-is( $peaks->{'2'}->{'1'}->[0]->[0], 262, 'Start of first peak on forward strand' );
-is( $peaks->{'2'}->{'1'}->[0]->[1], 350, 'End of first peak on forward strand' );
-is( $peaks->{'2'}->{'1'}->[0]->[2], 2, 'First peak read count on forward strand' );
-is( $peaks->{'2'}->{'1'}->[-1]->[0], 7399, 'Start of last peak on forward strand' );
-is( $peaks->{'2'}->{'1'}->[-1]->[1], 7452, 'End of last peak on forward strand' );
-is( $peaks->{'2'}->{'1'}->[-1]->[2], 1, 'Last peak read count on forward strand' );
-is( $peaks->{'2'}->{'-1'}->[0]->[0], 722, 'Start of first peak on reverse strand' );
-is( $peaks->{'2'}->{'-1'}->[0]->[1], 775, 'End of first peak on reverse strand' );
-is( $peaks->{'2'}->{'-1'}->[0]->[2], 1, 'First peak read count on reverse strand' );
-is( $peaks->{'2'}->{'-1'}->[-1]->[0], 6467, 'Start of last peak on reverse strand' );
-is( $peaks->{'2'}->{'-1'}->[-1]->[1], 6520, 'End of last peak on reverse strand' );
-is( $peaks->{'2'}->{'-1'}->[-1]->[2], 1, 'Last peak read count on reverse strand' );
+is( $peaks->{'2'}->{'1'}->[0]->[0],
+    262, 'Start of first peak on forward strand' );
+is( $peaks->{'2'}->{'1'}->[0]->[1], 350,
+    'End of first peak on forward strand' );
+is( $peaks->{'2'}->{'1'}->[0]->[2],
+    2, 'First peak read count on forward strand' );
+is( $peaks->{'2'}->{'1'}->[-1]->[0],
+    7399, 'Start of last peak on forward strand' );
+is( $peaks->{'2'}->{'1'}->[-1]->[1],
+    7452, 'End of last peak on forward strand' );
+is( $peaks->{'2'}->{'1'}->[-1]->[2],
+    1, 'Last peak read count on forward strand' );
+is( $peaks->{'2'}->{'-1'}->[0]->[0],
+    722, 'Start of first peak on reverse strand' );
+is( $peaks->{'2'}->{'-1'}->[0]->[1],
+    775, 'End of first peak on reverse strand' );
+is( $peaks->{'2'}->{'-1'}->[0]->[2],
+    1, 'First peak read count on reverse strand' );
+is( $peaks->{'2'}->{'-1'}->[-1]->[0],
+    6467, 'Start of last peak on reverse strand' );
+is( $peaks->{'2'}->{'-1'}->[-1]->[1],
+    6520, 'End of last peak on reverse strand' );
+is( $peaks->{'2'}->{'-1'}->[-1]->[2],
+    1, 'Last peak read count on reverse strand' );
 
 # Check read peaks returned by test BAM file
 # First peak on forward strand should be 78 - 131 (1 read) according to:
@@ -524,20 +536,32 @@ $peaks = get_read_peaks(
         tags               => [ 'NNNNBCAGAG', 'NNNNBGCACG' ],
     }
 );
-is( scalar keys %{$peaks}, 1, '1 sequence' );
+is( scalar keys %{$peaks},          1, '1 sequence' );
 is( scalar keys %{ $peaks->{'1'} }, 2, '2 strands' );
-is( $peaks->{'1'}->{'1'}->[0]->[0], 78, 'Start of first peak on forward strand' );
-is( $peaks->{'1'}->{'1'}->[0]->[1], 131, 'End of first peak on forward strand' );
-is( $peaks->{'1'}->{'1'}->[0]->[2], 1, 'First peak read count on forward strand' );
-is( $peaks->{'1'}->{'1'}->[-1]->[0], 8104, 'Start of last peak on forward strand' );
-is( $peaks->{'1'}->{'1'}->[-1]->[1], 8157, 'End of last peak on forward strand' );
-is( $peaks->{'1'}->{'1'}->[-1]->[2], 1, 'Last peak read count on forward strand' );
-is( $peaks->{'1'}->{'-1'}->[0]->[0], 3183, 'Start of first peak on reverse strand' );
-is( $peaks->{'1'}->{'-1'}->[0]->[1], 3236, 'End of first peak on reverse strand' );
-is( $peaks->{'1'}->{'-1'}->[0]->[2], 1, 'First peak read count on reverse strand' );
-is( $peaks->{'1'}->{'-1'}->[-1]->[0], 8666, 'Start of last peak on reverse strand' );
-is( $peaks->{'1'}->{'-1'}->[-1]->[1], 8719, 'End of last peak on reverse strand' );
-is( $peaks->{'1'}->{'-1'}->[-1]->[2], 1, 'Last peak read count on reverse strand' );
+is( $peaks->{'1'}->{'1'}->[0]->[0],
+    78, 'Start of first peak on forward strand' );
+is( $peaks->{'1'}->{'1'}->[0]->[1], 131,
+    'End of first peak on forward strand' );
+is( $peaks->{'1'}->{'1'}->[0]->[2],
+    1, 'First peak read count on forward strand' );
+is( $peaks->{'1'}->{'1'}->[-1]->[0],
+    8104, 'Start of last peak on forward strand' );
+is( $peaks->{'1'}->{'1'}->[-1]->[1],
+    8157, 'End of last peak on forward strand' );
+is( $peaks->{'1'}->{'1'}->[-1]->[2],
+    1, 'Last peak read count on forward strand' );
+is( $peaks->{'1'}->{'-1'}->[0]->[0],
+    3183, 'Start of first peak on reverse strand' );
+is( $peaks->{'1'}->{'-1'}->[0]->[1],
+    3236, 'End of first peak on reverse strand' );
+is( $peaks->{'1'}->{'-1'}->[0]->[2],
+    1, 'First peak read count on reverse strand' );
+is( $peaks->{'1'}->{'-1'}->[-1]->[0],
+    8666, 'Start of last peak on reverse strand' );
+is( $peaks->{'1'}->{'-1'}->[-1]->[1],
+    8719, 'End of last peak on reverse strand' );
+is( $peaks->{'1'}->{'-1'}->[-1]->[2],
+    1, 'Last peak read count on reverse strand' );
 
 # Check read peaks returned with non-existent tag
 $peaks = get_read_peaks(
@@ -549,8 +573,8 @@ $peaks = get_read_peaks(
         tags               => ['NNNNTTTTTT'],
     }
 );
-is( scalar keys %{$peaks},     1, '1 sequence' );
-is( scalar @{ $peaks->{'1'}->{'1'} }, 0, '0 peaks on forward strand' );
+is( scalar keys %{$peaks},             1, '1 sequence' );
+is( scalar @{ $peaks->{'1'}->{'1'} },  0, '0 peaks on forward strand' );
 is( scalar @{ $peaks->{'1'}->{'-1'} }, 0, '0 peaks on reverse strand' );
 
 # Check getting 3' ends required parameters
@@ -571,7 +595,7 @@ throws_ok {
         {
             bam_file => 't/data/test1.bam',
             seq_name => '1',
-            strand             => 1,
+            strand   => 1,
             tags     => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
             regions  => [ [ 1, 1000, 10, -10 ] ],
         }
@@ -638,6 +662,7 @@ samtools view -f 128 -F 1052 t/data/test1.bam 1:1-2000 \
 =cut
 
 # Should be 2 reverse strand 3' ends according to:
+
 =for comment
 samtools view -f 144 -F 1036 t/data/test1.bam 1:1-2000 \
 | grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }' | wc -l
@@ -667,9 +692,10 @@ $three_prime_ends = get_three_prime_ends(
         regions            => [ [ 1, 2000, 10, -10 ] ],
     }
 );
-is( scalar keys %{$three_prime_ends}, 1, '1 sequence' );
+is( scalar keys %{$three_prime_ends},     1, '1 sequence' );
 is( scalar @{ $three_prime_ends->{'1'} }, 1, '1 region' );
-is( scalar @{ $three_prime_ends->{'1'}->[0]->[4] }, 7, q{7 forward strand 3' ends} );
+is( scalar @{ $three_prime_ends->{'1'}->[0]->[4] },
+    7, q{7 forward strand 3' ends} );
 my $got_forward = 0;
 foreach my $three_prime_end ( @{ $three_prime_ends->{'1'}->[0]->[4] } ) {
     my ( $seq, $pos, $strand, $read_count ) = @{$three_prime_end};
@@ -690,9 +716,10 @@ $three_prime_ends = get_three_prime_ends(
         regions            => [ [ 1, 2000, 10, -10 ] ],
     }
 );
-is( scalar keys %{$three_prime_ends}, 1, '1 sequence' );
+is( scalar keys %{$three_prime_ends},     1, '1 sequence' );
 is( scalar @{ $three_prime_ends->{'1'} }, 1, '1 region' );
-is( scalar @{ $three_prime_ends->{'1'}->[0]->[4] }, 2, q{2 reverse strand 3' ends} );
+is( scalar @{ $three_prime_ends->{'1'}->[0]->[4] },
+    2, q{2 reverse strand 3' ends} );
 my $got_reverse = 0;
 foreach my $three_prime_end ( @{ $three_prime_ends->{'1'}->[0]->[4] } ) {
     my ( $seq, $pos, $strand, $read_count ) = @{$three_prime_end};

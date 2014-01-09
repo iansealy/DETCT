@@ -313,7 +313,7 @@ sub bin_reads {
         my $end_bin   = int( ( $alignment->end - 1 ) / $arg_ref->{bin_size} );
 
         foreach my $bin ( $start_bin .. $end_bin ) {
-            $read_count_for{$alignment->strand}{$bin}++;
+            $read_count_for{ $alignment->strand }{$bin}++;
         }
 
         return;
@@ -427,7 +427,7 @@ sub get_read_peaks {
         }
         else {
             # Finish current peak
-            push @{$peaks{$strand}},
+            push @{ $peaks{$strand} },
               [
                 $current_peak_start{$strand}, $current_peak_end{$strand},
                 $current_peak_read_count{$strand}
@@ -447,9 +447,13 @@ sub get_read_peaks {
     $sam->fetch( $arg_ref->{seq_name}, $callback );
 
     # Finish last peaks
-    foreach my $strand (1, -1) {
-        if ($current_peak_read_count{$strand}) {
-            push @{$peaks{$strand}}, [ $current_peak_start{$strand}, $current_peak_end{$strand}, $current_peak_read_count{$strand} ];
+    foreach my $strand ( 1, -1 ) {
+        if ( $current_peak_read_count{$strand} ) {
+            push @{ $peaks{$strand} },
+              [
+                $current_peak_start{$strand}, $current_peak_end{$strand},
+                $current_peak_read_count{$strand}
+              ];
         }
     }
 
@@ -555,8 +559,9 @@ sub get_three_prime_ends {
 
             # Strand of read 1 is opposite to 3' end strand
             next if $alignment->mstrand == $three_prime_strand;
+
             # Strand of read 2 is same as 3' end strand
-            next if $alignment->strand  != $three_prime_strand;
+            next if $alignment->strand != $three_prime_strand;
 
             # Skip if 3' end is on a different chromosome
             # Hopefully not significant number of real 3' ends on different
@@ -569,7 +574,10 @@ sub get_three_prime_ends {
 
             # Identify 3' end position based on alignment of read 1
             my $three_prime_seq = $alignment->mate_seq_id;
-            my $three_prime_pos = $three_prime_strand == 1 ? $alignment->mate_end : $alignment->mate_start;
+            my $three_prime_pos =
+                $three_prime_strand == 1
+              ? $alignment->mate_end
+              : $alignment->mate_start;
 
             # Count number of reads supporting each 3' end
             my $three_prime = join q{:}, $three_prime_seq, $three_prime_pos;
