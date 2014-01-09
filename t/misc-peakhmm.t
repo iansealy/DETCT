@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 103;
+plan tests => 104;
 
 use DETCT::Misc::PeakHMM qw(
   merge_read_peaks
@@ -33,6 +33,7 @@ throws_ok {
     merge_read_peaks(
         {
             seq_name => 1,
+            strand   => 1,
             peaks    => [ [ 1, 2, 1 ] ],
         }
     );
@@ -41,6 +42,7 @@ qr/No peak buffer width specified/ms, 'No peak buffer width';
 throws_ok {
     merge_read_peaks(
         {
+            strand            => 1,
             peak_buffer_width => 100,
             peaks             => [ [ 1, 2, 1 ] ],
         }
@@ -52,6 +54,17 @@ throws_ok {
         {
             peak_buffer_width => 100,
             seq_name          => 1,
+            peaks             => [ [ 1, 2, 1 ] ],
+        }
+    );
+}
+qr/No strand specified/ms, 'No strand';
+throws_ok {
+    merge_read_peaks(
+        {
+            peak_buffer_width => 100,
+            seq_name          => 1,
+            strand            => 1,
         }
     );
 }
@@ -63,17 +76,18 @@ $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
         seq_name          => 1,
+        strand            => 1,
         peaks             => $input_peaks,
     }
 );
-is( scalar keys %{$output_peaks},     1,   '1 sequence' );
-is( scalar @{ $output_peaks->{'1'} }, 2,   '2 peaks' );
-is( $output_peaks->{'1'}->[0]->[0],   100, 'Start of first peak' );
-is( $output_peaks->{'1'}->[0]->[1],   200, 'End of first peak' );
-is( $output_peaks->{'1'}->[0]->[2],   1,   'First peak read count' );
-is( $output_peaks->{'1'}->[-1]->[0],  500, 'Start of last peak' );
-is( $output_peaks->{'1'}->[-1]->[1],  600, 'End of last peak' );
-is( $output_peaks->{'1'}->[-1]->[2],  1,   'Last peak read count' );
+is( scalar keys %{$output_peaks}, 1, '1 sequence' );
+is( scalar @{ $output_peaks->{'1'}->{'1'} }, 2, '2 peaks' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[0], 100, 'Start of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[1], 200, 'End of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[2], 1, 'First peak read count' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[0], 500, 'Start of last peak' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[1], 600, 'End of last peak' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[2], 1, 'Last peak read count' );
 
 # Two peaks merged into one
 $input_peaks = [ [ 100, 200, 1 ], [ 250, 350, 1 ], ];
@@ -81,14 +95,15 @@ $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
         seq_name          => 1,
+        strand            => 1,
         peaks             => $input_peaks,
     }
 );
-is( scalar keys %{$output_peaks},     1,   '1 sequence' );
-is( scalar @{ $output_peaks->{'1'} }, 1,   '1 peak' );
-is( $output_peaks->{'1'}->[0]->[0],   100, 'Start of first peak' );
-is( $output_peaks->{'1'}->[0]->[1],   350, 'End of first peak' );
-is( $output_peaks->{'1'}->[0]->[2],   2,   'First peak read count' );
+is( scalar keys %{$output_peaks}, 1, '1 sequence' );
+is( scalar @{ $output_peaks->{'1'}->{'1'} }, 1, '1 peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[0], 100, 'Start of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[1], 350, 'End of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[2], 2, 'First peak read count' );
 
 # Three peaks with first two merged
 $input_peaks = [ [ 100, 200, 1 ], [ 250, 350, 1 ], [ 500, 600, 1 ], ];
@@ -96,17 +111,18 @@ $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
         seq_name          => 1,
+        strand            => 1,
         peaks             => $input_peaks,
     }
 );
-is( scalar keys %{$output_peaks},     1,   '1 sequence' );
-is( scalar @{ $output_peaks->{'1'} }, 2,   '2 peaks' );
-is( $output_peaks->{'1'}->[0]->[0],   100, 'Start of first peak' );
-is( $output_peaks->{'1'}->[0]->[1],   350, 'End of first peak' );
-is( $output_peaks->{'1'}->[0]->[2],   2,   'First peak read count' );
-is( $output_peaks->{'1'}->[-1]->[0],  500, 'Start of last peak' );
-is( $output_peaks->{'1'}->[-1]->[1],  600, 'End of last peak' );
-is( $output_peaks->{'1'}->[-1]->[2],  1,   'Last peak read count' );
+is( scalar keys %{$output_peaks}, 1, '1 sequence' );
+is( scalar @{ $output_peaks->{'1'}->{'1'} }, 2, '2 peaks' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[0], 100, 'Start of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[1], 350, 'End of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[2], 2, 'First peak read count' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[0], 500, 'Start of last peak' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[1], 600, 'End of last peak' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[2], 1, 'Last peak read count' );
 
 # Three peaks with second two merged
 $input_peaks = [ [ 100, 200, 1 ], [ 500, 600, 1 ], [ 550, 650, 1 ], ];
@@ -114,17 +130,18 @@ $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
         seq_name          => 1,
+        strand            => 1,
         peaks             => $input_peaks,
     }
 );
-is( scalar keys %{$output_peaks},     1,   '1 sequence' );
-is( scalar @{ $output_peaks->{'1'} }, 2,   '2 peaks' );
-is( $output_peaks->{'1'}->[0]->[0],   100, 'Start of first peak' );
-is( $output_peaks->{'1'}->[0]->[1],   200, 'End of first peak' );
-is( $output_peaks->{'1'}->[0]->[2],   1,   'First peak read count' );
-is( $output_peaks->{'1'}->[-1]->[0],  500, 'Start of last peak' );
-is( $output_peaks->{'1'}->[-1]->[1],  650, 'End of last peak' );
-is( $output_peaks->{'1'}->[-1]->[2],  2,   'Last peak read count' );
+is( scalar keys %{$output_peaks}, 1, '1 sequence' );
+is( scalar @{ $output_peaks->{'1'}->{'1'} }, 2, '2 peaks' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[0], 100, 'Start of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[1], 200, 'End of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[2], 1, 'First peak read count' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[0], 500, 'Start of last peak' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[1], 650, 'End of last peak' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[2], 2, 'Last peak read count' );
 
 # Two peaks separated by buffer width
 $input_peaks = [ [ 100, 200, 1 ], [ 300, 400, 1 ], ];
@@ -132,17 +149,18 @@ $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
         seq_name          => 1,
+        strand            => 1,
         peaks             => $input_peaks,
     }
 );
-is( scalar keys %{$output_peaks},     1,   '1 sequence' );
-is( scalar @{ $output_peaks->{'1'} }, 2,   '2 peaks' );
-is( $output_peaks->{'1'}->[0]->[0],   100, 'Start of first peak' );
-is( $output_peaks->{'1'}->[0]->[1],   200, 'End of first peak' );
-is( $output_peaks->{'1'}->[0]->[2],   1,   'First peak read count' );
-is( $output_peaks->{'1'}->[-1]->[0],  300, 'Start of last peak' );
-is( $output_peaks->{'1'}->[-1]->[1],  400, 'End of last peak' );
-is( $output_peaks->{'1'}->[-1]->[2],  1,   'Last peak read count' );
+is( scalar keys %{$output_peaks}, 1, '1 sequence' );
+is( scalar @{ $output_peaks->{'1'}->{'1'} }, 2, '2 peaks' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[0], 100, 'Start of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[1], 200, 'End of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[2], 1, 'First peak read count' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[0], 300, 'Start of last peak' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[1], 400, 'End of last peak' );
+is( $output_peaks->{'1'}->{'1'}->[-1]->[2], 1, 'Last peak read count' );
 
 # Two peaks separated by just under buffer width
 $input_peaks = [ [ 100, 200, 1 ], [ 299, 400, 1 ], ];
@@ -150,14 +168,15 @@ $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
         seq_name          => 1,
+        strand            => 1,
         peaks             => $input_peaks,
     }
 );
-is( scalar keys %{$output_peaks},     1,   '1 sequence' );
-is( scalar @{ $output_peaks->{'1'} }, 1,   '1 peak' );
-is( $output_peaks->{'1'}->[0]->[0],   100, 'Start of first peak' );
-is( $output_peaks->{'1'}->[0]->[1],   400, 'End of first peak' );
-is( $output_peaks->{'1'}->[0]->[2],   2,   'First peak read count' );
+is( scalar keys %{$output_peaks}, 1, '1 sequence' );
+is( scalar @{ $output_peaks->{'1'}->{'1'} }, 1, '1 peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[0], 100, 'Start of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[1], 400, 'End of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[2], 2, 'First peak read count' );
 
 # Two peaks with same start
 $input_peaks = [ [ 100, 200, 1 ], [ 100, 300, 1 ], ];
@@ -165,14 +184,15 @@ $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
         seq_name          => 1,
+        strand            => 1,
         peaks             => $input_peaks,
     }
 );
-is( scalar keys %{$output_peaks},     1,   '1 sequence' );
-is( scalar @{ $output_peaks->{'1'} }, 1,   '1 peak' );
-is( $output_peaks->{'1'}->[0]->[0],   100, 'Start of first peak' );
-is( $output_peaks->{'1'}->[0]->[1],   300, 'End of first peak' );
-is( $output_peaks->{'1'}->[0]->[2],   2,   'First peak read count' );
+is( scalar keys %{$output_peaks}, 1, '1 sequence' );
+is( scalar @{ $output_peaks->{'1'}->{'1'} }, 1, '1 peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[0], 100, 'Start of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[1], 300, 'End of first peak' );
+is( $output_peaks->{'1'}->{'1'}->[0]->[2], 2, 'First peak read count' );
 
 # No peaks
 $input_peaks  = [];
@@ -180,11 +200,12 @@ $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
         seq_name          => 1,
+        strand            => 1,
         peaks             => $input_peaks,
     }
 );
-is( scalar keys %{$output_peaks},     1, '1 sequence' );
-is( scalar @{ $output_peaks->{'1'} }, 0, '0 peaks' );
+is( scalar keys %{$output_peaks}, 1, '1 sequence' );
+is( scalar @{ $output_peaks->{'1'}->{'1'} }, 0, '0 peaks' );
 
 my $summary;
 

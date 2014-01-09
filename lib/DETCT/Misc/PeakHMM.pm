@@ -44,26 +44,31 @@ our @EXPORT_OK = qw(
   Usage       : my $peaks_ref = DETCT::Misc::PeakHMM::merge_read_peaks( {
                     peak_buffer_width => 100,
                     seq_name          => '1',
+                    strand            => 1,
                     peaks             => $peaks_ary_ref,
                 } );
   Purpose     : Merge read peaks (overlapping reads)
   Returns     : Hashref {
-                    String (sequence name) => Arrayref [
-                        Arrayref [
-                            Int (peak start),
-                            Int (peak end),
-                            Int (peak read count)
-                        ],
-                        ... (peaks)
-                    ]
+                    Int (1 or -1) (strand) => Hashref {
+                        String (sequence name) => Arrayref [
+                            Arrayref [
+                                Int (peak start),
+                                Int (peak end),
+                                Int (peak read count)
+                            ],
+                            ... (peaks)
+                        ]
+                    }
                 }
   Parameters  : Hashref {
                     peak_buffer_width => Int (the peak buffer size),
                     seq_name          => String (the sequence name),
+                    strand            => Int (1 or -1) (the strand)
                     peaks             => Arrayref (of peaks),
                 }
   Throws      : If peak buffer width is missing
                 If sequence name is missing
+                If strand is missing
                 If peaks are missing
   Comments    : None
 
@@ -72,10 +77,10 @@ our @EXPORT_OK = qw(
 sub merge_read_peaks {
     my ($arg_ref) = @_;
 
-    confess 'No peak buffer width specified'
-      if !defined $arg_ref->{peak_buffer_width};
+    confess 'No peak buffer width specified' if !defined $arg_ref->{peak_buffer_width};
     confess 'No sequence name specified' if !defined $arg_ref->{seq_name};
-    confess 'No peaks specified'         if !defined $arg_ref->{peaks};
+    confess 'No strand specified' if !defined $arg_ref->{strand};
+    confess 'No peaks specified' if !defined $arg_ref->{peaks};
 
     my $peaks_ref = $arg_ref->{peaks};
 
@@ -133,7 +138,7 @@ sub merge_read_peaks {
           ];
     }
 
-    return { $arg_ref->{seq_name} => \@merged_peaks };
+    return { $arg_ref->{seq_name} => { $arg_ref->{strand} => \@merged_peaks } };
 }
 
 =func summarise_read_peaks
