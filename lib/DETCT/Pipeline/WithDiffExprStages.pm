@@ -396,7 +396,7 @@ sub run_summarise_read_peaks {
 
     # Summarise read peaks for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        # Merge each strand separately
+        # Summarise each strand separately
         foreach my $strand (1, -1) {
             my $seq_summary = summarise_read_peaks(
                 {
