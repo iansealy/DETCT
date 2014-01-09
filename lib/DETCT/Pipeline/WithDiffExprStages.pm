@@ -22,7 +22,7 @@ use parent qw(DETCT::Pipeline);
 
 use Class::InsideOut qw( private register id );
 use Scalar::Util qw( refaddr );
-use YAML::Tiny qw( DumpFile LoadFile );
+use YAML qw( DumpFile LoadFile );
 use DETCT::GeneFinder;
 use DETCT::Misc::BAM qw(
   count_tags
@@ -321,15 +321,20 @@ sub run_merge_read_peaks {
 
     # Merge read peaks for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        my $seq_peaks = merge_read_peaks(
-            {
-                peak_buffer_width => $self->analysis->peak_buffer_width,
-                seq_name          => $seq->name,
-                peaks             => $unmerged_peaks{ $seq->name },
-            }
-        );
-        %chunk_peaks =
-          %{ $self->hash_merge->merge( \%chunk_peaks, $seq_peaks ) };
+        # Merge each strand separately
+        foreach my $strand (1, -1) {
+            my $seq_peaks = merge_read_peaks(
+                {
+                    peak_buffer_width => $self->analysis->peak_buffer_width,
+                    seq_name          => $seq->name,
+                    peaks             => $unmerged_peaks{$seq->name}->{$strand},
+                }
+            );
+            # Add strand to peaks
+            $seq_peaks = { $seq->name => { $strand => $seq_peaks->{$seq->name} } };
+            %chunk_peaks =
+              %{ $self->hash_merge->merge( \%chunk_peaks, $seq_peaks ) };
+        }
     }
 
     my $output_file = $job->base_filename . '.out';
@@ -391,19 +396,24 @@ sub run_summarise_read_peaks {
 
     # Summarise read peaks for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        my $seq_summary = summarise_read_peaks(
-            {
-                bin_size          => $self->analysis->bin_size,
-                peak_buffer_width => $self->analysis->peak_buffer_width,
-                hmm_sig_level     => $self->analysis->hmm_sig_level,
-                seq_name          => $seq->name,
-                seq_bp            => $seq->bp,
-                read_length       => $self->analysis->read2_length,
-                peaks             => $merged_peaks{ $seq->name },
-            }
-        );
-        %chunk_summary =
-          %{ $self->hash_merge->merge( \%chunk_summary, $seq_summary ) };
+        # Summarise each strand separately
+        foreach my $strand (1, -1) {
+            my $seq_summary = summarise_read_peaks(
+                {
+                    bin_size          => $self->analysis->bin_size,
+                    peak_buffer_width => $self->analysis->peak_buffer_width,
+                    hmm_sig_level     => $self->analysis->hmm_sig_level,
+                    seq_name          => $seq->name,
+                    seq_bp            => $seq->bp,
+                    read_length       => $self->analysis->read2_length,
+                    peaks             => $merged_peaks{$seq->name}->{$strand},
+                }
+            );
+            # Add strand to summary
+            $seq_summary = { $seq->name => { $strand => $seq_summary->{$seq->name} } };
+            %chunk_summary =
+              %{ $self->hash_merge->merge( \%chunk_summary, $seq_summary ) };
+        }
     }
 
     my $output_file = $job->base_filename . '.out';
@@ -489,17 +499,22 @@ sub run_run_peak_hmm {
 
     # Run peak HMM for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        my $seq_hmm = run_peak_hmm(
-            {
-                dir           => $job->base_filename,
-                hmm_sig_level => $self->analysis->hmm_sig_level,
-                seq_name      => $seq->name,
-                read_bins     => $read_bins{ $seq->name },
-                summary       => $summary->{ $seq->name },
-                hmm_binary    => $self->analysis->hmm_binary,
-            }
-        );
-        %chunk_hmm = %{ $self->hash_merge->merge( \%chunk_hmm, $seq_hmm ) };
+        # Run peak HMM on each strand separately
+        foreach my $strand (1, -1) {
+            my $seq_hmm = run_peak_hmm(
+                {
+                    dir           => $job->base_filename,
+                    hmm_sig_level => $self->analysis->hmm_sig_level,
+                    seq_name      => $seq->name,
+                    read_bins     => $read_bins{ $seq->name }->{ $strand },
+                    summary       => $summary->{ $seq->name }->{ $strand },
+                    hmm_binary    => $self->analysis->hmm_binary,
+                }
+            );
+            # Add strand to HMM
+            $seq_hmm = { $seq->name => { $strand => $seq_hmm->{$seq->name} } };
+            %chunk_hmm = %{ $self->hash_merge->merge( \%chunk_hmm, $seq_hmm ) };
+        }
     }
 
     my $output_file = $job->base_filename . '.out';
@@ -561,15 +576,20 @@ sub run_join_hmm_bins {
 
     # Join HMM bins for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        my $seq_regions = join_hmm_bins(
-            {
-                bin_size => $self->analysis->bin_size,
-                seq_name => $seq->name,
-                hmm_bins => $hmm_bins->{ $seq->name },
-            }
-        );
-        %chunk_regions =
-          %{ $self->hash_merge->merge( \%chunk_regions, $seq_regions ) };
+        # Join HMM bins on each strand separately
+        foreach my $strand (1, -1) {
+            my $seq_regions = join_hmm_bins(
+                {
+                    bin_size => $self->analysis->bin_size,
+                    seq_name => $seq->name,
+                    hmm_bins => $hmm_bins->{ $seq->name }->{ $strand },
+                }
+            );
+            # Add strand to regions
+            $seq_regions = { $seq->name => { $strand => $seq_regions->{$seq->name} } };
+            %chunk_regions =
+              %{ $self->hash_merge->merge( \%chunk_regions, $seq_regions ) };
+        }
     }
 
     my $output_file = $job->base_filename . '.out';
@@ -636,17 +656,26 @@ sub run_get_three_prime_ends {
 
     # Get 3' ends for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        my $seq_regions = get_three_prime_ends(
-            {
-                bam_file           => $bam_file,
-                mismatch_threshold => $self->analysis->mismatch_threshold,
-                seq_name           => $seq->name,
-                tags               => \@tags,
-                regions            => $regions->{ $seq->name },
-            }
-        );
-        %chunk_regions =
-          %{ $self->hash_merge->merge( \%chunk_regions, $seq_regions ) };
+        # Get 3' ends on each strand separately
+        foreach my $strand (-1, 1) {
+            my $seq_regions = get_three_prime_ends(
+                {
+                    bam_file           => $bam_file,
+                    mismatch_threshold => $self->analysis->mismatch_threshold,
+                    seq_name           => $seq->name,
+                    strand             => $strand,
+                    tags               => \@tags,
+                    regions            => $regions->{ $seq->name }->{ $strand },
+                }
+            );
+            %chunk_regions =
+              %{ $self->hash_merge->merge( \%chunk_regions, $seq_regions ) };
+        }
+    }
+
+    # Sort regions by start then end
+    foreach my $seq_name (keys %chunk_regions) {
+        @{ $chunk_regions{$seq_name} } = sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] } @{ $chunk_regions{$seq_name} };
     }
 
     my $output_file = $job->base_filename . '.out';
