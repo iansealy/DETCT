@@ -22,7 +22,7 @@ use parent qw(DETCT::Pipeline);
 
 use Class::InsideOut qw( private register id );
 use Scalar::Util qw( refaddr );
-use YAML::Tiny qw( DumpFile LoadFile );
+use YAML qw( DumpFile LoadFile );
 use DETCT::GeneFinder;
 use DETCT::Misc::BAM qw(
   count_tags
