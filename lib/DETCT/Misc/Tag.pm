@@ -82,7 +82,7 @@ sub detag_trim_fastq {
         $tag_length, @read_tags );
 
     # Check last tag seen first because likely to be seen next
-    my $prev_tag = $read_tags[0]; # Arbitrarily choose first tag
+    my $prev_tag = $read_tags[0];    # Arbitrarily choose first tag
 
     while ( my $read1_id = <$fh1_in> ) {
         my $read2_id   = <$fh2_in>;
