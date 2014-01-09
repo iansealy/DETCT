@@ -81,6 +81,9 @@ sub detag_trim_fastq {
     my $fh_out_for = _open_output_fhs( $arg_ref->{fastq_output_prefix},
         $tag_length, @read_tags );
 
+    # Check last tag seen first because likely to be seen next
+    my $prev_tag = $read_tags[0]; # Arbitrarily choose first tag
+
     while ( my $read1_id = <$fh1_in> ) {
         my $read2_id   = <$fh2_in>;
         my $read1_seq  = <$fh1_in>;
@@ -134,7 +137,7 @@ sub detag_trim_fastq {
         my $tag_found  = q{X} x $tag_length;
 
         # Make sure a tag matches and polyT is present
-      TAG: foreach my $tag ( sort keys %re_tag_for ) {
+      TAG: foreach my $tag ( $prev_tag, sort keys %re_tag_for ) {
             my $regexps = $re_tag_for{$tag};
             foreach my $re ( @{$regexps} ) {
                 if ( $tag_in_read =~ $re && $polyt_seq =~ $polyt_re ) {
@@ -143,6 +146,7 @@ sub detag_trim_fastq {
                     substr $read1_seq, 0, $tag_length + $polyt_trim_length, q{};
                     substr $read1_qual, 0, $tag_length + $polyt_trim_length,
                       q{};
+                    $prev_tag = $tag;
                     last TAG;    # Skip rest if got a match
                 }
             }
