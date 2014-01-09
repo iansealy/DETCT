@@ -321,18 +321,15 @@ sub run_merge_read_peaks {
 
     # Merge read peaks for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        foreach my $strand (1, -1) {
-            my $seq_peaks = merge_read_peaks(
-                {
-                    peak_buffer_width => $self->analysis->peak_buffer_width,
-                    seq_name          => $seq->name,
-                    strand            => $strand,
-                    peaks             => $unmerged_peaks{$seq->name}->{$strand},
-                }
-            );
-            %chunk_peaks =
-              %{ $self->hash_merge->merge( \%chunk_peaks, $seq_peaks ) };
-        }
+        my $seq_peaks = merge_read_peaks(
+            {
+                peak_buffer_width => $self->analysis->peak_buffer_width,
+                seq_name          => $seq->name,
+                peaks             => $unmerged_peaks{ $seq->name },
+            }
+        );
+        %chunk_peaks =
+          %{ $self->hash_merge->merge( \%chunk_peaks, $seq_peaks ) };
     }
 
     my $output_file = $job->base_filename . '.out';
