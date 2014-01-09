@@ -434,17 +434,31 @@ qr/No tags specified/ms, 'No tags';
 my $peaks;
 
 # Check read peaks returned by test BAM file
-# First peak should be 262 - 350 (2 reads) according to:
+# First peak on forward strand should be 262 - 350 (2 reads) according to:
 
 =for comment
-samtools view -f 128 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+samtools view -f 128 -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -4
 =cut
 
-# Last peak should be 7399 - 7452 (1 read) according to:
+# Last peak on forward strand should be 7399 - 7452 (1 read) according to:
 
 =for comment
-samtools view -f 128 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+samtools view -f 128 -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+| awk '{ print $4 "\t" $4 + 53 }' | tail -4
+=cut
+
+# First peak on reverse strand should be 722 - 775 (1 read) according to:
+
+=for comment
+samtools view -f 144 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+| awk '{ print $4 "\t" $4 + 53 }' | head -4
+=cut
+
+# Last peak on reverse strand should be 6467 - 6520 (1 read) according to:
+
+=for comment
+samtools view -f 144 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -4
 =cut
 
@@ -457,26 +471,47 @@ $peaks = get_read_peaks(
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
     }
 );
-is( scalar keys %{$peaks},    1,    '1 sequence' );
-is( $peaks->{'2'}->[0]->[0],  262,  'Start of first peak' );
-is( $peaks->{'2'}->[0]->[1],  350,  'End of first peak' );
-is( $peaks->{'2'}->[0]->[2],  2,    'First peak read count' );
-is( $peaks->{'2'}->[-1]->[0], 7399, 'Start of last peak' );
-is( $peaks->{'2'}->[-1]->[1], 7452, 'End of last peak' );
-is( $peaks->{'2'}->[-1]->[2], 1,    'Last peak read count' );
+is( scalar keys %{$peaks}, 1, '1 sequence' );
+is( scalar keys %{ $peaks->{'2'} }, 2, '2 strands' );
+is( $peaks->{'2'}->{'1'}->[0]->[0], 262, 'Start of first peak on forward strand' );
+is( $peaks->{'2'}->{'1'}->[0]->[1], 350, 'End of first peak on forward strand' );
+is( $peaks->{'2'}->{'1'}->[0]->[2], 2, 'First peak read count on forward strand' );
+is( $peaks->{'2'}->{'1'}->[-1]->[0], 7399, 'Start of last peak on forward strand' );
+is( $peaks->{'2'}->{'1'}->[-1]->[1], 7452, 'End of last peak on forward strand' );
+is( $peaks->{'2'}->{'1'}->[-1]->[2], 1, 'Last peak read count on forward strand' );
+is( $peaks->{'2'}->{'-1'}->[0]->[0], 722, 'Start of first peak on reverse strand' );
+is( $peaks->{'2'}->{'-1'}->[0]->[1], 775, 'End of first peak on reverse strand' );
+is( $peaks->{'2'}->{'-1'}->[0]->[2], 1, 'First peak read count on reverse strand' );
+is( $peaks->{'2'}->{'-1'}->[-1]->[0], 6467, 'Start of last peak on reverse strand' );
+is( $peaks->{'2'}->{'-1'}->[-1]->[1], 6520, 'End of last peak on reverse strand' );
+is( $peaks->{'2'}->{'-1'}->[-1]->[2], 1, 'Last peak read count on reverse strand' );
 
 # Check read peaks returned by test BAM file
-# First peak should be 78 - 131 (1 read) according to:
+# First peak on forward strand should be 78 - 131 (1 read) according to:
 
 =for comment
-samtools view -f 128 -F 1028 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
+samtools view -f 128 -F 1044 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -4
 =cut
 
-# Last peak should be 8666 - 8719 (1 read) according to:
+# Last peak on forward strand should be 8104 - 8157 (1 read) according to:
 
 =for comment
-samtools view -f 128 -F 1028 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
+samtools view -f 128 -F 1044 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
+| awk '{ print $4 "\t" $4 + 53 }' | tail -4
+=cut
+
+# First peak on reverse strand should be 3183 - 3236 (1 read) according to:
+
+=for comment
+samtools view -f 144 -F 1028 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
+| awk '{ print $4 "\t" $4 + 53 }' | head -4
+=cut
+
+# Last peak on reverse strand should be 8666 - 8719 (1 read) according to:
+
+=for comment
+samtools view -f 144 -F 1028 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -4
 =cut
 
@@ -489,13 +524,20 @@ $peaks = get_read_peaks(
         tags               => [ 'NNNNBCAGAG', 'NNNNBGCACG' ],
     }
 );
-is( scalar keys %{$peaks},    1,    '1 sequence' );
-is( $peaks->{'1'}->[0]->[0],  78,   'Start of first peak' );
-is( $peaks->{'1'}->[0]->[1],  131,  'End of first peak' );
-is( $peaks->{'1'}->[0]->[2],  1,    'First peak read count' );
-is( $peaks->{'1'}->[-1]->[0], 8666, 'Start of last peak' );
-is( $peaks->{'1'}->[-1]->[1], 8719, 'End of last peak' );
-is( $peaks->{'1'}->[-1]->[2], 1,    'Last peak read count' );
+is( scalar keys %{$peaks}, 1, '1 sequence' );
+is( scalar keys %{ $peaks->{'1'} }, 2, '2 strands' );
+is( $peaks->{'1'}->{'1'}->[0]->[0], 78, 'Start of first peak on forward strand' );
+is( $peaks->{'1'}->{'1'}->[0]->[1], 131, 'End of first peak on forward strand' );
+is( $peaks->{'1'}->{'1'}->[0]->[2], 1, 'First peak read count on forward strand' );
+is( $peaks->{'1'}->{'1'}->[-1]->[0], 8104, 'Start of last peak on forward strand' );
+is( $peaks->{'1'}->{'1'}->[-1]->[1], 8157, 'End of last peak on forward strand' );
+is( $peaks->{'1'}->{'1'}->[-1]->[2], 1, 'Last peak read count on forward strand' );
+is( $peaks->{'1'}->{'-1'}->[0]->[0], 3183, 'Start of first peak on reverse strand' );
+is( $peaks->{'1'}->{'-1'}->[0]->[1], 3236, 'End of first peak on reverse strand' );
+is( $peaks->{'1'}->{'-1'}->[0]->[2], 1, 'First peak read count on reverse strand' );
+is( $peaks->{'1'}->{'-1'}->[-1]->[0], 8666, 'Start of last peak on reverse strand' );
+is( $peaks->{'1'}->{'-1'}->[-1]->[1], 8719, 'End of last peak on reverse strand' );
+is( $peaks->{'1'}->{'-1'}->[-1]->[2], 1, 'Last peak read count on reverse strand' );
 
 # Check read peaks returned with non-existent tag
 $peaks = get_read_peaks(
@@ -508,7 +550,8 @@ $peaks = get_read_peaks(
     }
 );
 is( scalar keys %{$peaks},     1, '1 sequence' );
-is( scalar @{ $peaks->{'1'} }, 0, '0 peaks' );
+is( scalar @{ $peaks->{'1'}->{'1'} }, 0, '0 peaks on forward strand' );
+is( scalar @{ $peaks->{'1'}->{'-1'} }, 0, '0 peaks on reverse strand' );
 
 # Check getting 3' ends required parameters
 throws_ok {

@@ -335,14 +335,16 @@ sub bin_reads {
                 } );
   Purpose     : Get read peaks (overlapping reads) for a BAM file
   Returns     : Hashref {
-                    String (sequence name) => Arrayref [
-                        Arrayref [
-                            Int (peak start),
-                            Int (peak end),
-                            Int (peak read count),
-                        ],
-                        ... (peaks)
-                    ]
+                    String (sequence name) => Hashref {
+                        Int (1 or -1) (strand) => Arrayref [
+                            Arrayref [
+                                Int (peak start),
+                                Int (peak end),
+                                Int (peak read count),
+                            ],
+                            ... (peaks)
+                        ]
+                    }
                 }
   Parameters  : Hashref {
                     bam_file           => String (the BAM file)
@@ -378,15 +380,18 @@ sub get_read_peaks {
 
     my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
 
-    # Peak variables
-    my @peaks;
-    my $current_peak_read_count;
-    my $current_peak_start;
-    my $current_peak_end;
+    # Peak variables (all keyed by strand)
+    my %peaks = (
+        '1'  => [],
+        '-1' => [],
+    );
+    my %current_peak_read_count;
+    my %current_peak_start;
+    my %current_peak_end;
 
-    # Read variables
-    my $current_read_start;
-    my $current_read_end;
+    # Read variables (all keyed by strand)
+    my %current_read_start;
+    my %current_read_end;
 
     # Callback for filtering
     my $callback = sub {
@@ -399,37 +404,39 @@ sub get_read_peaks {
             $arg_ref->{mismatch_threshold} );
         return if !matched_tag( $alignment, \%re_for );
 
-        $current_read_start = $alignment->start;
-        $current_read_end   = $alignment->end;
+        my $strand = $alignment->strand;
+
+        $current_read_start{$strand} = $alignment->start;
+        $current_read_end{$strand}   = $alignment->end;
 
         # We're starting the first peak
-        if ( !defined $current_peak_start ) {
-            $current_peak_start      = $current_read_start;
-            $current_peak_end        = $current_read_end;
-            $current_peak_read_count = 1;
+        if ( !exists $current_peak_start{$strand} ) {
+            $current_peak_start{$strand}      = $current_read_start{$strand};
+            $current_peak_end{$strand}        = $current_read_end{$strand};
+            $current_peak_read_count{$strand} = 1;
             return;
         }
 
         # Extend or finish current peak?
-        if ( $current_read_start - $current_peak_end <
+        if ( $current_read_start{$strand} - $current_peak_end{$strand} <
             $arg_ref->{peak_buffer_width} )
         {
             # Extend current peak
-            $current_peak_end = $current_read_end;
-            $current_peak_read_count++;
+            $current_peak_end{$strand} = $current_read_end{$strand};
+            $current_peak_read_count{$strand}++;
         }
         else {
             # Finish current peak
-            push @peaks,
+            push @{$peaks{$strand}},
               [
-                $current_peak_start, $current_peak_end,
-                $current_peak_read_count
+                $current_peak_start{$strand}, $current_peak_end{$strand},
+                $current_peak_read_count{$strand}
               ];
 
             # Start new peak
-            $current_peak_start      = $current_read_start;
-            $current_peak_end        = $current_read_end;
-            $current_peak_read_count = 1;
+            $current_peak_start{$strand}      = $current_read_start{$strand};
+            $current_peak_end{$strand}        = $current_read_end{$strand};
+            $current_peak_read_count{$strand} = 1;
         }
 
         return;
@@ -439,13 +446,14 @@ sub get_read_peaks {
     # size)
     $sam->fetch( $arg_ref->{seq_name}, $callback );
 
-    # Finish last peak
-    if ($current_peak_read_count) {
-        push @peaks,
-          [ $current_peak_start, $current_peak_end, $current_peak_read_count ];
+    # Finish last peaks
+    foreach my $strand (1, -1) {
+        if ($current_peak_read_count{$strand}) {
+            push @{$peaks{$strand}}, [ $current_peak_start{$strand}, $current_peak_end{$strand}, $current_peak_read_count{$strand} ];
+        }
     }
 
-    return { $arg_ref->{seq_name} => \@peaks };
+    return { $arg_ref->{seq_name} => \%peaks };
 }
 
 =func get_three_prime_ends
