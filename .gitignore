@@ -3,3 +3,4 @@ bin
 DETCT-*.tar.gz
 DETCT-*/
 perltidy.LOG
+tmp
