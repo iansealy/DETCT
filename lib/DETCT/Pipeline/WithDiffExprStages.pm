@@ -321,6 +321,7 @@ sub run_merge_read_peaks {
 
     # Merge read peaks for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
+        # Merge each strand separately
         foreach my $strand (1, -1) {
             my $seq_peaks = merge_read_peaks(
                 {
@@ -395,19 +396,24 @@ sub run_summarise_read_peaks {
 
     # Summarise read peaks for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        my $seq_summary = summarise_read_peaks(
-            {
-                bin_size          => $self->analysis->bin_size,
-                peak_buffer_width => $self->analysis->peak_buffer_width,
-                hmm_sig_level     => $self->analysis->hmm_sig_level,
-                seq_name          => $seq->name,
-                seq_bp            => $seq->bp,
-                read_length       => $self->analysis->read2_length,
-                peaks             => $merged_peaks{ $seq->name },
-            }
-        );
-        %chunk_summary =
-          %{ $self->hash_merge->merge( \%chunk_summary, $seq_summary ) };
+        # Merge each strand separately
+        foreach my $strand (1, -1) {
+            my $seq_summary = summarise_read_peaks(
+                {
+                    bin_size          => $self->analysis->bin_size,
+                    peak_buffer_width => $self->analysis->peak_buffer_width,
+                    hmm_sig_level     => $self->analysis->hmm_sig_level,
+                    seq_name          => $seq->name,
+                    seq_bp            => $seq->bp,
+                    read_length       => $self->analysis->read2_length,
+                    peaks             => $merged_peaks{$seq->name}->{$strand},
+                }
+            );
+            # Add strand to summary
+            $seq_summary = { $seq->name => { $strand => $seq_summary->{$seq->name} } };
+            %chunk_summary =
+              %{ $self->hash_merge->merge( \%chunk_summary, $seq_summary ) };
+        }
     }
 
     my $output_file = $job->base_filename . '.out';
