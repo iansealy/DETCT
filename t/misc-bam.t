@@ -1290,10 +1290,10 @@ throws_ok {
 qr/No tags specified/ms, 'No tags';
 
 # Check read counts returned by test BAM file
-# Should be 11 reads according to:
+# Should be 3 reads according to:
 
 =for comment
-samtools view -f 128 -F 1028 t/data/test1.bam 1:1-2000 \
+samtools view -f 128 -F 1044 t/data/test1.bam 1:1-2000 \
 | grep 54M | grep NM:i:0 | awk '{ print $1 }' \
 | sed -e 's/.*#//' | grep GAGGC$ | wc -l
 =cut
@@ -1318,7 +1318,7 @@ is( $three_prime_ends->{'1'}->[0]->[5],   2000, q{3' end position} );
 is( $three_prime_ends->{'1'}->[0]->[6],   1,    q{3' end strand} );
 is( $three_prime_ends->{'1'}->[0]->[7],   10,   q{3' end read count} );
 is( scalar keys %{ $three_prime_ends->{'1'}->[0]->[8] }, 1, '1 tag' );
-is( $three_prime_ends->{'1'}->[0]->[8]->{NNNNBGAGGC},    4, '4 reads' );
+is( $three_prime_ends->{'1'}->[0]->[8]->{NNNNBGAGGC},    3, '3 reads' );
 
 # Mock sample objects
 my $sample1 = Test::MockObject->new();

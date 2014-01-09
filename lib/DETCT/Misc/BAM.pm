@@ -1044,6 +1044,9 @@ sub count_reads {
               if above_mismatch_threshold( $alignment,
                 $arg_ref->{mismatch_threshold} );
 
+            # Only count reads on 3' end strand
+            next if $alignment->strand != $three_prime_strand;
+
             # Match tag
             my ($tag_in_read) =
               $alignment->query->name =~ m/[#] ([AGCT]+) \z/xmsg;
