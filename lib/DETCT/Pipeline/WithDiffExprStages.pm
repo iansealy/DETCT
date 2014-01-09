@@ -670,7 +670,7 @@ sub run_get_three_prime_ends {
     foreach my $seq ( @{$chunk} ) {
 
         # Get 3' ends on each strand separately
-        foreach my $strand ( -1, 1 ) {
+        foreach my $strand ( 1, -1 ) {
             my $seq_regions = get_three_prime_ends(
                 {
                     bam_file           => $bam_file,
