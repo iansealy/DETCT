@@ -323,7 +323,7 @@ sub run_merge_read_peaks {
     foreach my $seq ( @{$chunk} ) {
 
         # Merge each strand separately
-        foreach my $strand ( 1, -1 ) { ## no critic (ProhibitMagicNumbers)
+        foreach my $strand ( 1, -1 ) {    ## no critic (ProhibitMagicNumbers)
             my $seq_peaks = merge_read_peaks(
                 {
                     peak_buffer_width => $self->analysis->peak_buffer_width,
@@ -401,7 +401,7 @@ sub run_summarise_read_peaks {
     foreach my $seq ( @{$chunk} ) {
 
         # Summarise each strand separately
-        foreach my $strand ( 1, -1 ) { ## no critic (ProhibitMagicNumbers)
+        foreach my $strand ( 1, -1 ) {    ## no critic (ProhibitMagicNumbers)
             my $seq_summary = summarise_read_peaks(
                 {
                     bin_size          => $self->analysis->bin_size,
@@ -507,7 +507,7 @@ sub run_run_peak_hmm {
     foreach my $seq ( @{$chunk} ) {
 
         # Run peak HMM on each strand separately
-        foreach my $strand ( 1, -1 ) { ## no critic (ProhibitMagicNumbers)
+        foreach my $strand ( 1, -1 ) {    ## no critic (ProhibitMagicNumbers)
             my $seq_hmm = run_peak_hmm(
                 {
                     dir           => $job->base_filename,
@@ -587,7 +587,7 @@ sub run_join_hmm_bins {
     foreach my $seq ( @{$chunk} ) {
 
         # Join HMM bins on each strand separately
-        foreach my $strand ( 1, -1 ) { ## no critic (ProhibitMagicNumbers)
+        foreach my $strand ( 1, -1 ) {    ## no critic (ProhibitMagicNumbers)
             my $seq_regions = join_hmm_bins(
                 {
                     bin_size => $self->analysis->bin_size,
@@ -670,7 +670,7 @@ sub run_get_three_prime_ends {
     foreach my $seq ( @{$chunk} ) {
 
         # Get 3' ends on each strand separately
-        foreach my $strand ( 1, -1 ) { ## no critic (ProhibitMagicNumbers)
+        foreach my $strand ( 1, -1 ) {    ## no critic (ProhibitMagicNumbers)
             my $seq_regions = get_three_prime_ends(
                 {
                     bam_file           => $bam_file,
