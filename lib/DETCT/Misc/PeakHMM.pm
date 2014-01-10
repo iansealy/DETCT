@@ -265,9 +265,7 @@ sub summarise_read_peaks {
     @sig_peak_widths = sort { $a <=> $b } @sig_peak_widths;
     my $median_sig_peak_width = $sig_peak_widths[ int( $total_sig_peaks / 2 ) ];
 
-    ## no critic (ProhibitMagicNumbers)
-    my $num_bins = int( $arg_ref->{seq_bp} / $arg_ref->{bin_size} + 0.5 );
-    ## use critic
+    my $num_bins = int( $arg_ref->{seq_bp} / $arg_ref->{bin_size} + 1 );
 
     ## no critic (ProhibitMagicNumbers)
     my %summary = (
