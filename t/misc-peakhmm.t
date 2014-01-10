@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 103;
+plan tests => 105;
 
 use DETCT::Misc::PeakHMM qw(
   merge_read_peaks
@@ -317,7 +317,44 @@ is( $summary->{'1'}->{total_sig_peaks},   1,   'Total significant peaks' );
 is( $summary->{'1'}->{peak_buffer_width}, 100, 'Peak buffer width' );
 ok( $summary->{'1'}->{read_threshold} < 5, 'Read threshold' );
 is( $summary->{'1'}->{bin_size}, 100, 'Bin size' );
-is( $summary->{'1'}->{num_bins}, 10,  'Number of bins' );
+
+# Number of bins
+$summary = summarise_read_peaks(
+    {
+        bin_size          => 100,
+        peak_buffer_width => 100,
+        hmm_sig_level     => 0.001,
+        seq_name          => '1',
+        seq_bp            => 1000,
+        read_length       => 54,
+        peaks             => $input_peaks,
+    }
+);
+is( $summary->{'1'}->{num_bins}, 10, 'Number of bins' );
+$summary = summarise_read_peaks(
+    {
+        bin_size          => 100,
+        peak_buffer_width => 100,
+        hmm_sig_level     => 0.001,
+        seq_name          => '1',
+        seq_bp            => 1001,
+        read_length       => 54,
+        peaks             => $input_peaks,
+    }
+);
+is( $summary->{'1'}->{num_bins}, 11, 'Number of bins' );
+$summary = summarise_read_peaks(
+    {
+        bin_size          => 100,
+        peak_buffer_width => 100,
+        hmm_sig_level     => 0.001,
+        seq_name          => '1',
+        seq_bp            => 999,
+        read_length       => 54,
+        peaks             => $input_peaks,
+    }
+);
+is( $summary->{'1'}->{num_bins}, 10, 'Number of bins' );
 
 # No significant peaks
 $input_peaks = [ [ 300, 399, 1 ], ];

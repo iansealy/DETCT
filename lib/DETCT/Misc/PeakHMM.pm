@@ -19,7 +19,7 @@ use Carp;
 use Try::Tiny;
 
 use English qw( -no_match_vars );
-use POSIX qw( WIFEXITED);
+use POSIX qw( WIFEXITED ceil );
 use File::Slurp;
 use File::Spec;
 use File::Path qw( make_path );
@@ -265,7 +265,7 @@ sub summarise_read_peaks {
     @sig_peak_widths = sort { $a <=> $b } @sig_peak_widths;
     my $median_sig_peak_width = $sig_peak_widths[ int( $total_sig_peaks / 2 ) ];
 
-    my $num_bins = int( $arg_ref->{seq_bp} / $arg_ref->{bin_size} + 1 );
+    my $num_bins = ceil( $arg_ref->{seq_bp} / $arg_ref->{bin_size} );
 
     ## no critic (ProhibitMagicNumbers)
     my %summary = (
