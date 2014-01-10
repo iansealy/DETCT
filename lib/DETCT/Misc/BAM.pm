@@ -295,7 +295,10 @@ sub bin_reads {
 
     my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
 
-    my %read_count_for;
+    my %read_count_for = (
+        '1'  => {},
+        '-1' => {},
+    );
 
     # Callback for filtering
     my $callback = sub {
