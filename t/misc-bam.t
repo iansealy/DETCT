@@ -1032,7 +1032,7 @@ $three_prime_ends = choose_three_prime_end(
         seq_name => '1',
         regions  => [
             [
-                1, 1000, 10, -10,
+                1, 1000, 10, -10, 1,
                 [
                     [ '1', 1000, 1,  20 ],
                     [ '1', 2000, -1, 10 ],
@@ -1058,7 +1058,7 @@ is( $three_prime_ends->{'1'}->[0]->[7],   20,   q{3' end read count} );
 $three_prime_ends = choose_three_prime_end(
     {
         seq_name => '1',
-        regions  => [ [ 1, 1000, 10, -10, [] ] ],
+        regions  => [ [ 1, 1000, 10, -10, 1, [] ] ],
     }
 );
 is( scalar keys %{$three_prime_ends},     1,     '1 sequence' );
@@ -1069,14 +1069,14 @@ is( $three_prime_ends->{'1'}->[0]->[2],   10,    'Region maximum read count' );
 is( $three_prime_ends->{'1'}->[0]->[3],   -10,   'Region log probability sum' );
 is( $three_prime_ends->{'1'}->[0]->[4],   undef, q{3' end sequence} );
 is( $three_prime_ends->{'1'}->[0]->[5],   undef, q{3' end position} );
-is( $three_prime_ends->{'1'}->[0]->[6],   undef, q{3' end strand} );
+is( $three_prime_ends->{'1'}->[0]->[6],   1,     q{3' end strand} );
 is( $three_prime_ends->{'1'}->[0]->[7],   undef, q{3' end read count} );
 
 # Test choosing 3' end with reduced region end
 $three_prime_ends = choose_three_prime_end(
     {
         seq_name => '1',
-        regions  => [ [ 1, 1000, 10, -10, [ [ '1', 900, 1, 20 ], ] ] ],
+        regions  => [ [ 1, 1000, 10, -10, 1, [ [ '1', 900, 1, 20 ], ] ] ],
     }
 );
 is( scalar keys %{$three_prime_ends},     1,   '1 sequence' );
@@ -1094,7 +1094,7 @@ is( $three_prime_ends->{'1'}->[0]->[7],   20,  q{3' end read count} );
 $three_prime_ends = choose_three_prime_end(
     {
         seq_name => '1',
-        regions  => [ [ 1, 1000, 10, -10, [ [ '1', 100, -1, 20 ], ] ] ],
+        regions  => [ [ 1, 1000, 10, -10, -1, [ [ '1', 100, -1, 20 ], ] ] ],
     }
 );
 is( scalar keys %{$three_prime_ends},     1,    '1 sequence' );
@@ -1112,7 +1112,7 @@ is( $three_prime_ends->{'1'}->[0]->[7],   20,   q{3' end read count} );
 $three_prime_ends = choose_three_prime_end(
     {
         seq_name => '1',
-        regions  => [ [ 1, 1000, 10, -10, [ [ '2', 100, -1, 20 ], ] ] ],
+        regions  => [ [ 1, 1000, 10, -10, -1, [ [ '2', 100, -1, 20 ], ] ] ],
     }
 );
 is( scalar keys %{$three_prime_ends},     1,    '1 sequence' );
@@ -1130,7 +1130,7 @@ is( $three_prime_ends->{'1'}->[0]->[7],   20,   q{3' end read count} );
 $three_prime_ends = choose_three_prime_end(
     {
         seq_name => '1',
-        regions  => [ [ 1000, 2000, 10, -10, [ [ '1', 900, 1, 20 ], ] ] ],
+        regions  => [ [ 1000, 2000, 10, -10, 1, [ [ '1', 900, 1, 20 ], ] ] ],
     }
 );
 is( scalar keys %{$three_prime_ends},     1,    '1 sequence' );
@@ -1146,7 +1146,7 @@ is( $three_prime_ends->{'1'}->[0]->[7],   20,   q{3' end read count} );
 $three_prime_ends = choose_three_prime_end(
     {
         seq_name => '1',
-        regions  => [ [ 1000, 2000, 10, -10, [ [ '1', 900, -1, 20 ], ] ] ],
+        regions  => [ [ 1000, 2000, 10, -10, -1, [ [ '1', 900, -1, 20 ], ] ] ],
     }
 );
 is( scalar keys %{$three_prime_ends},     1,    '1 sequence' );
@@ -1164,7 +1164,7 @@ is( $three_prime_ends->{'1'}->[0]->[7],   20,   q{3' end read count} );
 $three_prime_ends = choose_three_prime_end(
     {
         seq_name => '1',
-        regions  => [ [ 1000, 2000, 10, -10, [ [ '1', 2100, -1, 20 ], ] ] ],
+        regions  => [ [ 1000, 2000, 10, -10, -1, [ [ '1', 2100, -1, 20 ], ] ] ],
     }
 );
 is( scalar keys %{$three_prime_ends},     1,    '1 sequence' );
@@ -1180,7 +1180,7 @@ is( $three_prime_ends->{'1'}->[0]->[7],   20,   q{3' end read count} );
 $three_prime_ends = choose_three_prime_end(
     {
         seq_name => '1',
-        regions  => [ [ 1000, 2000, 10, -10, [ [ '1', 2100, 1, 20 ], ] ] ],
+        regions  => [ [ 1000, 2000, 10, -10, 1, [ [ '1', 2100, 1, 20 ], ] ] ],
     }
 );
 is( scalar keys %{$three_prime_ends},     1,    '1 sequence' );
@@ -1200,7 +1200,7 @@ $three_prime_ends = choose_three_prime_end(
         seq_name => '1',
         regions  => [
             [
-                1000, 2000, 10, -10,
+                1000, 2000, 10, -10, -1,
                 [ [ '1', 900, -1, 20 ], [ '1', 2200, -1, 20 ], ]
             ]
         ],
@@ -1221,7 +1221,7 @@ $three_prime_ends = choose_three_prime_end(
         seq_name => '1',
         regions  => [
             [
-                1000, 2000, 10, -10,
+                1000, 2000, 10, -10, -1,
                 [ [ '1', 900, -1, 20 ], [ '1', 2100, -1, 20 ], ]
             ]
         ],
@@ -1241,7 +1241,7 @@ $three_prime_ends = choose_three_prime_end(
         seq_name => '1',
         regions  => [
             [
-                1000, 2000, 10, -10,
+                1000, 2000, 10, -10, -1,
                 [ [ '2', 900, -1, 20 ], [ '2', 2100, -1, 20 ], ]
             ]
         ],

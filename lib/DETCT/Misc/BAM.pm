@@ -851,7 +851,7 @@ sub filter_three_prime_ends {
                             Float (region log probability sum),
                             String (3' end sequence name) or undef,
                             Int (3' end position) or undef,
-                            Int (3' end strand) or undef,
+                            Int (3' end strand),
                             Int (3' end read count) or undef,
                         ],
                         ... (regions)
@@ -879,7 +879,7 @@ sub choose_three_prime_end {
     # Iterate over regions
     foreach my $region ( @{ $arg_ref->{regions} } ) {
         my ( $region_start, $region_end, $region_max_read_count,
-            $region_log_prob_sum, $three_prime_ends )
+            $region_log_prob_sum, $strand, $three_prime_ends )
           = @{$region};
 
         my (
@@ -919,6 +919,9 @@ sub choose_three_prime_end {
             }
         }
         ## use critic
+
+        # Use strand for region (i.e. based on read 2 alignments) if necessary
+        $three_prime_strand = $three_prime_strand || $strand;
 
         # Add three prime ends to regions
         push @regions_with_three_prime_ends,
