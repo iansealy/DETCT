@@ -624,6 +624,7 @@ sub get_three_prime_ends {
                             Int (region end),
                             Int (region maximum read count),
                             Float (region log probability sum),
+                            Int ( 1 or -1 ) (3' end strand)
                             Arrayref [
                                 Arrayref [
                                     String (3' end sequence name),
@@ -681,16 +682,16 @@ sub merge_three_prime_ends {
 
         # Ensure region from first list is same in each list
         my $region1 = $list_of_lists_of_regions[0]->[$region_index];
-        my ( $start1, $end1, $max_read_count1, $log_prob_sum1 ) = @{$region1};
+        my ( $start1, $end1, $max_read_count1, $log_prob_sum1, $strand1 ) = @{$region1};
         foreach my $list_index ( 1 .. $num_lists - 1 ) {
             my $region2 =
               $list_of_lists_of_regions[$list_index]->[$region_index];
-            my ( $start2, $end2, $max_read_count2, $log_prob_sum2 ) =
-              @{$region2};
+            my ( $start2, $end2, $max_read_count2, $log_prob_sum2, $strand2 ) = @{$region2};
             if (   $start1 != $start2
                 || $end1 != $end2
                 || $max_read_count1 != $max_read_count2
-                || $log_prob_sum1 != $log_prob_sum2 )
+                || $log_prob_sum1 != $log_prob_sum2
+                || $strand1 != $strand2 )
             {
                 confess
                   'Regions not in the same order or not the same in each list';
@@ -702,7 +703,7 @@ sub merge_three_prime_ends {
         foreach my $list_index ( 0 .. $num_lists - 1 ) {
             my $list   = $list_of_lists_of_regions[$list_index];
             my $region = $list->[$region_index];
-            my ( undef, undef, undef, undef, $three_prime_ends ) = @{$region};
+            my ( undef, undef, undef, undef, undef, $three_prime_ends ) = @{$region};
             push @unmerged_three_prime_ends, @{$three_prime_ends};
         }
 
@@ -727,11 +728,7 @@ sub merge_three_prime_ends {
         }
 
         # Add three prime ends to regions
-        push @regions_with_three_prime_ends,
-          [
-            $start1,        $end1, $max_read_count1,
-            $log_prob_sum1, \@three_prime_ends,
-          ];
+        push @regions_with_three_prime_ends, [ $start1, $end1, $max_read_count1, $log_prob_sum1, $strand1, \@three_prime_ends, ];
 
         $region_index++;
     }

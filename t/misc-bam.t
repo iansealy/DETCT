@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 344;
+plan tests => 347;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -769,7 +769,7 @@ ok( $max_read_count > 1, q{Read count for 3' end of peak} );
 
 # Check merging 3' ends required parameters
 throws_ok {
-    merge_three_prime_ends( { regions => [ [ [ 1, 1000, 10, -10, [] ] ] ], } );
+    merge_three_prime_ends( { regions => [ [ [ 1, 1000, 10, -10, 1, [] ] ] ], } );
 }
 qr/No sequence name specified/ms, 'No sequence name';
 throws_ok {
@@ -783,8 +783,8 @@ throws_ok {
         {
             seq_name => '1',
             regions  => [
-                [ [ 1, 1000, 10, -10, [] ], ],
-                [ [ 1, 1000, 10, -10, [] ], [ 2000, 3000, 10, -10, [] ], ],
+                [ [ 1, 1000, 10, -10, 1, [] ], ],
+                [ [ 1, 1000, 10, -10, 1, [] ], [ 2000, 3000, 10, -10, [] ], ],
             ],
         }
     );
@@ -798,8 +798,8 @@ throws_ok {
         {
             seq_name => '1',
             regions  => [
-                [ [ 1, 1000, 10, -10, [] ], [ 2000, 4000, 10, -10, [] ], ],
-                [ [ 1, 1000, 10, -10, [] ], [ 3000, 4000, 10, -10, [] ], ],
+                [ [ 1, 1000, 10, -10, 1, [] ], [ 2000, 4000, 10, -10, 1, [] ], ],
+                [ [ 1, 1000, 10, -10, 1, [] ], [ 3000, 4000, 10, -10, 1, [] ], ],
             ],
         }
     );
@@ -811,8 +811,8 @@ throws_ok {
         {
             seq_name => '1',
             regions  => [
-                [ [ 1, 1000, 10, -10, [] ], [ 2000, 4000, 10, -10, [] ], ],
-                [ [ 1, 1000, 10, -10, [] ], [ 2000, 5000, 10, -10, [] ], ],
+                [ [ 1, 1000, 10, -10, 1, [] ], [ 2000, 4000, 10, -10, 1, [] ], ],
+                [ [ 1, 1000, 10, -10, 1, [] ], [ 2000, 5000, 10, -10, 1, [] ], ],
             ],
         }
     );
@@ -824,8 +824,8 @@ throws_ok {
         {
             seq_name => '1',
             regions  => [
-                [ [ 1, 1000, 10, -10, [] ], [ 2000, 4000, 10, -10, [] ], ],
-                [ [ 1, 1000, 10, -10, [] ], [ 2000, 4000, 20, -10, [] ], ],
+                [ [ 1, 1000, 10, -10, 1, [] ], [ 2000, 4000, 10, -10, 1, [] ], ],
+                [ [ 1, 1000, 10, -10, 1, [] ], [ 2000, 4000, 20, -10, 1, [] ], ],
             ],
         }
     );
@@ -837,20 +837,33 @@ throws_ok {
         {
             seq_name => '1',
             regions  => [
-                [ [ 1, 1000, 10, -10, [] ], [ 2000, 4000, 10, -10, [] ], ],
-                [ [ 1, 1000, 10, -10, [] ], [ 2000, 4000, 10, -20, [] ], ],
+                [ [ 1, 1000, 10, -10, 1, [] ], [ 2000, 4000, 10, -10, 1, [] ], ],
+                [ [ 1, 1000, 10, -10, 1, [] ], [ 2000, 4000, 10, -20, 1, [] ], ],
             ],
         }
     );
 }
 qr/Regions not in the same order or not the same in each list/ms,
   'Different region log probability sum';
+throws_ok {
+    merge_three_prime_ends(
+        {
+            seq_name => '1',
+            regions  => [
+                [ [ 1, 1000, 10, -10, 1, [] ], [ 2000, 4000, 10, -10, 1, [] ], ],
+                [ [ 1, 1000, 10, -10, 1, [] ], [ 2000, 4000, 10, -10, -1, [] ], ],
+            ],
+        }
+    );
+}
+qr/Regions not in the same order or not the same in each list/ms,
+  'Different region strand';
 
 # Test one list of regions
 $three_prime_ends = merge_three_prime_ends(
     {
         seq_name => '1',
-        regions  => [ [ [ 1, 1000, 10, -10, [] ] ] ],
+        regions  => [ [ [ 1, 1000, 10, -10, 1, [] ] ] ],
     }
 );
 is( scalar keys %{$three_prime_ends},     1,    '1 sequence' );
@@ -859,7 +872,8 @@ is( $three_prime_ends->{'1'}->[0]->[0],   1,    'Region start' );
 is( $three_prime_ends->{'1'}->[0]->[1],   1000, 'Region end' );
 is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
 is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
-is( @{ $three_prime_ends->{'1'}->[0]->[4] }, 0, q{No 3' ends} );
+is( $three_prime_ends->{'1'}->[0]->[4],   1,    'Region strand' );
+is( @{ $three_prime_ends->{'1'}->[0]->[5] }, 0, q{No 3' ends} );
 
 # Test two lists of regions
 $three_prime_ends = merge_three_prime_ends(
@@ -868,11 +882,11 @@ $three_prime_ends = merge_three_prime_ends(
         regions  => [
             [
                 [
-                    1, 1000, 10, -10,
+                    1, 1000, 10, -10, 1,
                     [ [ '1', 2000, 1, 10 ], [ '1', 3000, 1, 10 ], ]
                 ]
             ],
-            [ [ 1, 1000, 10, -10, [ [ '1', 3000, 1, 10 ], ] ] ],
+            [ [ 1, 1000, 10, -10, 1, [ [ '1', 3000, 1, 10 ], ] ] ],
         ],
     }
 );
@@ -882,25 +896,26 @@ is( $three_prime_ends->{'1'}->[0]->[0],   1,    'Region start' );
 is( $three_prime_ends->{'1'}->[0]->[1],   1000, 'Region end' );
 is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
 is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
-is( @{ $three_prime_ends->{'1'}->[0]->[4] },      2,    q{2 3' ends} );
-is( $three_prime_ends->{'1'}->[0]->[4]->[0]->[0], '1',  q{3' end sequence} );
-is( $three_prime_ends->{'1'}->[0]->[4]->[0]->[1], 3000, q{3' end position} );
-is( $three_prime_ends->{'1'}->[0]->[4]->[0]->[2], 1,    q{3' end strand} );
-is( $three_prime_ends->{'1'}->[0]->[4]->[0]->[3], 20,   q{3' end read count} );
+is( $three_prime_ends->{'1'}->[0]->[4],   1,    'Region strand' );
+is( @{ $three_prime_ends->{'1'}->[0]->[5] },      2,    q{2 3' ends} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[0], '1',  q{3' end sequence} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[1], 3000, q{3' end position} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[2], 1,    q{3' end strand} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[3], 20,   q{3' end read count} );
 
 # Test different strands
 $three_prime_ends = merge_three_prime_ends(
     {
         seq_name => '1',
         regions  => [
-            [ [ 1, 1000, 10, -10, [ [ '1', 2000, 1,  10 ], ] ] ],
-            [ [ 1, 1000, 10, -10, [ [ '1', 2000, -1, 10 ], ] ] ],
+            [ [ 1, 1000, 10, -10, 1, [ [ '1', 2000, 1,  10 ], ] ] ],
+            [ [ 1, 1000, 10, -10, 1, [ [ '1', 2000, -1, 10 ], ] ] ],
         ],
     }
 );
 is( scalar keys %{$three_prime_ends},        1, '1 sequence' );
 is( scalar @{ $three_prime_ends->{'1'} },    1, '1 region' );
-is( @{ $three_prime_ends->{'1'}->[0]->[4] }, 2, q{2 3' ends} );
+is( @{ $three_prime_ends->{'1'}->[0]->[5] }, 2, q{2 3' ends} );
 
 my $analysis;
 
