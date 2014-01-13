@@ -603,7 +603,11 @@ sub get_three_prime_ends {
         }
 
         # Add three prime ends to regions
-        push @regions_with_three_prime_ends, [ $start, $end, $max_read_count, $log_prob_sum, $three_prime_strand, \@three_prime_ends, ];
+        push @regions_with_three_prime_ends,
+          [
+            $start,        $end,                $max_read_count,
+            $log_prob_sum, $three_prime_strand, \@three_prime_ends,
+          ];
     }
 
     return { $arg_ref->{seq_name} => \@regions_with_three_prime_ends };
@@ -682,11 +686,13 @@ sub merge_three_prime_ends {
 
         # Ensure region from first list is same in each list
         my $region1 = $list_of_lists_of_regions[0]->[$region_index];
-        my ( $start1, $end1, $max_read_count1, $log_prob_sum1, $strand1 ) = @{$region1};
+        my ( $start1, $end1, $max_read_count1, $log_prob_sum1, $strand1 ) =
+          @{$region1};
         foreach my $list_index ( 1 .. $num_lists - 1 ) {
             my $region2 =
               $list_of_lists_of_regions[$list_index]->[$region_index];
-            my ( $start2, $end2, $max_read_count2, $log_prob_sum2, $strand2 ) = @{$region2};
+            my ( $start2, $end2, $max_read_count2, $log_prob_sum2, $strand2 ) =
+              @{$region2};
             if (   $start1 != $start2
                 || $end1 != $end2
                 || $max_read_count1 != $max_read_count2
@@ -703,7 +709,8 @@ sub merge_three_prime_ends {
         foreach my $list_index ( 0 .. $num_lists - 1 ) {
             my $list   = $list_of_lists_of_regions[$list_index];
             my $region = $list->[$region_index];
-            my ( undef, undef, undef, undef, undef, $three_prime_ends ) = @{$region};
+            my ( undef, undef, undef, undef, undef, $three_prime_ends ) =
+              @{$region};
             push @unmerged_three_prime_ends, @{$three_prime_ends};
         }
 
@@ -728,7 +735,11 @@ sub merge_three_prime_ends {
         }
 
         # Add three prime ends to regions
-        push @regions_with_three_prime_ends, [ $start1, $end1, $max_read_count1, $log_prob_sum1, $strand1, \@three_prime_ends, ];
+        push @regions_with_three_prime_ends,
+          [
+            $start1,        $end1,    $max_read_count1,
+            $log_prob_sum1, $strand1, \@three_prime_ends,
+          ];
 
         $region_index++;
     }
@@ -790,7 +801,10 @@ sub filter_three_prime_ends {
 
     # Iterate over regions
     foreach my $region ( @{ $arg_ref->{regions} } ) {
-        my ( $region_start, $region_end, $region_max_read_count, $region_log_prob_sum, $three_prime_strand, $unfiltered_three_prime_ends ) = @{$region};
+        my ( $region_start, $region_end, $region_max_read_count,
+            $region_log_prob_sum, $three_prime_strand,
+            $unfiltered_three_prime_ends )
+          = @{$region};
 
         # Filter 3' ends
         my @three_prime_ends;
