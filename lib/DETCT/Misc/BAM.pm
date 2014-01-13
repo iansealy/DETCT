@@ -256,7 +256,7 @@ sub count_tags {
                     seq_name           => '1',
                     tags               => ['NNNNBGAGGC', 'NNNNBAGAAG'],
                 } );
-  Purpose     : Bin reads in a BAM file
+  Purpose     : Bin read 2s in a BAM file
   Returns     : Hashref {
                     Int (1 or -1) (strand) => Hashref {
                         Int (bin) => Int (count)
@@ -336,7 +336,7 @@ sub bin_reads {
                     seq_name           => '1',
                     tags               => ['NNNNBGAGGC', 'NNNNBAGAAG'],
                 } );
-  Purpose     : Get read peaks (overlapping reads) for a BAM file
+  Purpose     : Get read 2 peaks (overlapping reads) for a BAM file
   Returns     : Hashref {
                     String (sequence name) => Hashref {
                         Int (1 or -1) (strand) => Arrayref [
@@ -510,6 +510,8 @@ sub get_read_peaks {
   Comments    : regions parameter is a list of regions, unlike the regions
                 parameter for merge_three_prime_ends where it is a list of lists
                 of regions
+                strand parameter is strand of 3' end, which is the same as the
+                strand of read 2
 
 =cut
 
@@ -1056,6 +1058,7 @@ sub count_reads {
                 $arg_ref->{mismatch_threshold} );
 
             # Only count reads on 3' end strand
+            # (which is the same as read 2 strand)
             next if $alignment->strand != $three_prime_strand;
 
             # Match tag
