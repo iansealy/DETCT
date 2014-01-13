@@ -694,10 +694,10 @@ $three_prime_ends = get_three_prime_ends(
 );
 is( scalar keys %{$three_prime_ends},     1, '1 sequence' );
 is( scalar @{ $three_prime_ends->{'1'} }, 1, '1 region' );
-is( scalar @{ $three_prime_ends->{'1'}->[0]->[4] },
+is( scalar @{ $three_prime_ends->{'1'}->[0]->[5] },
     7, q{7 forward strand 3' ends} );
 my $got_forward = 0;
-foreach my $three_prime_end ( @{ $three_prime_ends->{'1'}->[0]->[4] } ) {
+foreach my $three_prime_end ( @{ $three_prime_ends->{'1'}->[0]->[5] } ) {
     my ( $seq, $pos, $strand, $read_count ) = @{$three_prime_end};
     my $string_form = join q{:}, $seq, $pos, $strand;
     if ( $string_form eq '1:2642:1' ) {
@@ -718,10 +718,10 @@ $three_prime_ends = get_three_prime_ends(
 );
 is( scalar keys %{$three_prime_ends},     1, '1 sequence' );
 is( scalar @{ $three_prime_ends->{'1'} }, 1, '1 region' );
-is( scalar @{ $three_prime_ends->{'1'}->[0]->[4] },
+is( scalar @{ $three_prime_ends->{'1'}->[0]->[5] },
     2, q{2 reverse strand 3' ends} );
 my $got_reverse = 0;
-foreach my $three_prime_end ( @{ $three_prime_ends->{'1'}->[0]->[4] } ) {
+foreach my $three_prime_end ( @{ $three_prime_ends->{'1'}->[0]->[5] } ) {
     my ( $seq, $pos, $strand, $read_count ) = @{$three_prime_end};
     my $string_form = join q{:}, $seq, $pos, $strand;
     if ( $string_form eq '1:632:-1' ) {
@@ -743,7 +743,7 @@ $three_prime_ends = get_three_prime_ends(
 );
 is( scalar keys %{$three_prime_ends},               1, '1 sequence' );
 is( scalar @{ $three_prime_ends->{'1'} },           1, '1 region' );
-is( scalar @{ $three_prime_ends->{'1'}->[0]->[4] }, 0, q{0 3' ends} );
+is( scalar @{ $three_prime_ends->{'1'}->[0]->[5] }, 0, q{0 3' ends} );
 
 # Get 3' ends for sequence name with a peak
 $three_prime_ends = get_three_prime_ends(
@@ -759,7 +759,7 @@ $three_prime_ends = get_three_prime_ends(
 is( scalar keys %{$three_prime_ends},     1, '1 sequence' );
 is( scalar @{ $three_prime_ends->{'3'} }, 1, '1 region' );
 my $max_read_count = 0;
-foreach my $three_prime_end ( @{ $three_prime_ends->{'3'}->[0]->[4] } ) {
+foreach my $three_prime_end ( @{ $three_prime_ends->{'3'}->[0]->[5] } ) {
     my ( $seq, $pos, $strand, $read_count ) = @{$three_prime_end};
     if ( $read_count > $max_read_count ) {
         $max_read_count = $read_count;

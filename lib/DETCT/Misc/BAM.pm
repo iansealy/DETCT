@@ -481,6 +481,7 @@ sub get_read_peaks {
                             Int (region end),
                             Int (region maximum read count),
                             Float (region log probability sum),
+                            Int ( 1 or -1 ) (3' end strand)
                             Arrayref [
                                 Arrayref [
                                     String (3' end sequence name),
@@ -602,8 +603,7 @@ sub get_three_prime_ends {
         }
 
         # Add three prime ends to regions
-        push @regions_with_three_prime_ends,
-          [ $start, $end, $max_read_count, $log_prob_sum, \@three_prime_ends, ];
+        push @regions_with_three_prime_ends, [ $start, $end, $max_read_count, $log_prob_sum, $three_prime_strand, \@three_prime_ends, ];
     }
 
     return { $arg_ref->{seq_name} => \@regions_with_three_prime_ends };
