@@ -123,16 +123,23 @@ sub run_deseq {
     # Write regions to input file
     my $input_file = File::Spec->catfile( $arg_ref->{dir}, 'input.txt' );
     my @sample_names = map { $_->name } @samples;
+    ## no critic (RequireBriefOpen)
     open my $input_fh, '>', $input_file;
     print {$input_fh} ( join "\t", q{}, @sample_names ), "\n";
     foreach my $seq_name ( nsort( keys %{ $arg_ref->{regions} } ) ) {
         foreach my $region ( @{ $arg_ref->{regions}->{$seq_name} } ) {
             my $counts = $region->[-1];
-            my $region_text = join q{:}, $seq_name, $region->[0], $region->[1];
+            my $start  = $region->[0];
+            my $end    = $region->[1];
+            ## no critic (ProhibitMagicNumbers)
+            my $strand = $region->[6];
+            ## use critic
+            my $region_text = join q{:}, $seq_name, $start, $end, $strand;
             print {$input_fh} ( join "\t", $region_text, @{$counts} ), "\n";
         }
     }
     close $input_fh;
+    ## use critic
 
     # Write samples to input file
     my $samples_file = File::Spec->catfile( $arg_ref->{dir}, 'samples.txt' );
@@ -186,8 +193,13 @@ sub run_deseq {
     my @output;
     foreach my $seq_name ( nsort( keys %{ $arg_ref->{regions} } ) ) {
         foreach my $region ( @{ $arg_ref->{regions}->{$seq_name} } ) {
-            my $region_text = join q{:}, $seq_name, $region->[0], $region->[1];
             my $counts = $region->[-1];
+            my $start  = $region->[0];
+            my $end    = $region->[1];
+            ## no critic (ProhibitMagicNumbers)
+            my $strand = $region->[6];
+            ## use critic
+            my $region_text = join q{:}, $seq_name, $start, $end, $strand;
 
             # Add sequence name to region
             unshift @{$region}, $seq_name;
