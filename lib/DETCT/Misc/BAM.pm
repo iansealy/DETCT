@@ -752,6 +752,7 @@ sub merge_three_prime_ends {
                             Int (region end),
                             Int (region maximum read count),
                             Float (region log probability sum),
+                            Int ( 1 or -1 ) (3' end strand)
                             Arrayref [
                                 Arrayref [
                                     String (3' end sequence name),
@@ -789,9 +790,7 @@ sub filter_three_prime_ends {
 
     # Iterate over regions
     foreach my $region ( @{ $arg_ref->{regions} } ) {
-        my ( $region_start, $region_end, $region_max_read_count,
-            $region_log_prob_sum, $unfiltered_three_prime_ends )
-          = @{$region};
+        my ( $region_start, $region_end, $region_max_read_count, $region_log_prob_sum, $three_prime_strand, $unfiltered_three_prime_ends ) = @{$region};
 
         # Filter 3' ends
         my @three_prime_ends;
@@ -828,7 +827,7 @@ sub filter_three_prime_ends {
           [
             $region_start,          $region_end,
             $region_max_read_count, $region_log_prob_sum,
-            \@three_prime_ends,
+            $three_prime_strand,    \@three_prime_ends,
           ];
     }
 

@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 347;
+plan tests => 349;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -929,7 +929,7 @@ throws_ok {
     filter_three_prime_ends(
         {
             seq_name => '1',
-            regions  => [ [ [ 1, 1000, 10, -10, [] ] ] ],
+            regions  => [ [ [ 1, 1000, 10, -10, 1, [] ] ] ],
         }
     );
 }
@@ -938,7 +938,7 @@ throws_ok {
     filter_three_prime_ends(
         {
             analysis => $analysis,
-            regions  => [ [ [ 1, 1000, 10, -10, [] ] ] ],
+            regions  => [ [ [ 1, 1000, 10, -10, 1, [] ] ] ],
         }
     );
 }
@@ -960,7 +960,7 @@ $three_prime_ends = filter_three_prime_ends(
         seq_name => '1',
         regions  => [
             [
-                1, 1000, 10, -10,
+                1, 1000, 10, -10, 1,
                 [
                     [ '1', 1000, 1,  20 ],
                     [ '1', 2000, -1, 10 ],
@@ -977,11 +977,12 @@ is( $three_prime_ends->{'1'}->[0]->[0],   1,    'Region start' );
 is( $three_prime_ends->{'1'}->[0]->[1],   1000, 'Region end' );
 is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
 is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
-is( @{ $three_prime_ends->{'1'}->[0]->[4] },      2,    q{2 3' ends} );
-is( $three_prime_ends->{'1'}->[0]->[4]->[0]->[0], '1',  q{3' end sequence} );
-is( $three_prime_ends->{'1'}->[0]->[4]->[0]->[1], 1000, q{3' end position} );
-is( $three_prime_ends->{'1'}->[0]->[4]->[0]->[2], 1,    q{3' end strand} );
-is( $three_prime_ends->{'1'}->[0]->[4]->[0]->[3], 20,   q{3' end read count} );
+is( $three_prime_ends->{'1'}->[0]->[4],   1,    'Region strand' );
+is( @{ $three_prime_ends->{'1'}->[0]->[5] },      2,    q{2 3' ends} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[0], '1',  q{3' end sequence} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[1], 1000, q{3' end position} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[2], 1,    q{3' end strand} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[3], 20,   q{3' end read count} );
 
 # Mock analysis object returning polyA
 $analysis = Test::MockObject->new();
@@ -995,7 +996,7 @@ $three_prime_ends = filter_three_prime_ends(
         seq_name => '1',
         regions  => [
             [
-                1, 1000, 10, -10,
+                1, 1000, 10, -10, 1,
                 [
                     [ '1', 1000, 1,  20 ],
                     [ '1', 2000, -1, 10 ],
@@ -1012,11 +1013,12 @@ is( $three_prime_ends->{'1'}->[0]->[0],   1,    'Region start' );
 is( $three_prime_ends->{'1'}->[0]->[1],   1000, 'Region end' );
 is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
 is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
-is( @{ $three_prime_ends->{'1'}->[0]->[4] }, 0, q{0 3' ends} );
+is( $three_prime_ends->{'1'}->[0]->[4],   1,    'Region strand' );
+is( @{ $three_prime_ends->{'1'}->[0]->[5] }, 0, q{0 3' ends} );
 
 # Check choosing 3' end required parameters
 throws_ok {
-    choose_three_prime_end( { regions => [ [ [ 1, 1000, 10, -10, [] ] ] ], } );
+    choose_three_prime_end( { regions => [ [ [ 1, 1000, 10, -10, 1, [] ] ] ], } );
 }
 qr/No sequence name specified/ms, 'No sequence name';
 throws_ok {
