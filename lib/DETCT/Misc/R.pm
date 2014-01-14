@@ -151,7 +151,7 @@ sub run_deseq {
         my @row = (
             $sample->name,
             $condition_prefix . $sample->condition,
-            $group_prefix . $sample->group,
+            $group_prefix . ( $sample->group || q{} ),
         )[ 0 .. $last_col_to_print ];
         $samples_text .= ( join "\t", @row ) . "\n";
     }
@@ -295,7 +295,8 @@ sub prefix {
     my ( $attribute, $samples ) = @_;
 
     foreach my $sample ( @{$samples} ) {
-        if ( $sample->$attribute !~ m/\A [\d.]+ \z/xms ) {
+        if ( $sample->$attribute && $sample->$attribute !~ m/\A [\d.]+ \z/xms )
+        {
             return q{};
         }
     }
