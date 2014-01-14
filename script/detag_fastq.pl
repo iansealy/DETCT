@@ -38,7 +38,8 @@ my $pre_detag_trim_length = 54;
 my $polyt_trim_length     = 14;
 my $polyt_min_length      = 10;
 my @read_tags;
-my $no_pair_suffix = 0;
+my $no_pair_suffix        = 0;
+my $treat_n_in_polyt_as_t = 0;
 my ( $help, $man );
 ## use critic
 
@@ -55,6 +56,7 @@ DETCT::Misc::Tag::detag_trim_fastq(
         polyt_min_length      => $polyt_min_length,
         read_tags             => \@read_tags,
         no_pair_suffix        => $no_pair_suffix,
+        treat_n_in_polyt_as_t => $treat_n_in_polyt_as_t,
     }
 );
 
@@ -71,6 +73,7 @@ sub get_and_check_options {
         'polyt_min_length=i'      => \$polyt_min_length,
         'read_tags=s@{1,}'        => \@read_tags,
         'no_pair_suffix'          => \$no_pair_suffix,
+        'treat_n_in_polyt_as_t'   => \$treat_n_in_polyt_as_t,
         'help'                    => \$help,
         'man'                     => \$man,
     ) or pod2usage(2);
@@ -111,6 +114,7 @@ sub get_and_check_options {
         [--polyt_min_length int]
         [--read_tags tags...]
         [--no_pair_suffix]
+        [--treat_n_in_polyt_as_t]
         [--help]
         [--man]
 
@@ -149,6 +153,10 @@ Read tags.
 =item B<--no_pair_suffix>
 
 Input FASTQ file don't have pair suffixes.
+
+=item B<--treat_n_in_polyt_as_t>
+
+Assume any Ns in polyT are Ts.
 
 =item B<--help>
 

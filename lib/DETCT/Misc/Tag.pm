@@ -52,6 +52,7 @@ our @EXPORT_OK = qw(
                     polyt_min_length      => Int (min Ts to define polyT),
                     read_tags             => Arrayref (of read tags),
                     no_pair_suffix        => Boolean or undef,
+                    treat_n_in_polyt_as_t => Boolean or undef,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -131,6 +132,9 @@ sub detag_trim_fastq {
         # Get tag and putative polyT from read 1
         my $tag_in_read = substr $read1_seq, 0, $tag_length;
         my $polyt_seq = substr $read1_seq, $tag_length, $polyt_trim_length;
+        if ( $arg_ref->{treat_n_in_polyt_as_t} ) {
+            $polyt_seq =~ s/N/T/xmsg;
+        }
 
         # Default tag to add to id if no match
         my $tag_for_id = q{X} x $tag_length;
