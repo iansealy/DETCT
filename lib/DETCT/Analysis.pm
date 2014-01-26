@@ -34,21 +34,21 @@ use DETCT::Misc::BAM;
 =cut
 
 # Attributes:
-private name               => my %name;               # e.g. zmp_ph1
-private sample             => my %sample;             # arrayref of samples
-private sequence           => my %sequence;           # arrayref of sequences
-private read1_length       => my %read1_length;       # e.g. 30
-private read2_length       => my %read2_length;       # e.g. 54
-private mismatch_threshold => my %mismatch_threshold; # e.g. 2
-private bin_size           => my %bin_size;           # e.g. 100
-private peak_buffer_width  => my %peak_buffer_width;  # e.g. 100
-private hmm_sig_level      => my %hmm_sig_level;      # e.g. 0.001
-private hmm_binary         => my %hmm_binary;         # e.g. chiphmmnew
-private r_binary           => my %r_binary;           # e.g. R
-private deseq_script       => my %deseq_script;       # e.g. ~/run_deseq.R
-private output_sig_level   => my %output_sig_level;   # e.g. 0.05
-private ref_fasta          => my %ref_fasta;          # e.g. zv9.fa
-private fasta_index        => my %fasta_index;        # Bio::DB::Sam::Fai
+private name               => my %name;                  # e.g. zmp_ph1
+private sample             => my %sample;                # arrayref of samples
+private sequence           => my %sequence;              # arrayref of sequences
+private read1_length       => my %read1_length;          # e.g. 30
+private read2_length       => my %read2_length;          # e.g. 54
+private mismatch_threshold => my %mismatch_threshold;    # e.g. 2
+private bin_size           => my %bin_size;              # e.g. 100
+private peak_buffer_width  => my %peak_buffer_width;     # e.g. 100
+private hmm_sig_level      => my %hmm_sig_level;         # e.g. 0.001
+private hmm_binary         => my %hmm_binary;            # e.g. chiphmmnew
+private r_binary           => my %r_binary;              # e.g. R
+private deseq_script       => my %deseq_script;          # e.g. ~/run_deseq.R
+private output_sig_level   => my %output_sig_level;      # e.g. 0.05
+private ref_fasta          => my %ref_fasta;             # e.g. zv9.fa
+private fasta_index        => my %fasta_index;           # Bio::DB::Sam::Fai
 private ensembl_host    => my %ensembl_host;       # e.g. ensembldb.ensembl.org
 private ensembl_port    => my %ensembl_port;       # e.g. 3306
 private ensembl_user    => my %ensembl_user;       # e.g. anonymous
