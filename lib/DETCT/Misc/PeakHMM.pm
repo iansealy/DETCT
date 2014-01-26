@@ -141,35 +141,30 @@ sub merge_read_peaks {
   Usage       : my $summary_ref = DETCT::Misc::PeakHMM::summarise_read_peaks( {
                     peak_buffer_width => 100,
                     hmm_sig_level     => 0.001,
-                    seq_name          => '1',
-                    seq_bp            => 10_000_000,
+                    total_bp          => 10_000_000,
                     read_length       => 54,
                     peaks             => $peaks_ary_ref,
                 } );
   Purpose     : Summarise read peak distribution for HMM
   Returns     : Hashref {
-                    String (sequence name) => Hashref {
-                        total_read_count_per_mb     => Float,
-                        total_sig_read_count_per_mb => Float,
-                        total_sig_peak_width_in_mb  => Float,
-                        median_sig_peak_width       => Int,
-                        total_sig_peaks             => Int,
-                        peak_buffer_width           => Int,
-                        read_threshold              => Int,
-                    }
+                    total_read_count_per_mb     => Float,
+                    total_sig_read_count_per_mb => Float,
+                    total_sig_peak_width_in_mb  => Float,
+                    median_sig_peak_width       => Int,
+                    total_sig_peaks             => Int,
+                    peak_buffer_width           => Int,
+                    read_threshold              => Int,
                 }
   Parameters  : Hashref {
                     peak_buffer_width => Int (the peak buffer size),
                     hmm_sig_level     => Float (the HMM significance level),
-                    seq_name          => String (the sequence name),
-                    seq_bp            => Int (the sequence bp),
+                    total_bp          => Int (the total bp),
                     read_length       => Int (the read length),
                     peaks             => Arrayref (of peaks),
                 }
   Throws      : If peak buffer width is missing
                 If HMM significance level is missing
-                If sequence name is missing
-                If sequence bp is missing
+                If total bp is missing
                 if read length is missing
                 If peaks are missing
   Comments    : Source of logic is summary.pl from
@@ -184,17 +179,16 @@ sub summarise_read_peaks {
       if !defined $arg_ref->{peak_buffer_width};
     confess 'No HMM significance level specified'
       if !defined $arg_ref->{hmm_sig_level};
-    confess 'No sequence name specified' if !defined $arg_ref->{seq_name};
-    confess 'No sequence bp specified'   if !defined $arg_ref->{seq_bp};
-    confess 'No read length specified'   if !defined $arg_ref->{read_length};
-    confess 'No peaks specified'         if !defined $arg_ref->{peaks};
+    confess 'No total bp specified'    if !defined $arg_ref->{total_bp};
+    confess 'No read length specified' if !defined $arg_ref->{read_length};
+    confess 'No peaks specified'       if !defined $arg_ref->{peaks};
 
     my $total_peaks = scalar @{ $arg_ref->{peaks} };
 
     if ( !$total_peaks ) {
 
         # No peaks so won't be running HMM
-        return { $arg_ref->{seq_name} => {} };
+        return {};
     }
 
     # Get total read count
@@ -205,7 +199,7 @@ sub summarise_read_peaks {
     }
 
     # Get avg reads/bp
-    my $avg_reads_per_bp = $total_read_count / $arg_ref->{seq_bp};
+    my $avg_reads_per_bp = $total_read_count / $arg_ref->{total_bp};
 
     # Identify significant peaks
     memoize('_calc_log_sum');
@@ -240,7 +234,7 @@ sub summarise_read_peaks {
 
     # Calculate hit threshold
     my $proportion_bp_in_peaks =
-      $total_read_count * $arg_ref->{read_length} / $arg_ref->{seq_bp};
+      $total_read_count * $arg_ref->{read_length} / $arg_ref->{total_bp};
     my $read_threshold = 0;
     my $prob           = 1;
     my $sum            = 1;
@@ -271,7 +265,7 @@ sub summarise_read_peaks {
     );
     ## use critic
 
-    return { $arg_ref->{seq_name} => \%summary };
+    return \%summary;
 }
 
 # Calculate log sum

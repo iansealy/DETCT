@@ -365,13 +365,14 @@ sub all_parameters_for_summarise_read_peaks {
 
     my $chunks = $self->analysis->get_all_chunks();
 
+    my @merge_read_peaks_output_files;
     my $component = 0;
     foreach my $chunk ( @{$chunks} ) {
         $component++;
-        my $merge_read_peaks_output_file =
+        push @merge_read_peaks_output_files,
           $self->get_and_check_output_file( 'merge_read_peaks', $component );
-        push @all_parameters, [ $chunk, $merge_read_peaks_output_file ];
     }
+    push @all_parameters, \@merge_read_peaks_output_files;
 
     return @all_parameters;
 }
@@ -390,41 +391,34 @@ sub all_parameters_for_summarise_read_peaks {
 sub run_summarise_read_peaks {
     my ( $self, $job ) = @_;
 
-    my ( $chunk, $merge_read_peaks_output_file ) = @{ $job->parameters };
+    my (@merge_read_peaks_output_files) = @{ $job->parameters };
 
     # Get merged peaks
-    my %merged_peaks = %{ LoadFile($merge_read_peaks_output_file) };
-
-    my %chunk_summary;
-
-    # Summarise read peaks for each sequence of a chunk separately
-    foreach my $seq ( @{$chunk} ) {
-
-        # Summarise each strand separately
-        foreach my $strand ( 1, -1 ) {    ## no critic (ProhibitMagicNumbers)
-            my $seq_summary = summarise_read_peaks(
-                {
-                    bin_size          => $self->analysis->bin_size,
-                    peak_buffer_width => $self->analysis->peak_buffer_width,
-                    hmm_sig_level     => $self->analysis->hmm_sig_level,
-                    seq_name          => $seq->name,
-                    seq_bp            => $seq->bp,
-                    read_length       => $self->analysis->read2_length,
-                    peaks             => $merged_peaks{ $seq->name }->{$strand},
-                }
-            );
-
-            # Add strand to summary
-            $seq_summary =
-              { $seq->name => { $strand => $seq_summary->{ $seq->name } } };
-            %chunk_summary =
-              %{ $self->hash_merge->merge( \%chunk_summary, $seq_summary ) };
+    my @merged_peaks;
+    foreach my $merge_read_peaks_output_file (@merge_read_peaks_output_files) {
+        my $peaks = LoadFile($merge_read_peaks_output_file);
+        foreach my $seq_name ( sort keys %{$peaks} ) {
+            foreach my $strand ( sort keys %{ $peaks->{$seq_name} } ) {
+                push @merged_peaks, @{ $peaks->{$seq_name}->{$strand} };
+            }
         }
     }
 
+    # Summarise read peaks for whole genome
+    my $summary = summarise_read_peaks(
+        {
+            bin_size          => $self->analysis->bin_size,
+            peak_buffer_width => $self->analysis->peak_buffer_width,
+            hmm_sig_level     => $self->analysis->hmm_sig_level,
+            total_bp    => $self->analysis->total_bp * 2,    # Two strands
+            read_length => $self->analysis->read2_length,
+            peaks       => \@merged_peaks,
+        }
+    );
+
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_summary );
+    DumpFile( $output_file, $summary );
 
     return;
 }
@@ -447,6 +441,9 @@ sub all_parameters_for_run_peak_hmm {
 
     my $chunks = $self->analysis->get_all_chunks();
 
+    my $summary_output_file =
+      $self->get_and_check_output_file( 'summarise_read_peaks', 1 );
+
     # Work out which bin_reads stage files need to be combined
     my $component = 0;
     foreach my $hmm_chunk ( @{$chunks} ) {
@@ -464,9 +461,6 @@ sub all_parameters_for_run_peak_hmm {
                 }
             }
         }
-        my $summary_output_file =
-          $self->get_and_check_output_file( 'summarise_read_peaks',
-            $component );
         push @all_parameters,
           [ $hmm_chunk, $summary_output_file, @bin_reads_output_files ];
     }
@@ -516,7 +510,7 @@ sub run_run_peak_hmm {
                     seq_bp        => $seq->bp,
                     bin_size      => $self->analysis->bin_size,
                     read_bins     => $read_bins{ $seq->name }->{$strand},
-                    summary       => $summary->{ $seq->name }->{$strand},
+                    summary       => $summary,
                     hmm_binary    => $self->analysis->hmm_binary,
                 }
             );

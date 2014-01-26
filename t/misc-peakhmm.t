@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 103;
+plan tests => 101;
 
 use DETCT::Misc::PeakHMM qw(
   merge_read_peaks
@@ -197,8 +197,7 @@ throws_ok {
     summarise_read_peaks(
         {
             hmm_sig_level => 0.001,
-            seq_name      => '1',
-            seq_bp        => 1000,
+            total_bp      => 1000,
             read_length   => 54,
             peaks         => [ [ 1, 2, 1 ] ],
         }
@@ -209,8 +208,7 @@ throws_ok {
     summarise_read_peaks(
         {
             peak_buffer_width => 100,
-            seq_name          => '1',
-            seq_bp            => 1000,
+            total_bp          => 1000,
             read_length       => 54,
             peaks             => [ [ 1, 2, 1 ] ],
         }
@@ -222,32 +220,18 @@ throws_ok {
         {
             peak_buffer_width => 100,
             hmm_sig_level     => 0.001,
-            seq_bp            => 1000,
             read_length       => 54,
             peaks             => [ [ 1, 2, 1 ] ],
         }
     );
 }
-qr/No sequence name specified/ms, 'No sequence name';
+qr/No total bp specified/ms, 'No total bp';
 throws_ok {
     summarise_read_peaks(
         {
             peak_buffer_width => 100,
             hmm_sig_level     => 0.001,
-            seq_name          => '1',
-            read_length       => 54,
-            peaks             => [ [ 1, 2, 1 ] ],
-        }
-    );
-}
-qr/No sequence bp specified/ms, 'No sequence bp';
-throws_ok {
-    summarise_read_peaks(
-        {
-            peak_buffer_width => 100,
-            hmm_sig_level     => 0.001,
-            seq_name          => '1',
-            seq_bp            => 1000,
+            total_bp          => 1000,
             peaks             => [ [ 1, 2, 1 ] ],
         }
     );
@@ -258,8 +242,7 @@ throws_ok {
         {
             peak_buffer_width => 100,
             hmm_sig_level     => 0.001,
-            seq_name          => '1',
-            seq_bp            => 1000,
+            total_bp          => 1000,
             read_length       => 54,
         }
     );
@@ -272,34 +255,31 @@ $summary = summarise_read_peaks(
     {
         peak_buffer_width => 100,
         hmm_sig_level     => 0.001,
-        seq_name          => '1',
-        seq_bp            => 1000,
+        total_bp          => 1000,
         read_length       => 54,
         peaks             => $input_peaks,
     }
 );
-is( scalar keys %{$summary},          1, '1 sequence' );
-is( scalar keys %{ $summary->{'1'} }, 7, '7 keys' );
+is( scalar keys %{$summary}, 7, '7 keys' );
 is(
-    $summary->{'1'}->{total_read_count_per_mb},
+    $summary->{total_read_count_per_mb},
     6 / 1_000_000,
     'Total read count per Mb'
 );
 is(
-    $summary->{'1'}->{total_sig_read_count_per_mb},
+    $summary->{total_sig_read_count_per_mb},
     5 / 1_000_000,
     'Total significant read count per Mb'
 );
 is(
-    $summary->{'1'}->{total_sig_peak_width_in_mb},
+    $summary->{total_sig_peak_width_in_mb},
     100 / 1_000_000,
     'Total significant peak width in Mb'
 );
-is( $summary->{'1'}->{median_sig_peak_width},
-    100, 'Median significant peak width' );
-is( $summary->{'1'}->{total_sig_peaks},   1,   'Total significant peaks' );
-is( $summary->{'1'}->{peak_buffer_width}, 100, 'Peak buffer width' );
-ok( $summary->{'1'}->{read_threshold} < 5, 'Read threshold' );
+is( $summary->{median_sig_peak_width}, 100, 'Median significant peak width' );
+is( $summary->{total_sig_peaks},       1,   'Total significant peaks' );
+is( $summary->{peak_buffer_width},     100, 'Peak buffer width' );
+ok( $summary->{read_threshold} < 5, 'Read threshold' );
 
 # No significant peaks
 $input_peaks = [ [ 300, 399, 1 ], ];
@@ -307,14 +287,12 @@ $summary = summarise_read_peaks(
     {
         peak_buffer_width => 100,
         hmm_sig_level     => 0.001,
-        seq_name          => '1',
-        seq_bp            => 1000,
+        total_bp          => 1000,
         read_length       => 54,
         peaks             => $input_peaks,
     }
 );
-is( $summary->{'1'}->{median_sig_peak_width},
-    0, 'Median significant peak width' );
+is( $summary->{median_sig_peak_width}, 0, 'Median significant peak width' );
 
 # Three significant peaks
 $input_peaks = [ [ 100, 149, 500 ], [ 300, 399, 500 ], [ 600, 759, 500 ], ];
@@ -322,27 +300,24 @@ $summary = summarise_read_peaks(
     {
         peak_buffer_width => 100,
         hmm_sig_level     => 0.001,
-        seq_name          => '1',
-        seq_bp            => 1000,
+        total_bp          => 1000,
         read_length       => 54,
         peaks             => $input_peaks,
     }
 );
-is( $summary->{'1'}->{median_sig_peak_width},
-    100, 'Median significant peak width' );
+is( $summary->{median_sig_peak_width}, 100, 'Median significant peak width' );
 
 # No peaks
 $summary = summarise_read_peaks(
     {
         peak_buffer_width => 100,
         hmm_sig_level     => 0.001,
-        seq_name          => '1',
-        seq_bp            => 1000,
+        total_bp          => 1000,
         read_length       => 54,
         peaks             => [],
     }
 );
-is( scalar keys %{ $summary->{'1'} }, 0, 'No summary' );
+is( scalar keys %{$summary}, 0, 'No summary' );
 
 my $tmp_dir = tempdir( CLEANUP => 1 );
 
