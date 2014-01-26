@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 105;
+plan tests => 106;
 
 use DETCT::Misc::PeakHMM qw(
   merge_read_peaks
@@ -16,14 +16,18 @@ use DETCT::Misc::PeakHMM qw(
 
 use File::Temp qw( tempdir );
 use File::Path qw( make_path );
-use POSIX qw( WIFEXITED);
+use IPC::Cmd qw( can_run );
 
-# Compile quince_chiphmmnew if necessary
-if ( !-r 'bin/quince_chiphmmnew' ) {
-    make_path('bin');
-    my $cmd = 'g++ -o bin/quince_chiphmmnew src/quince_chiphmmnew.cpp';
-    WIFEXITED( system $cmd) or confess "Couldn't run $cmd";
-}
+my $path_to_hmm_binary = can_run('chiphmmnew');
+ok( $path_to_hmm_binary, 'HMM binary' ) or diag(<<'END_DIAG');
+
+chiphmmnew from HPeak 2.1 must be installed in your path for tests
+HPeak 2.1 is available at: http://www.sph.umich.edu/csg/qin/HPeak/Download.html
+Compile with: g++ -o chiphmmnew chiphmmnew.cpp
+For recent versions of GCC, chiphmmnew.cpp may need to be edited to add:
+#include <cstdlib>
+
+END_DIAG
 
 my $input_peaks;
 my $output_peaks;
@@ -427,7 +431,7 @@ throws_ok {
             seq_name      => '1',
             read_bins     => $read_bins,
             summary       => $summary,
-            hmm_binary    => 'bin/quince_chiphmmnew',
+            hmm_binary    => 'chiphmmnew',
         }
     );
 }
@@ -439,7 +443,7 @@ throws_ok {
             seq_name   => '1',
             read_bins  => $read_bins,
             summary    => $summary,
-            hmm_binary => 'bin/quince_chiphmmnew',
+            hmm_binary => 'chiphmmnew',
         }
     );
 }
@@ -451,7 +455,7 @@ throws_ok {
             hmm_sig_level => 0.001,
             read_bins     => $read_bins,
             summary       => $summary,
-            hmm_binary    => 'bin/quince_chiphmmnew',
+            hmm_binary    => 'chiphmmnew',
         }
     );
 }
@@ -463,7 +467,7 @@ throws_ok {
             hmm_sig_level => 0.001,
             seq_name      => '1',
             summary       => $summary,
-            hmm_binary    => 'bin/quince_chiphmmnew',
+            hmm_binary    => 'chiphmmnew',
         }
     );
 }
@@ -475,7 +479,7 @@ throws_ok {
             hmm_sig_level => 0.001,
             seq_name      => '1',
             read_bins     => $read_bins,
-            hmm_binary    => 'bin/quince_chiphmmnew',
+            hmm_binary    => 'chiphmmnew',
         }
     );
 }
@@ -503,7 +507,7 @@ $hmm = run_peak_hmm(
         seq_name      => '1',
         read_bins     => $read_bins,
         summary       => $summary,
-        hmm_binary    => 'bin/quince_chiphmmnew',
+        hmm_binary    => 'chiphmmnew',
     }
 );
 is( scalar keys %{$hmm},     1,   '1 sequence' );
@@ -520,7 +524,7 @@ $hmm = run_peak_hmm(
         seq_name      => '1',
         read_bins     => $read_bins,
         summary       => {},
-        hmm_binary    => 'bin/quince_chiphmmnew',
+        hmm_binary    => 'chiphmmnew',
     }
 );
 is( scalar keys %{$hmm},     1, '1 sequence' );
@@ -534,7 +538,7 @@ $hmm = run_peak_hmm(
         seq_name      => '1',
         read_bins     => $read_bins,
         summary       => $summary,
-        hmm_binary    => 'bin/quince_chiphmmnew',
+        hmm_binary    => 'chiphmmnew',
     }
 );
 is( scalar keys %{$hmm},     1, '1 sequence' );

@@ -304,7 +304,7 @@ sub _calc_log_sum {
                     seq_name      => '1',
                     read_bins     => $read_bins_hash_ref,
                     summary       => $summary_hash_ref,
-                    hmm_binary    => 'bin/quince_chiphmmnew',
+                    hmm_binary    => 'chiphmmnew',
                 } );
   Purpose     : Run peak HMM
   Returns     : Hashref {

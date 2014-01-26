@@ -43,7 +43,7 @@ private mismatch_threshold => my %mismatch_threshold; # e.g. 2
 private bin_size           => my %bin_size;           # e.g. 100
 private peak_buffer_width  => my %peak_buffer_width;  # e.g. 100
 private hmm_sig_level      => my %hmm_sig_level;      # e.g. 0.001
-private hmm_binary         => my %hmm_binary;         # e.g. ~/quince_chiphmmnew
+private hmm_binary         => my %hmm_binary;         # e.g. chiphmmnew
 private r_binary           => my %r_binary;           # e.g. R
 private deseq_script       => my %deseq_script;       # e.g. ~/run_deseq.R
 private output_sig_level   => my %output_sig_level;   # e.g. 0.05
@@ -75,7 +75,7 @@ Readonly our $DEFAULT_ENSEMBL_USER => 'anonymous';
                     bin_size           => 100,
                     peak_buffer_width  => 100,
                     hmm_sig_level      => 0.001,
-                    hmm_binary         => 'bin/quince_chiphmmnew',
+                    hmm_binary         => 'chiphmmnew',
                     r_binary           => 'R',
                     deseq_script       => 'script/run_deseq.R',
                     output_sig_level   => 0.05,
@@ -681,7 +681,7 @@ sub hmm_binary {
 
 =method set_hmm_binary
 
-  Usage       : $analysis->set_hmm_binary('bin/quince_chiphmmnew');
+  Usage       : $analysis->set_hmm_binary('chiphmmnew');
   Purpose     : Setter for HMM binary attribute
   Returns     : undef
   Parameters  : String (the HMM binary)
@@ -700,13 +700,12 @@ sub set_hmm_binary {
 # Purpose     : Check for valid HMM binary
 # Returns     : String (the valid HMM binary)
 # Parameters  : String (the HMM binary)
-# Throws      : If HMM binary is missing or not readable
+# Throws      : If HMM binary is missing
 # Comments    : None
 sub _check_hmm_binary {
     my ($hmm_binary) = @_;
-    return $hmm_binary if defined $hmm_binary && -r $hmm_binary;
-    confess 'No HMM binary specified' if !defined $hmm_binary;
-    confess "HMM binary ($hmm_binary) does not exist or cannot be read";
+    return $hmm_binary if defined $hmm_binary;
+    confess 'No HMM binary specified';
 }
 
 =method r_binary

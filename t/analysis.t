@@ -5,20 +5,12 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 146;
+plan tests => 145;
 
 use DETCT::Analysis;
 
 use File::Path qw( make_path );
 use IO::Socket::INET;
-use POSIX qw( WIFEXITED);
-
-# Compile quince_chiphmmnew if necessary
-if ( !-r 'bin/quince_chiphmmnew' ) {
-    make_path('bin');
-    my $cmd = 'g++ -o bin/quince_chiphmmnew src/quince_chiphmmnew.cpp';
-    WIFEXITED( system $cmd) or confess "Couldn't run $cmd";
-}
 
 my $is_ensembl_reachable = is_ensembl_reachable();
 
@@ -31,7 +23,7 @@ my $analysis = DETCT::Analysis->new(
         bin_size           => 100,
         peak_buffer_width  => 100,
         hmm_sig_level      => 0.001,
-        hmm_binary         => 'bin/quince_chiphmmnew',
+        hmm_binary         => 'chiphmmnew',
         r_binary           => 'R',
         deseq_script       => 'script/run_deseq.R',
         output_sig_level   => 0.05,
@@ -106,13 +98,11 @@ throws_ok { $analysis->set_hmm_sig_level(1) }
 qr/Invalid HMM significance level/ms, 'Invalid HMM significance level';
 
 # Test HMM binary attribute
-is( $analysis->hmm_binary, 'bin/quince_chiphmmnew', 'Get HMM binary' );
-is( $analysis->set_hmm_binary('bin'), undef, 'Set HMM binary' );
-is( $analysis->hmm_binary,            'bin', 'Get new HMM binary' );
+is( $analysis->hmm_binary, 'chiphmmnew', 'Get HMM binary' );
+is( $analysis->set_hmm_binary('chiphmmnew'), undef, 'Set HMM binary' );
+is( $analysis->hmm_binary, 'chiphmmnew', 'Get new HMM binary' );
 throws_ok { $analysis->set_hmm_binary() } qr/No HMM binary specified/ms,
   'No HMM binary';
-throws_ok { $analysis->set_hmm_binary('nonexistent') }
-qr/does not exist or cannot be read/ms, 'Missing HMM binary';
 
 # Test R binary attribute
 is( $analysis->r_binary,          'R',   'Get R binary' );
@@ -355,7 +345,7 @@ SKIP: {
             bin_size           => 100,
             peak_buffer_width  => 100,
             hmm_sig_level      => 0.001,
-            hmm_binary         => 'bin/quince_chiphmmnew',
+            hmm_binary         => 'chiphmmnew',
             r_binary           => 'R',
             deseq_script       => 'script/run_deseq.R',
             output_sig_level   => 0.05,
@@ -381,7 +371,7 @@ $analysis = DETCT::Analysis->new(
         bin_size           => 100,
         peak_buffer_width  => 100,
         hmm_sig_level      => 0.001,
-        hmm_binary         => 'bin/quince_chiphmmnew',
+        hmm_binary         => 'chiphmmnew',
         r_binary           => 'R',
         deseq_script       => 'script/run_deseq.R',
         output_sig_level   => 0.05,
@@ -407,7 +397,7 @@ SKIP: {
             bin_size           => 100,
             peak_buffer_width  => 100,
             hmm_sig_level      => 0.001,
-            hmm_binary         => 'bin/quince_chiphmmnew',
+            hmm_binary         => 'chiphmmnew',
             r_binary           => 'R',
             deseq_script       => 'script/run_deseq.R',
             output_sig_level   => 0.05,
@@ -444,7 +434,7 @@ SKIP: {
             bin_size           => 100,
             peak_buffer_width  => 100,
             hmm_sig_level      => 0.001,
-            hmm_binary         => 'bin/quince_chiphmmnew',
+            hmm_binary         => 'chiphmmnew',
             r_binary           => 'R',
             deseq_script       => 'script/run_deseq.R',
             output_sig_level   => 0.05,
