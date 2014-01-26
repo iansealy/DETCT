@@ -513,6 +513,8 @@ sub run_run_peak_hmm {
                     dir           => $job->base_filename,
                     hmm_sig_level => $self->analysis->hmm_sig_level,
                     seq_name      => $seq->name,
+                    seq_bp        => $seq->bp,
+                    bin_size      => $self->analysis->bin_size,
                     read_bins     => $read_bins{ $seq->name }->{$strand},
                     summary       => $summary->{ $seq->name }->{$strand},
                     hmm_binary    => $self->analysis->hmm_binary,

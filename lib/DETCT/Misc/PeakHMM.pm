@@ -139,7 +139,6 @@ sub merge_read_peaks {
 =func summarise_read_peaks
 
   Usage       : my $summary_ref = DETCT::Misc::PeakHMM::summarise_read_peaks( {
-                    bin_size          => 100,
                     peak_buffer_width => 100,
                     hmm_sig_level     => 0.001,
                     seq_name          => '1',
@@ -157,12 +156,9 @@ sub merge_read_peaks {
                         total_sig_peaks             => Int,
                         peak_buffer_width           => Int,
                         read_threshold              => Int,
-                        bin_size                    => Int,
-                        num_bins                    => Int,
                     }
                 }
   Parameters  : Hashref {
-                    bin_size          => Int (the bin size),
                     peak_buffer_width => Int (the peak buffer size),
                     hmm_sig_level     => Float (the HMM significance level),
                     seq_name          => String (the sequence name),
@@ -170,8 +166,7 @@ sub merge_read_peaks {
                     read_length       => Int (the read length),
                     peaks             => Arrayref (of peaks),
                 }
-  Throws      : If bin size is missing
-                If peak buffer width is missing
+  Throws      : If peak buffer width is missing
                 If HMM significance level is missing
                 If sequence name is missing
                 If sequence bp is missing
@@ -185,7 +180,6 @@ sub merge_read_peaks {
 sub summarise_read_peaks {
     my ($arg_ref) = @_;
 
-    confess 'No bin size specified' if !defined $arg_ref->{bin_size};
     confess 'No peak buffer width specified'
       if !defined $arg_ref->{peak_buffer_width};
     confess 'No HMM significance level specified'
@@ -265,8 +259,6 @@ sub summarise_read_peaks {
     @sig_peak_widths = sort { $a <=> $b } @sig_peak_widths;
     my $median_sig_peak_width = $sig_peak_widths[ int( $total_sig_peaks / 2 ) ];
 
-    my $num_bins = ceil( $arg_ref->{seq_bp} / $arg_ref->{bin_size} );
-
     ## no critic (ProhibitMagicNumbers)
     my %summary = (
         total_read_count_per_mb     => $total_read_count / 1_000_000,
@@ -276,8 +268,6 @@ sub summarise_read_peaks {
         total_sig_peaks             => $total_sig_peaks,
         peak_buffer_width           => $arg_ref->{peak_buffer_width},
         read_threshold              => $read_threshold,
-        bin_size                    => $arg_ref->{bin_size},
-        num_bins                    => $num_bins,
     );
     ## use critic
 
@@ -302,6 +292,8 @@ sub _calc_log_sum {
                     dir           => '.',
                     hmm_sig_level => 0.001,
                     seq_name      => '1',
+                    seq_bp        => 10_000_000,
+                    bin_size      => 100,
                     read_bins     => $read_bins_hash_ref,
                     summary       => $summary_hash_ref,
                     hmm_binary    => 'chiphmmnew',
@@ -320,6 +312,8 @@ sub _calc_log_sum {
                     dir           => String (the working directory),
                     hmm_sig_level => Float (the HMM significance level),
                     seq_name      => String (the sequence name),
+                    seq_bp        => Int (the sequence bp),
+                    bin_size      => Int (the bin size),
                     read_bins     => Hashref (of read bins),
                     summary       => Hashref (of summary),
                     hmm_binary    => String (the HMM binary)
@@ -327,6 +321,8 @@ sub _calc_log_sum {
   Throws      : If directory is missing
                 If HMM significance level is missing
                 If sequence name is missing
+                If sequence bp is missing
+                If bin size is missing
                 If read bins are missing
                 If summary is missing
                 If HMM binary is missing
@@ -342,6 +338,8 @@ sub run_peak_hmm {
     confess 'No HMM significance level specified'
       if !defined $arg_ref->{hmm_sig_level};
     confess 'No sequence name specified' if !defined $arg_ref->{seq_name};
+    confess 'No sequence bp specified'   if !defined $arg_ref->{seq_bp};
+    confess 'No bin size specified'      if !defined $arg_ref->{bin_size};
     confess 'No read bins specified'     if !defined $arg_ref->{read_bins};
     confess 'No summary specified'       if !defined $arg_ref->{summary};
     confess 'No HMM binary specified'    if !defined $arg_ref->{hmm_binary};
@@ -373,7 +371,6 @@ sub run_peak_hmm {
     # Write summary to file
     my $sum_file =
       File::Spec->catfile( $arg_ref->{dir}, $safe_seq_name . '.params' );
-    ## no critic (RequireBriefOpen)
     open my $sum_fh, '>', $sum_file;
     print {$sum_fh} $arg_ref->{summary}->{total_read_count_per_mb},     "\n";
     print {$sum_fh} $arg_ref->{summary}->{total_sig_read_count_per_mb}, "\n";
@@ -382,10 +379,7 @@ sub run_peak_hmm {
     print {$sum_fh} $arg_ref->{summary}->{total_sig_peaks},             "\n";
     print {$sum_fh} $arg_ref->{summary}->{peak_buffer_width},           "\n";
     print {$sum_fh} $arg_ref->{summary}->{read_threshold},              "\n";
-    print {$sum_fh} $arg_ref->{summary}->{bin_size},                    "\n";
-    print {$sum_fh} $arg_ref->{summary}->{num_bins},                    "\n";
     close $sum_fh;
-    ## use critic
 
     my $hmm_file =
       File::Spec->catfile( $arg_ref->{dir}, $safe_seq_name . '.hmm' );
@@ -394,8 +388,10 @@ sub run_peak_hmm {
     my $stderr_file =
       File::Spec->catfile( $arg_ref->{dir}, $safe_seq_name . '.e' );
 
+    my $num_bins = ceil( $arg_ref->{seq_bp} / $arg_ref->{bin_size} );
+
     my $cmd = join q{ }, $arg_ref->{hmm_binary}, $bin_file, $sum_file,
-      $hmm_file;
+      $hmm_file, $arg_ref->{bin_size}, $num_bins;
     $cmd .= ' 1>' . $stdout_file;
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";

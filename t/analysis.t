@@ -98,8 +98,8 @@ throws_ok { $analysis->set_hmm_sig_level(1) }
 qr/Invalid HMM significance level/ms, 'Invalid HMM significance level';
 
 # Test HMM binary attribute
-is( $analysis->hmm_binary, 'chiphmmnew', 'Get HMM binary' );
-is( $analysis->set_hmm_binary('chiphmmnew'), undef, 'Set HMM binary' );
+is( $analysis->hmm_binary,                   'chiphmmnew', 'Get HMM binary' );
+is( $analysis->set_hmm_binary('chiphmmnew'), undef,        'Set HMM binary' );
 is( $analysis->hmm_binary, 'chiphmmnew', 'Get new HMM binary' );
 throws_ok { $analysis->set_hmm_binary() } qr/No HMM binary specified/ms,
   'No HMM binary';
