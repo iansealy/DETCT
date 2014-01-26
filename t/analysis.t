@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 145;
+plan tests => 147;
 
 use DETCT::Analysis;
 
@@ -182,7 +182,8 @@ throws_ok { $analysis->set_chunk_total() } qr/No chunk total specified/ms,
 throws_ok { $analysis->set_chunk_total(-1) } qr/Invalid chunk total/ms,
   'Invalid chunk total';
 
-# Test sequences and chunks before adding samples
+# Test total bp, sequences and chunks before adding samples
+is( $analysis->total_bp, 0, 'Total bp if no sequences' );
 my $sequences = $analysis->get_all_sequences();
 is( scalar @{$sequences}, 0, 'No sequences' );
 my $chunks = $analysis->get_all_chunks();
@@ -214,7 +215,15 @@ throws_ok { $analysis->add_sample() } qr/No sample specified/ms,
 throws_ok { $analysis->add_sample('invalid') } qr/Class of sample/ms,
   'Invalid sample';
 
-# Test sequences and chunks after adding samples
+# Test total bp, sequences and chunks after adding samples
+# Should be 31404 bp according to:
+
+=for comment
+samtools view -H t/data/test1.bam | sed -e 's/.*LN://' \
+| awk '{ sum += $1 } END { print sum }'
+=cut
+
+is( $analysis->total_bp, 31404, 'Total bp with sequences' );
 $sequences = $analysis->get_all_sequences();
 is( scalar @{$sequences}, 5, '5 sequences' );
 $chunks = $analysis->get_all_chunks();

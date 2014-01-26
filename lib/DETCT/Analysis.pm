@@ -37,6 +37,7 @@ use DETCT::Misc::BAM;
 private name               => my %name;                  # e.g. zmp_ph1
 private sample             => my %sample;                # arrayref of samples
 private sequence           => my %sequence;              # arrayref of sequences
+private total_bp           => my %total_bp;              # e.g. 1412464843
 private read1_length       => my %read1_length;          # e.g. 30
 private read2_length       => my %read2_length;          # e.g. 54
 private mismatch_threshold => my %mismatch_threshold;    # e.g. 2
@@ -314,6 +315,8 @@ sub get_all_samples {
 sub add_all_sequences {
     my ( $self, $bam_file ) = @_;
 
+    undef $total_bp{ id $self};
+
     $bam_file = DETCT::Sample::check_bam_file($bam_file);
 
     $sequence{ id $self} = [];
@@ -378,6 +381,31 @@ sub _validate {
     }
 
     return 1;
+}
+
+=method total_bp
+
+  Usage       : my $total_bp = $analysis->total_bp;
+  Purpose     : Getter for total bp
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub total_bp {
+    my ($self) = @_;
+
+    if ( !defined $total_bp{ id $self} ) {
+        my @seqs = @{ $self->get_all_sequences() };
+        $total_bp{ id $self} = 0;
+        foreach my $seq (@seqs) {
+            $total_bp{ id $self} += $seq->bp;
+        }
+    }
+
+    return $total_bp{ id $self};
 }
 
 =method read1_length
@@ -1319,13 +1347,7 @@ sub set_test_chunk {
 sub add_all_chunks {
     my ($self) = @_;
 
-    my @seqs = @{ $self->get_all_sequences() };
-
-    # Get total sequence length
-    my $total_bp = 0;
-    foreach my $seq (@seqs) {
-        $total_bp += $seq->bp;
-    }
+    my $total_bp = $self->total_bp;
 
     # Get chunk target size (+ 1 to ensure slight overestimate)
     my $target_chunk_size = int( $total_bp / $self->chunk_total + 1 );
@@ -1334,6 +1356,7 @@ sub add_all_chunks {
     my @chunk_size = map { 0 } 1 .. $self->chunk_total;
 
     # Iterate over sequences
+    my @seqs = @{ $self->get_all_sequences() };
   SEQ: foreach my $seq (@seqs) {
 
         # Iterate over each chunk
