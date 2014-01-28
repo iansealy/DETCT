@@ -177,7 +177,7 @@ void pathFinder(const int count, const vector<int> &order,
 	nc = rand();
 	// hits are for all 25bp window on the genome.
 	// only some of them are non-zero.
-	hits = new double[chromosomeLengthInBins + 1]; // to fix the glibc
+	hits = new double[chromosomeLengthInBins];
 	sum = 0;
 	sum2 = 0;
 	bgtotal = 0;
