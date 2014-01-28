@@ -49,6 +49,8 @@ estimate_power<-function(design=design,
 	return(power_data);
 }
 
+     
+
 Args            <- commandArgs();
 countFile       <- Args[4]
 designFile      <- Args[5]
@@ -82,7 +84,7 @@ if (numFactors == 2) {
 # Remove regions with sum of counts below the 40th quantile
 # See "5 Independent filtering and multiple testing" of
 # http://bioconductor.org/packages/devel/bioc/vignettes/DESeq/inst/doc/DESeq.pdf
-rs  <- rowSums ( counts ( cdsOneFactFull ))
+rs  <- rowSums ( DESeq2::counts ( cdsOneFactFull ))
 use <- (rs > quantile(rs, probs=0.4))
 cdsOneFactFilt <- cdsOneFactFull[ use, ]
 if (numFactors == 2) {
@@ -111,12 +113,12 @@ if (numConditions != 2) {
 cdsOneFactFiltPooled <- tryCatch({
     estimateDispersions( cdsOneFactFilt )
 }, error = function(e) {
-    estimateDispersions( cdsOneFactFilt, fitType="local" )
+    estimateDispersions( cdsOneFactFilt, fitType="parametric" )
 })
 cdsOneFactFullBlind <- tryCatch({
     estimateDispersions( cdsOneFactFull)
 }, error = function(e) {
-    estimateDispersions( cdsOneFactFull, fitType="local" )
+    estimateDispersions( cdsOneFactFull, fitType="parametric" )
 })
 if (numFactors == 1) {
     plotDispEsts( cdsOneFactFiltPooled )
@@ -124,12 +126,12 @@ if (numFactors == 1) {
     cdsTwoFactFiltPooledCR <- tryCatch({
         estimateDispersions( cdsTwoFactFilt )
     }, error = function(e) {
-        estimateDispersions( cdsTwoFactFilt,fitType="local" )
+        estimateDispersions( cdsTwoFactFilt,fitType="parametric" )
     })
     cdsTwoFactFullBlind <- tryCatch({
         estimateDispersions( cdsTwoFactFull )
     }, error = function(e) {
-        estimateDispersions( cdsTwoFactFull, fitType="local" )
+        estimateDispersions( cdsTwoFactFull, fitType="parametric" )
     })
     plotDispEsts( cdsTwoFactFiltPooledCR )
 }
@@ -166,6 +168,30 @@ res = data.frame(id=regions, pval=pval, padj=padj)
 write.table( res, file=outputFile, col.names=FALSE, row.names=FALSE,
     quote=FALSE, sep="\t" )
 
+
+# Variance stabilising transformation
+vsdOneFactFull <- varianceStabilizingTransformation( cdsOneFactFullBlind )
+if (numFactors == 2) {
+    vsdTwoFactFull <- varianceStabilizingTransformation( cdsTwoFactFullBlind )
+}
+
+## Plot heatmap of counts
+select <- order(rowMeans(counts(cdsOneFactFull)), decreasing=TRUE)[1:30]
+hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
+heatmap.2(assay(vsdOneFactFull)[select,], col=hmcol, trace="none",margin=c(10, 6))
+
+## Plot heatmap of sample to sample distances
+dists <- dist(t(assay(vsdTwoFactFull)))
+mat <- as.matrix( dists )
+heatmap.2(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
+
+# Plot PCA of samples
+print(plotPCA(vsdOneFactFull, intgroup=c("condition")))
+if (numFactors == 2) {
+    print(plotPCA(vsdTwoFactFull, intgroup=c("group")))
+    print(plotPCA(vsdTwoFactFull, intgroup=c("condition", "group")))
+}
+dev.off()
 
 
 power_data=estimate_power(design,res_wald,20);
