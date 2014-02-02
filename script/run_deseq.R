@@ -2,198 +2,148 @@ library(DESeq2)
 library(RColorBrewer)
 library(gplots)
 
-estimate_power<-function(design=design, 
-						 res_wald =res_wald, 
-						 max_sample_size=100){
-	
-	# the numerator of the z statistic
-	diff_vector=as.vector(res_wald$log2FoldChange)
-	
-	# to get the st. dev. I need to know the number of samples in the non reference condition level (sibling) 
-	# in R the reference level is the first level sorted alphabetically, so get the next one (index 2)
-	non_ref_sample_size = length( which ( design$condition == sort(levels(design$condition))[2]));
-	non_ref_level_name =  sort(levels(design$condition))[2];
-	sd = res_wald$lfcSE * sqrt(non_ref_sample_size )
-	
-	
-	potential_regions<-c();
-	for(sample_size in 1:max_sample_size){
-		z = diff_vector / (sd / sqrt(sample_size ))
-		pvalue = (1-pnorm(z))+pnorm(-z)
-		padj=p.adjust(pvalue,"BH")
-		potential_regions<-c(potential_regions,length(which(padj <= 0.05)))
-	}
-	
-	increase_vector<-c(0);
-	for(i in 2:length(potential_regions)){
-		increase = potential_regions[i] - potential_regions[i-1];
-		increase_vector<-c(increase_vector,increase);
-	}
-	
-	asterisk_vector = rep('',length(potential_regions))
-	max_increase_index = which.max(increase_vector)	
-	asterisk_vector[max_increase_index]='*'
-	
-	power_data = data.frame(c(1:max_sample_size),potential_regions,increase_vector,asterisk_vector)
-	colnames(power_data)=c(paste("sample_size",non_ref_level_name,sep="__"),"potential_regions","increase","best")
-	
-	
-	write.table( power_data, file=outputFilePowerMatrix, col.names=colnames(power_data), row.names=FALSE, quote=FALSE, sep="\t" )
-	pdf(file = outputPdfPowerCurve);
-	plot(power_data$sample_size,power_data$potential_regions,
-		type="l", main="z stat power curve",xlab=colnames(power_data)[1],ylab=colnames(power_data)[2])
-	abline(v=max_increase_index)
-
-	dev.off();
-	
-	return(power_data);
-}
-
-     
-
-Args            <- commandArgs();
+Args            <- commandArgs()
 countFile       <- Args[4]
-designFile      <- Args[5]
+samplesFile     <- Args[5]
 outputFile      <- Args[6]
 sizeFactorsFile <- Args[7]
 qcPdfFile       <- Args[8]
-outputFilePowerMatrix      <- Args[9]
-outputPdfPowerCurve      <- Args[10]
+powerFile       <- Args[9]
 
-countTable    <- read.table(  countFile , header=TRUE, row.names=1 )
-design        <- read.table( designFile, header=TRUE, row.names=1 )
-
-numFactors    <- ncol(design)
-numConditions <- nlevels(design$condition)
+# Get data and samples
+countData     <- read.table(   countFile, header=TRUE, row.names=1 )
+samples       <- read.table( samplesFile, header=TRUE, row.names=1 )
+numFactors    <- ncol( samples )
+numConditions <- nlevels( samples$condition )
 
 # Can only handle one or two factors
 if (numFactors > 2) {
     stop("Too many factors")
 }
 
-# Write QC graphs to PDF
-pdf(qcPdfFile)
-
-# Create CountDataSets
-
-cdsOneFactFull <- DESeqDataSetFromMatrix(countTable, design, formula(~ condition))
-if (numFactors == 2) {
-    cdsTwoFactFull <- DESeqDataSetFromMatrix(countTable, design, formula(~ group + condition))
-}
-
-# Remove regions with sum of counts below the 40th quantile
-# See "5 Independent filtering and multiple testing" of
-# http://bioconductor.org/packages/devel/bioc/vignettes/DESeq/inst/doc/DESeq.pdf
-rs  <- rowSums ( DESeq2::counts ( cdsOneFactFull ))
-use <- (rs > quantile(rs, probs=0.4))
-cdsOneFactFilt <- cdsOneFactFull[ use, ]
-if (numFactors == 2) {
-    cdsTwoFactFilt <- cdsTwoFactFull[ use, ]
-}
-
-# Normalise
-cdsOneFactFull <- estimateSizeFactors( cdsOneFactFull )
-cdsOneFactFilt <- estimateSizeFactors( cdsOneFactFilt )
-if (numFactors == 2) {
-    cdsTwoFactFull <- estimateSizeFactors( cdsTwoFactFull )
-    cdsTwoFactFilt <- estimateSizeFactors( cdsTwoFactFilt )
-}
-
-write.table( sizeFactors( cdsOneFactFull ), file=sizeFactorsFile,
-    col.names=FALSE, row.names=FALSE, quote=FALSE, sep="\t" )
-
-# If not two conditions then write empty output
+# If not two conditions then just write empty output (but can handle this better
+# in future)
 if (numConditions != 2) {
     write.table( c(), file=outputFile, col.names=FALSE, row.names=FALSE,
         quote=FALSE, sep="\t" )
     stop("Not two conditions")
 }
 
-# Estimate variance
-cdsOneFactFiltPooled <- tryCatch({
-    estimateDispersions( cdsOneFactFilt )
-}, error = function(e) {
-    estimateDispersions( cdsOneFactFilt, fitType="parametric" )
-})
-cdsOneFactFullBlind <- tryCatch({
-    estimateDispersions( cdsOneFactFull)
-}, error = function(e) {
-    estimateDispersions( cdsOneFactFull, fitType="parametric" )
-})
-if (numFactors == 1) {
-    plotDispEsts( cdsOneFactFiltPooled )
-} else if (numFactors == 2) {
-    cdsTwoFactFiltPooledCR <- tryCatch({
-        estimateDispersions( cdsTwoFactFilt )
-    }, error = function(e) {
-        estimateDispersions( cdsTwoFactFilt,fitType="parametric" )
-    })
-    cdsTwoFactFullBlind <- tryCatch({
-        estimateDispersions( cdsTwoFactFull )
-    }, error = function(e) {
-        estimateDispersions( cdsTwoFactFull, fitType="parametric" )
-    })
-    plotDispEsts( cdsTwoFactFiltPooledCR )
-}
-
-
-res <- nbinomLRT(cdsOneFactFiltPooled, full = ~ condition ,reduced = ~ 1)
-results = results(res);
-regions = rownames(results);
-pval = results$pvalue
-padj = results$padj	
-
-dds <- nbinomWaldTest(cdsOneFactFiltPooled)
-res_wald = results(dds)
-
-
+# Create DESeqDataSet (with design according to number of factors)
+dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ condition)
 if (numFactors == 2) {
-    
-    res<-nbinomLRT(cdsTwoFactFiltPooledCR,full= ~ group + condition,reduced= ~ group )
-    results = results(res);
-   	regions = rownames(results);
-	pval = results$pvalue
-	padj = results$padj
-	
-	dds <- nbinomWaldTest(cdsTwoFactFiltPooledCR)
-	res_wald = results(dds)
+    design(dds) <- formula(~ group + condition)
 }
 
-plotMA(res)
-hist(pval, breaks=100, col="skyblue", border="slateblue",
-    main="Histogram of p values")
+# Ensure control level (usually "sibling") is first level (i.e. before "mutant")
+colData(dds)$condition <- factor(colData(dds)$condition,
+    levels=rev(levels(colData(dds)$condition)))
+
+# Differential expression analysis
+dds <- DESeq(dds)
+res <- results(dds)
 
 # Write output
-res = data.frame(id=regions, pval=pval, padj=padj)
-write.table( res, file=outputFile, col.names=FALSE, row.names=FALSE,
+out <- data.frame(pvalue=res$pvalue, padj=res$padj, row.names=rownames(res))
+write.table( out, file=outputFile, col.names=FALSE, row.names=TRUE,
     quote=FALSE, sep="\t" )
 
+# Data transformations for QC
+rld <- rlogTransformation(dds, blind=TRUE)
+vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 
-# Variance stabilising transformation
-vsdOneFactFull <- varianceStabilizingTransformation( cdsOneFactFullBlind )
+# Write QC graphs to PDF
+pdf(qcPdfFile)
+
+# MA-plot
+plotMA(dds)
+
+# Heatmaps of counts
+select <- order(rowMeans(counts(dds, normalized=TRUE)), decreasing=TRUE)[1:30]
+hmcol  <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
+heatmap.2(assay(rld)[select,], col = hmcol, Rowv = FALSE, Colv = FALSE,
+    scale="none", dendrogram="none", trace="none", margin=c(10, 6))
+heatmap.2(assay(vsd)[select,], col = hmcol, Rowv = FALSE, Colv = FALSE,
+    scale="none", dendrogram="none", trace="none", margin=c(10, 6))
+
+# Heatmaps of sample to sample distances
+heatmap.2(as.matrix(dist(t(assay(rld)))), trace="none", col = rev(hmcol),
+    margin=c(13, 13))
+heatmap.2(as.matrix(dist(t(assay(vsd)))), trace="none", col = rev(hmcol),
+    margin=c(13, 13))
+
+# PCA of samples
+print(plotPCA(rld, intgroup=c("condition")))
 if (numFactors == 2) {
-    vsdTwoFactFull <- varianceStabilizingTransformation( cdsTwoFactFullBlind )
+    print(plotPCA(rld, intgroup=c("group")))
+    print(plotPCA(rld, intgroup=c("condition", "group")))
+}
+print(plotPCA(vsd, intgroup=c("condition")))
+if (numFactors == 2) {
+    print(plotPCA(vsd, intgroup=c("group")))
+    print(plotPCA(vsd, intgroup=c("condition", "group")))
 }
 
-## Plot heatmap of counts
-select <- order(rowMeans(counts(cdsOneFactFull)), decreasing=TRUE)[1:30]
-hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
-heatmap.2(assay(vsdOneFactFull)[select,], col=hmcol, trace="none",margin=c(10, 6))
+# Dispersion plot
+plotDispEsts(dds)
 
-## Plot heatmap of sample to sample distances
-dists <- dist(t(assay(vsdTwoFactFull)))
-mat <- as.matrix( dists )
-heatmap.2(mat, trace="none", col = rev(hmcol), margin=c(13, 13))
+# Plot optimisation of independent filtering using mean of normalised counts
+# See "3.6 Independent filtering of results" of DESeq2 vignette
+plot(attr(res, "filterNumRej"), type="b", xlab="quantile",
+    ylab="number of rejections")
 
-# Plot PCA of samples
-print(plotPCA(vsdOneFactFull, intgroup=c("condition")))
-if (numFactors == 2) {
-    print(plotPCA(vsdTwoFactFull, intgroup=c("group")))
-    print(plotPCA(vsdTwoFactFull, intgroup=c("condition", "group")))
+# Plot p-value over mean of counts
+plot(res$baseMean+1, -log10(res$pvalue), log="x",
+    xlab="mean of normalised counts", ylab=expression(-log[10](pvalue)),
+    ylim=c(0,30), cex=.4, col=rgb(0,0,0,.3))
+
+# p-value histogram
+use <- res$baseMean > attr(res,"filterThreshold")
+h1 <- hist(res$pvalue[!use], breaks=0:50/50, plot=FALSE)
+h2 <- hist(res$pvalue[use],  breaks=0:50/50, plot=FALSE)
+colori <- c("filtered"="khaki", "unfiltered"="powderblue")
+barplot(height = rbind(h1$counts, h2$counts), beside = FALSE, col = colori,
+    space = 0, main = "", xlab="p-value", ylab="frequency")
+text(x = c(0, length(h1$counts)), y = 0, label = paste(c(0,1)),
+    adj = c(0.5,1.7), xpd=NA)
+legend("topright", fill=rev(colori), legend=rev(names(colori)))
+
+# Calculate power
+
+# Constants
+max_pairs <- 20
+sig_level <- 0.05
+num_pairs <- nrow(samples) / 2 # Assume even
+
+# Estimate number of significant regions for different numbers of pairs
+sd = res$lfcSE * sqrt(num_pairs)
+potential_sig <- c()
+for (pairs in 1:max_pairs) {
+    z <- as.vector(res$log2FoldChange) / ( sd / sqrt(pairs) )
+    pvalue <- ( 1 - pnorm(z) ) + pnorm(-z)
+    padj   <- p.adjust(pvalue, "BH")
+    potential_sig <- c(potential_sig, length(which(padj <= sig_level)))
 }
+
+# Calculate increase in potentially significant regions
+increase <- c(0)
+for (i in 2:length(potential_sig)) {
+    increase <- c(increase, potential_sig[i] - potential_sig[i-1])
+}
+
+# Identify optimal number of pairs
+optimal <- rep('', length(potential_sig))
+optimal[which.max(increase)] <- '*'
+
+# Output power data
+power <- data.frame(c(1:max_pairs), potential_sig, increase, optimal)
+colnames(power) <- c("Pairs", "Significant", "Increase", "Optimal")
+write.table( power, file=powerFile, col.names=TRUE, row.names=FALSE,
+    quote=FALSE, sep="\t" )
+
+# Plot power curve
+plot(power$Pairs,power$Significant, type="l", main="Z-statistic power curve",
+    xlab="Number of pairs", ylab="Number of significant regions")
+abline(v=which.max(increase))
+
 dev.off()
-
-
-power_data=estimate_power(design,res_wald,20);
-
-
