@@ -234,7 +234,7 @@ sub run_deseq {
               calc_condition_fold_change( \@conditions,
                 \%counts_for_condition );
 
-            #
+            # Add group fold changes
             push @{$region},
               calc_group_fold_changes( \@conditions, \@groups,
                 \%counts_for_group_condition );
