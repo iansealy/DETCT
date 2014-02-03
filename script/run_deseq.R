@@ -47,6 +47,8 @@ res <- results(dds)
 out <- data.frame(pvalue=res$pvalue, padj=res$padj, row.names=rownames(res))
 write.table( out, file=outputFile, col.names=FALSE, row.names=TRUE,
     quote=FALSE, sep="\t" )
+write.table( sizeFactors( dds ), file=sizeFactorsFile, col.names=FALSE,
+    row.names=FALSE, quote=FALSE, sep="\t" )
 
 # Data transformations for QC
 rld <- rlogTransformation(dds, blind=TRUE)
