@@ -164,14 +164,13 @@ sub run_deseq {
     my $output_file = File::Spec->catfile( $arg_ref->{dir}, 'output.txt' );
     my $size_factors_file =
       File::Spec->catfile( $arg_ref->{dir}, 'size_factors.txt' );
-    my $power_file  = File::Spec->catfile( $arg_ref->{dir}, 'power.txt' );
     my $qc_pdf_file = File::Spec->catfile( $arg_ref->{dir}, 'qc.pdf' );
     my $stdout_file = File::Spec->catfile( $arg_ref->{dir}, 'deseq.o' );
     my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'deseq.e' );
 
     my $cmd = join q{ }, $arg_ref->{r_binary}, '--slave', '--args',
       $input_file, $samples_file, $output_file, $size_factors_file,
-      $qc_pdf_file, $power_file, '<', $arg_ref->{deseq_script};
+      $qc_pdf_file, '<', $arg_ref->{deseq_script};
     $cmd .= ' 1>' . $stdout_file;
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";

@@ -8,7 +8,6 @@ samplesFile     <- Args[5]
 outputFile      <- Args[6]
 sizeFactorsFile <- Args[7]
 qcPdfFile       <- Args[8]
-powerFile       <- Args[9]
 
 # Get data and samples
 countData     <- read.table(   countFile, header=TRUE, row.names=1 )
@@ -140,8 +139,7 @@ optimal[which.max(increase)] <- '*'
 # Output power data
 power <- data.frame(c(1:max_pairs), potential_sig, increase, optimal)
 colnames(power) <- c("Pairs", "Significant", "Increase", "Optimal")
-write.table( power, file=powerFile, col.names=TRUE, row.names=FALSE,
-    quote=FALSE, sep="\t" )
+textplot(power, show.rownames=FALSE)
 
 # Plot power curve
 plot(power$Pairs,power$Significant, type="l", main="Z-statistic power curve",
