@@ -43,9 +43,9 @@ Some numbers in tests below will then need updating. Code to generate numbers
 Test random FASTA files can be regenerated using:
 
 perl script/make_test_fasta.pl --seed 10 --seq_region_count 5 \
---seq_region_max_length 10_000  > test12.fa
+--seq_region_max_length 10_000 > test12.fa
 perl script/make_test_fasta.pl --seed 20 --seq_region_count 5 \
---seq_region_max_length 10_000  > test3.fa
+--seq_region_max_length 10_000 > test3.fa
 ls *.fa | xargs -n1 samtools faidx
 mv test* t/data/
 
