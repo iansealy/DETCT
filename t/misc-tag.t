@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 104;
+plan tests => 111;
 
 use DETCT::Misc::Tag qw(
   detag_trim_fastq
@@ -23,6 +23,8 @@ perl script/make_test_fastq.pl --seed 1 --output_prefix test1 \
 --read_tags NNNNBGAGGC NNNNBAGAAG
 perl script/make_test_fastq.pl --seed 2 --output_prefix test2 \
 --read_tags NNNNBGAGGC NNNNBAGAAG --read_length 54
+perl script/make_test_fastq.pl --seed 3 --output_prefix test3 \
+--read_tags NNNNBBBBNNNNATCACGTT NNNNBBBBNNNNCGATGTTT
 mv test* t/data/
 
 Some numbers in tests below will then need updating.
@@ -35,6 +37,10 @@ test2	NNNNBGAGGC:	24
 test2	NNNNBAGAAG:	35
 test2	XXXXXXXXXX:	41
 
+test3	NNNNBBBBNNNNATCACGTT:	27
+test3	NNNNBBBBNNNNCGATGTTT:	21
+test3	XXXXXXXXXXXXXXXXXXXX:	52
+
 =cut
 
 my $tmp_dir = tempdir( CLEANUP => 1 );
@@ -46,7 +52,8 @@ is(
             fastq_read1_input     => 't/data/test1_1.fastq',
             fastq_read2_input     => 't/data/test1_2.fastq',
             fastq_output_prefix   => $tmp_dir . '/test1',
-            pre_detag_trim_length => 54,
+            read1_required_length => 30,
+            read2_required_length => 54,
             polyt_trim_length     => 14,
             polyt_min_length      => 10,
             read_tags             => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -126,7 +133,8 @@ is(
             fastq_read1_input     => 't/data/test2_1.fastq',
             fastq_read2_input     => 't/data/test2_2.fastq',
             fastq_output_prefix   => $tmp_dir . '/test2',
-            pre_detag_trim_length => 54,
+            read1_required_length => 30,
+            read2_required_length => 54,
             polyt_trim_length     => 14,
             polyt_min_length      => 10,
             read_tags             => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -155,7 +163,8 @@ throws_ok {
             fastq_read1_input     => 't/data/test1_1.fastq',
             fastq_read2_input     => 't/data/test2_2.fastq',
             fastq_output_prefix   => $tmp_dir . '/test',
-            pre_detag_trim_length => 54,
+            read1_required_length => 30,
+            read2_required_length => 54,
             polyt_trim_length     => 14,
             polyt_min_length      => 10,
             read_tags             => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -163,6 +172,46 @@ throws_ok {
     );
 }
 qr/Read order does not match in input/ms, 'FASTQ files not matched';
+
+# Check detagging and trimming FASTQ files
+is(
+    detag_trim_fastq(
+        {
+            fastq_read1_input     => 't/data/test3_1.fastq',
+            fastq_read2_input     => 't/data/test3_2.fastq',
+            fastq_output_prefix   => $tmp_dir . '/test3',
+            read1_required_length => 30,
+            read2_required_length => 54,
+            polyt_trim_length     => 14,
+            polyt_min_length      => 10,
+            read_tags => [ 'NNNNBBBBNNNNATCACGTT', 'NNNNBBBBNNNNCGATGTTT' ],
+        }
+    ),
+    undef,
+    'Detag and trim FASTQ'
+);
+
+@fastq     = read_file( $tmp_dir . '/test3_NNNNBBBBNNNNATCACGTT_1.fastq' );
+$read_name = $fastq[0];
+chomp $read_name;
+is( substr( $read_name, -10 ), 'ATCACGTT/1', 'Tag added to read name' );
+$read_seq = $fastq[1];
+chomp $read_seq;
+is( length $read_seq, 30, 'Sequence trimmed to 30 bp' );
+$read_qual = $fastq[3];
+chomp $read_qual;
+is( length $read_qual, 30, 'Quality trimmed to 30 bp' );
+
+@fastq     = read_file( $tmp_dir . '/test3_NNNNBBBBNNNNATCACGTT_2.fastq' );
+$read_name = $fastq[0];
+chomp $read_name;
+is( substr( $read_name, -10 ), 'ATCACGTT/2', 'Tag added to read name' );
+$read_seq = $fastq[1];
+chomp $read_seq;
+is( length $read_seq, 54, 'Sequence trimmed to 54 bp' );
+$read_qual = $fastq[3];
+chomp $read_qual;
+is( length $read_qual, 54, 'Quality trimmed to 54 bp' );
 
 # Check converting tags to regular expressions
 

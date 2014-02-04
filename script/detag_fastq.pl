@@ -34,7 +34,8 @@ use DETCT::Misc::Tag;
 my $fastq_read1_input;
 my $fastq_read2_input;
 my $fastq_output_prefix;
-my $pre_detag_trim_length = 54;
+my $read1_required_length = 30;
+my $read2_required_length = 54;
 my $polyt_trim_length     = 14;
 my $polyt_min_length      = 10;
 my @read_tags;
@@ -51,7 +52,8 @@ DETCT::Misc::Tag::detag_trim_fastq(
         fastq_read1_input     => $fastq_read1_input,
         fastq_read2_input     => $fastq_read2_input,
         fastq_output_prefix   => $fastq_output_prefix,
-        pre_detag_trim_length => $pre_detag_trim_length,
+        read1_required_length => $read1_required_length,
+        read2_required_length => $read2_required_length,
         polyt_trim_length     => $polyt_trim_length,
         polyt_min_length      => $polyt_min_length,
         read_tags             => \@read_tags,
@@ -68,7 +70,8 @@ sub get_and_check_options {
         'fastq_read1_input=s'     => \$fastq_read1_input,
         'fastq_read2_input=s'     => \$fastq_read2_input,
         'fastq_output_prefix=s'   => \$fastq_output_prefix,
-        'pre_detag_trim_length=i' => \$pre_detag_trim_length,
+        'read1_required_length=i' => \$read1_required_length,
+        'read2_required_length=i' => \$read2_required_length,
         'polyt_trim_length=i'     => \$polyt_trim_length,
         'polyt_min_length=i'      => \$polyt_min_length,
         'read_tags=s@{1,}'        => \@read_tags,
@@ -109,7 +112,8 @@ sub get_and_check_options {
         [--fastq_read1_input file]
         [--fastq_read2_input file]
         [--fastq_output_prefix prefix]
-        [--pre_detag_trim_length int]
+        [--read1_required_length int]
+        [--read2_required_length int]
         [--polyt_trim_length int]
         [--polyt_min_length int]
         [--read_tags tags...]
@@ -134,9 +138,13 @@ Input FASTQ file for read 2.
 
 Prefix for output FASTQ files.
 
-=item B<--pre_detag_trim_length INT>
+=item B<--read1_required_length INT>
 
-Length to trim reads to before detagging.
+Length of read 1 after detagging and optional trimming.
+
+=item B<--read2_required_length INT>
+
+Length of read 2 after detagging and optional trimming.
 
 =item B<--polyt_trim_length INT>
 
