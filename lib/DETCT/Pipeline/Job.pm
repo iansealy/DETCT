@@ -622,7 +622,7 @@ sub _set_state_from_filesystem_for_lsf {
         return;
     }
 
-    my $yaml   = LoadFile($job_file);
+    my $yaml = LoadFile($job_file);
 
     # Get LSF job id
     my $lsf_job_id = $yaml->{id};
@@ -677,7 +677,7 @@ sub _set_state_from_filesystem_for_lsf {
 # Comments    : Based on
 #               https://github.com/VertebrateResequencing/vr-pipe/blob/master/modules/VRPipe/Parser/lsf.pm
 sub _parse_lsf_stdout {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
     # Check STDOUT file exists at all (in case job was killed whilst pending)
     my $stdout_file = $self->base_filename . '.o';
@@ -729,7 +729,7 @@ sub _parse_lsf_stdout {
     if ( defined $stdout_job_id && $self->lsf_job_id != $stdout_job_id ) {
         $status_code = 'FAILED';
         $status_text = sprintf 'Wrong LSF job id (expecting %s, got %s)',
-            $self->lsf_job_id, $stdout_job_id;
+          $self->lsf_job_id, $stdout_job_id;
     }
 
     # If no status then STDOUT could not be parsed
