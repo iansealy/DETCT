@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 48;
+plan tests => 52;
 
 use DETCT::Pipeline::Job;
 
@@ -80,6 +80,13 @@ is( $job->retries,        undef, 'Get retries' );
 is( $job->set_retries(5), undef, 'Set retries' );
 is( $job->retries,        5,     'Get new retries' );
 throws_ok { $job->set_retries(-1) } qr/Invalid retries/ms, 'Invalid retries';
+
+# Test LSF job id attribute
+is( $job->lsf_job_id,          undef, 'Get LSF job id' );
+is( $job->set_lsf_job_id(123), undef, 'Set LSF job id' );
+is( $job->lsf_job_id,          123,   'Get new LSF job id' );
+throws_ok { $job->set_lsf_job_id(-1) } qr/Invalid LSF job id/ms,
+  'Invalid LSF job id';
 
 # Test status code attribute
 is( $job->status_code,                'NOT_RUN', 'Get not run status code' );
