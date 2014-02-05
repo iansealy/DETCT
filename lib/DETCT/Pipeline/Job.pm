@@ -37,6 +37,7 @@ private scheduler     => my %scheduler;        # e.g. lsf
 private base_filename => my %base_filename;    # e.g. ./run_deseq/1
 private parameters    => my %parameters;       # e.g. arrayref or scalar
 private retries       => my %retries;          # e.g. 5
+private lsf_job_id    => my %lsf_job_id;       # e.g. 123
 private memory        => my %memory;           # e.g. 3000
 private status_code   => my %status_code;      # e.g. DONE
 private status_text   => my %status_text;      # e.g. Job killed by owner
@@ -361,6 +362,54 @@ sub _check_retries {
     return $retries;
 }
 
+=method lsf_job_id
+
+  Usage       : my $lsf_job_id = $job->lsf_job_id;
+  Purpose     : Getter for LSF job id attribute
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub lsf_job_id {
+    my ($self) = @_;
+    return $lsf_job_id{ id $self};
+}
+
+=method set_lsf_job_id
+
+  Usage       : $job->set_lsf_job_id(123);
+  Purpose     : Setter for LSF job id attribute
+  Returns     : undef
+  Parameters  : +ve Int (the LSF job id)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_lsf_job_id {
+    my ( $self, $arg ) = @_;
+    $lsf_job_id{ id $self} = _check_lsf_job_id($arg);
+    return;
+}
+
+# Usage       : $lsf_job_id = _check_lsf_job_id($lsf_job_id);
+# Purpose     : Check for valid LSF job id
+# Returns     : +ve Int (the valid LSF job id)
+# Parameters  : +ve Int (the LSF job id)
+# Throws      : If LSF job id is not a positive integer
+# Comments    : None
+sub _check_lsf_job_id {
+    my ($lsf_job_id) = @_;
+
+    confess "Invalid LSF job id ($lsf_job_id) specified"
+      if defined $lsf_job_id && $lsf_job_id !~ m/\A \d+ \z/xms;
+
+    return $lsf_job_id;
+}
+
 =method memory
 
   Usage       : my $memory = $job->memory;
@@ -558,8 +607,7 @@ sub _set_state_from_filesystem_for_local {
 # Purpose     : Set state-related attributes of a job submitted to LSF
 # Returns     : None
 # Parameters  : None
-# Throws      : If job id in job file is not an integer
-#               If the status returned by bjobs is not recognised
+# Throws      : If the status returned by bjobs is not recognised
 # Comments    : None
 sub _set_state_from_filesystem_for_lsf {
     my ($self) = @_;
@@ -574,12 +622,11 @@ sub _set_state_from_filesystem_for_lsf {
         return;
     }
 
-    # Get job id
     my $yaml   = LoadFile($job_file);
-    my $job_id = $yaml->{id};
-    if ( $job_id !~ /\A \d+ \z/xms ) {
-        confess "Job ID ($job_id) not valid";
-    }
+
+    # Get LSF job id
+    my $lsf_job_id = $yaml->{id};
+    $self->set_lsf_job_id($lsf_job_id);
 
     # Get number of retries
     my $retries = $yaml->{retries};
@@ -591,11 +638,11 @@ sub _set_state_from_filesystem_for_lsf {
 
     my ( $status_code, $status_text );
 
-    # Get job status for job id from bjobs command
+    # Get job status for LSF job id from bjobs command
     my $lsf_status;
-    open my $pipe, q{-|}, 'bjobs ' . $job_id . ' 2>/dev/null';    # Hide STDERR
+    open my $pipe, q{-|}, 'bjobs ' . $lsf_job_id . ' 2>/dev/null'; # Hide STDERR
     while ( my $job_line = <$pipe> ) {
-        if ( $job_line =~ m/\A $job_id \s+ \S+ \s+ (\S+)/xms ) {
+        if ( $job_line =~ m/\A $lsf_job_id \s+ \S+ \s+ (\S+)/xms ) {
             $lsf_status = $1;
         }
     }
@@ -612,7 +659,7 @@ sub _set_state_from_filesystem_for_lsf {
     if ( !$status_code || $status_code eq 'FAILED' ) {
 
         # If bjobs doesn't return status or failed then check job's STDOUT
-        ( $status_code, $status_text ) = $self->_parse_lsf_stdout($job_id);
+        ( $status_code, $status_text ) = $self->_parse_lsf_stdout();
     }
 
     $self->set_status_code($status_code);
@@ -621,17 +668,16 @@ sub _set_state_from_filesystem_for_lsf {
     return;
 }
 
-# Usage       : ($status_code, $status_text)
-#                   = $pipeline->_parse_lsf_stdout($job_id);
+# Usage       : ($status_code, $status_text) = $pipeline->_parse_lsf_stdout();
 # Purpose     : Parses LSF's STDOUT to get a job's status
 # Returns     : String (status code: DONE or FAILED)
 #               String (status info) or undef
-# Parameters  : Int (the job id)
+# Parameters  : None
 # Throws      : If STDOUT file can't be read
 # Comments    : Based on
 #               https://github.com/VertebrateResequencing/vr-pipe/blob/master/modules/VRPipe/Parser/lsf.pm
 sub _parse_lsf_stdout {
-    my ( $self, $job_id ) = @_;
+    my ( $self ) = @_;
 
     # Check STDOUT file exists at all (in case job was killed whilst pending)
     my $stdout_file = $self->base_filename . '.o';
@@ -680,9 +726,10 @@ sub _parse_lsf_stdout {
     }
 
     # Ensure correct job
-    if ( defined $stdout_job_id && $job_id != $stdout_job_id ) {
+    if ( defined $stdout_job_id && $self->lsf_job_id != $stdout_job_id ) {
         $status_code = 'FAILED';
-        $status_text = "Wrong job id (expecting $job_id, got $stdout_job_id)";
+        $status_text = sprintf 'Wrong LSF job id (expecting %s, got %s)',
+            $self->lsf_job_id, $stdout_job_id;
     }
 
     # If no status then STDOUT could not be parsed
