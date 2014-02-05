@@ -1003,7 +1003,7 @@ sub process_job {
   Returns     : undef
   Parameters  : DETCT::Pipeline::Job
   Throws      : If job or bsub can't be run
-                If job id can't be extracted from bsub output
+                If LSF job id can't be extracted from bsub output
   Comments    : None
 
 =cut
@@ -1075,10 +1075,11 @@ sub submit_job {
           . $bsub_stderr_file;
         WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-        # Extract job id from bsub output and store along with other parameters
+        # Extract LSF job id from bsub output and store with other parameters
         my $bsub_stdout = read_file($bsub_stdout_file);
         if ( $bsub_stdout =~ m/Job \s <(\d+)> \s is \s submitted/xms ) {
             my $id = $1;
+            $job->set_lsf_job_id($id);
             if ( defined $job->retries ) {
                 $job->set_retries( $job->retries + 1 );
             }
@@ -1094,7 +1095,7 @@ sub submit_job {
             DumpFile( $job_file, $dump );
         }
         else {
-            confess "Couldn't get job id from $bsub_stdout_file";
+            confess "Couldn't get LSF job id from $bsub_stdout_file";
         }
     }
 
