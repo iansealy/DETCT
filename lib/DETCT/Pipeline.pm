@@ -47,6 +47,7 @@ private scheduler    => my %scheduler;       # e.g. lsf
 private analysis_dir => my %analysis_dir;    # e.g. .
 private analysis     => my %analysis;        # DETCT::Analysis object
 private cmd_line     => my %cmd_line;        # e.g. run_de_pipeline.pl
+private avoid_node   => my %avoid_node;      # arrayref of nodes to be avoided
 private max_retries  => my %max_retries;     # e.g. 10
 private sleep_time   => my %sleep_time;      # e.g. 600
 private memory_limit_multiplier => my %memory_limit_multiplier;    # e.g. 1000
@@ -294,6 +295,49 @@ sub _check_cmd_line {
     confess 'No command line specified' if !defined $cmd_line || !$cmd_line;
 
     return $cmd_line;
+}
+
+=method add_avoid_node
+
+  Usage       : $pipeline->add_avoid_node('bc-25-2-02');
+  Purpose     : Add a node to be avoided to a pipeline
+  Returns     : undef
+  Parameters  : String (the node to be avoided)
+  Throws      : If node to be avoided is missing
+  Comments    : None
+
+=cut
+
+sub add_avoid_node {
+    my ( $self, $avoid_node ) = @_;
+
+    confess 'No node to be avoided specified' if !defined $avoid_node;
+
+    if ( !exists $avoid_node{ id $self} ) {
+        $avoid_node{ id $self} = [$avoid_node];
+    }
+    else {
+        push @{ $avoid_node{ id $self} }, $avoid_node;
+    }
+
+    return;
+}
+
+=method get_all_avoid_nodes
+
+  Usage       : $avoid_nodes = $pipeline->get_all_avoid_nodes();
+  Purpose     : Get all nodes to be avoided of a pipeline
+  Returns     : Arrayref of strings
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_all_avoid_nodes {
+    my ($self) = @_;
+
+    return $avoid_node{ id $self} || [];
 }
 
 =method max_retries
@@ -1069,11 +1113,17 @@ sub submit_job {
         my $memory_clause = sprintf q{ -R'select[mem>%d] rusage[mem=%d]' -M%d },
           $job->memory, $job->memory,
           $job->memory * $self->memory_limit_multiplier;
+        my $avoid_nodes_clause = q{};
+        foreach my $avoid_node ( @{ $self->get_all_avoid_nodes() } ) {
+            $avoid_nodes_clause .= sprintf q{ -R"select[hname!='%s']" },
+              $avoid_node;
+        }
         $cmd =
             'bsub' . ' -oo '
           . $stdout_file . ' -eo '
           . $stderr_file
           . $memory_clause
+          . $avoid_nodes_clause
           . $cmd . ' 1>'
           . $bsub_stdout_file . ' 2>'
           . $bsub_stderr_file;

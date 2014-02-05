@@ -41,6 +41,7 @@ my $scheduler     = 'lsf';
 my $analysis_dir  = q{.};
 my $analysis_yaml = File::Spec->catfile( $analysis_dir, 'analysis.yaml' );
 my $stages_yaml   = File::Spec->catfile( $analysis_dir, 'stages.yaml' );
+my @avoid_nodes;
 ## no critic (ProhibitMagicNumbers)
 my $max_retries = 10;
 my $sleep_time  = 600;    # 10 minutes
@@ -71,6 +72,11 @@ my $pipeline = DETCT::Pipeline::WithDiffExprStages->new(
         verbose      => $verbose,
     }
 );
+
+# Add nodes to be avoided
+foreach my $avoid_node (@avoid_nodes) {
+    $pipeline->add_avoid_node($avoid_node);
+}
 
 # Add stages to pipeline
 $pipeline->add_stages_from_yaml($stages_yaml);
@@ -134,17 +140,18 @@ sub get_and_check_options {
 
     # Get options
     GetOptions(
-        'scheduler=s'     => \$scheduler,
-        'dir=s'           => \$analysis_dir,
-        'analysis_yaml=s' => \$analysis_yaml,
-        'stages_yaml=s'   => \$stages_yaml,
-        'max_retries=i'   => \$max_retries,
-        'sleep_time=i'    => \$sleep_time,
-        'stage=s'         => \$stage_to_run,
-        'component=i'     => \$component_to_run,
-        'verbose'         => \$verbose,
-        'help'            => \$help,
-        'man'             => \$man,
+        'scheduler=s'       => \$scheduler,
+        'dir=s'             => \$analysis_dir,
+        'analysis_yaml=s'   => \$analysis_yaml,
+        'stages_yaml=s'     => \$stages_yaml,
+        'avoid_nodes=s@{,}' => \@avoid_nodes,
+        'max_retries=i'     => \$max_retries,
+        'sleep_time=i'      => \$sleep_time,
+        'stage=s'           => \$stage_to_run,
+        'component=i'       => \$component_to_run,
+        'verbose'           => \$verbose,
+        'help'              => \$help,
+        'man'               => \$man,
     ) or pod2usage(2);
 
     # Documentation
@@ -175,6 +182,7 @@ sub get_and_check_options {
         [--dir directory]
         [--analysis_yaml file]
         [--stages_yaml file]
+        [--avoid_nodes node...]
         [--max_retries int]
         [--sleep_time int]
         [--stage stage]
@@ -202,6 +210,10 @@ YAML analysis configuration file.
 =item B<--stages_yaml FILE>
 
 YAML stages configuration file.
+
+=item B<--avoid_nodes NODE...>
+
+Nodes to be avoided when submitting LSF jobs.
 
 =item B<--max_retries INT>
 
