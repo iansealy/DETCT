@@ -410,6 +410,24 @@ sub _check_lsf_job_id {
     return $lsf_job_id;
 }
 
+=method print_lsf_job_id
+
+  Usage       : print $job->print_lsf_job_id;
+  Purpose     : Getter for LSF job id attribute in brackets
+  Returns     : String (e.g. ' (123)')
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub print_lsf_job_id {
+    my ($self) = @_;
+    return $lsf_job_id{ id $self}
+      ? sprintf ' (%s)', $lsf_job_id{ id $self}
+      : q{};
+}
+
 =method memory
 
   Usage       : my $memory = $job->memory;

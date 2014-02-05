@@ -960,30 +960,34 @@ sub process_job {
 
         # Job not yet run so submit it
         $job->stage->set_all_jobs_run(0);
-        $self->say_if_verbose( sprintf '  Running component %d of %s',
-            $job->component, $job->stage->name );
         $job_running_or_run = 1;
         $self->submit_job($job);
+        $self->say_if_verbose( sprintf '  Running component %d of %s%s',
+            $job->component, $job->stage->name, $job->print_lsf_job_id );
     }
     elsif ( $job->status_code eq 'RUNNING' ) {
 
         # Job is running
         $job->stage->set_all_jobs_run(0);
-        $self->say_if_verbose( sprintf '  Component %d of %s is still running',
-            $job->component, $job->stage->name );
         $job_running_or_run = 1;
+        $self->say_if_verbose(
+            sprintf '  Component %d of %s is still running%s',
+            $job->component, $job->stage->name, $job->print_lsf_job_id );
     }
     elsif ( $job->status_code eq 'FAILED' ) {
 
         # Job has failed, so submit again
         $job->stage->set_all_jobs_run(0);
-        $self->say_if_verbose( sprintf '  Component %d of %s has FAILED: %s',
-            $job->component, $job->stage->name, $job->status_text );
+        $self->say_if_verbose(
+            sprintf '  Component %d of %s has FAILED: %s%s',
+            $job->component,   $job->stage->name,
+            $job->status_text, $job->print_lsf_job_id
+        );
         if ( $job->retries < $self->max_retries ) {
-            $self->say_if_verbose( sprintf '  Running component %d of %s',
-                $job->component, $job->stage->name );
             $job_running_or_run = 1;
             $self->submit_job($job);
+            $self->say_if_verbose( sprintf '  Running component %d of %s%s',
+                $job->component, $job->stage->name, $job->print_lsf_job_id );
         }
         else {
             $self->say_if_verbose(
