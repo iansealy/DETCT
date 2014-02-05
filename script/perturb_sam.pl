@@ -68,7 +68,7 @@ my $cl = join q{ }, @cl;
 my %length_of;
 my $seen_pg    = 0;
 my $printed_pg = 0;
-while ( my $line = <STDIN> ) {
+while ( my $line = <> ) {
     chomp $line;
 
     # Add @PG header line after existing ones
@@ -76,7 +76,9 @@ while ( my $line = <STDIN> ) {
         $seen_pg = 1;
     }
     if ( !$printed_pg && $seen_pg && $line !~ m/\@PG/xms ) {
+        ## no critic (RequireInterpolationOfMetachars)
         printf "%s\n", join "\t", '@PG', 'ID:1', 'PN:perturb_sam.pl', "CL:$cl";
+        ## use critic
         $printed_pg = 1;
     }
 
@@ -95,9 +97,9 @@ while ( my $line = <STDIN> ) {
         print $line, "\n";
     }
     else {
-        my @fields     = split /\t/xms, $line;
+        my @fields = split /\t/xms, $line;
         my $seq_region = $fields[2];
-        my $pos        = $fields[3];
+        my $pos = $fields[3];    ## no critic (ProhibitMagicNumbers)
         my $move =
           ( int rand( $max_move * 2 + 1 ) ) - $max_move;    # e.g. -200 to 200
         $pos += $move;
@@ -107,7 +109,7 @@ while ( my $line = <STDIN> ) {
         elsif ( $pos > $length_of{$seq_region} ) {
             $pos = $seq_region;
         }
-        $fields[3] = $pos;
+        $fields[3] = $pos;    ## no critic (ProhibitMagicNumbers)
         printf "%s\n", join "\t", @fields;
     }
 }
