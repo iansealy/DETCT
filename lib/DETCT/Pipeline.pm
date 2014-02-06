@@ -895,7 +895,7 @@ sub run {
 
     $self->clean_up();
 
-    $self->_delete_lock();
+    $self->end_run();
 
     return;
 }
@@ -925,7 +925,7 @@ sub run_once {
     # Run a single cycle of the pipeline
     $self->_run_cycle();
 
-    $self->_delete_lock();
+    $self->end_run();
 
     return;
 }
@@ -1046,6 +1046,26 @@ sub init_run {
         ## use critic
         $self->_create_lock();
     }
+
+    return;
+}
+
+=method end_run
+
+  Usage       : $self->end_run();
+  Purpose     : End a pipeline run
+  Returns     : undef
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub end_run {
+    my ($self) = @_;
+
+    $SIG{'INT'} = 'DEFAULT';    ## no critic (RequireLocalizedPunctuationVars)
+    $self->_delete_lock();
 
     return;
 }
