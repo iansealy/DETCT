@@ -43,7 +43,6 @@ private prerequisite   => my %prerequisite;      # arrayref of stages
   Parameters  : Hashref {
                     name           => String,
                     default_memory => Int,
-                    all_jobs_run   => Boolean or undef,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -55,7 +54,6 @@ sub new {
     my $self = register($class);
     $self->set_name( $arg_ref->{name} );
     $self->set_default_memory( $arg_ref->{default_memory} );
-    $self->set_all_jobs_run( $arg_ref->{all_jobs_run} );
     return $self;
 }
 
