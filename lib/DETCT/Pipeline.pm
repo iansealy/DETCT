@@ -53,6 +53,7 @@ private sleep_time   => my %sleep_time;      # e.g. 600
 private memory_limit_multiplier => my %memory_limit_multiplier;    # e.g. 1000
 private stage_to_run => my %stage_to_run;    # DETCT::Pipeline::Stage object
 private component_to_run => my %component_to_run;    # e.g. 5
+private all_stages_run   => my %all_stages_run;      # e.g. 1
 private verbose          => my %verbose;             # e.g. 1
 private hash_merge       => my %hash_merge;          # Hash::Merge object
 private stage            => my %stage;               # arrayref of stages
@@ -596,6 +597,39 @@ sub _check_component_to_run {
     confess "Invalid component to be run ($component_to_run) specified";
 }
 
+=method all_stages_run
+
+  Usage       : my $all_stages_run = $stage->all_stages_run;
+  Purpose     : Getter for all stages run flag
+  Returns     : Boolean
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_stages_run {
+    my ($self) = @_;
+    return $all_stages_run{ id $self} || 0;
+}
+
+=method set_all_stages_run
+
+  Usage       : $stage->set_all_stages_run(1);
+  Purpose     : Setter for all stages run flag
+  Returns     : undef
+  Parameters  : Boolean
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_all_stages_run {
+    my ( $self, $arg ) = @_;
+    $all_stages_run{ id $self} = $arg ? 1 : 0;
+    return;
+}
+
 =method verbose
 
   Usage       : my $verbose = $pipeline->verbose;
@@ -800,10 +834,8 @@ sub run {
 
     $self->init_run();
 
-    my $all_stages_run = 0;
-
-    while ( !$all_stages_run ) {
-        $all_stages_run = 1;
+    while ( !$self->all_stages_run ) {
+        $self->set_all_stages_run(1);
 
         my $jobs_running_or_run = 0;
 
@@ -886,16 +918,16 @@ sub run {
                 write_file( $done_marker_file, '1' );
             }
             else {
-                $all_stages_run = 0;
+                $self->set_all_stages_run(0);
             }
         }
 
-        if ( !$all_stages_run && !$jobs_running_or_run ) {
+        if ( !$self->all_stages_run && !$jobs_running_or_run ) {
             $self->_delete_lock();
             die 'Stopping pipeline - no jobs to run' . "\n";
         }
 
-        if ( !$all_stages_run ) {
+        if ( !$self->all_stages_run ) {
             $self->say_if_verbose( sprintf 'Sleeping for %d seconds',
                 $self->sleep_time );
             sleep $self->sleep_time;
