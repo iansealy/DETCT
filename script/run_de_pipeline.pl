@@ -46,6 +46,7 @@ my @avoid_nodes;
 my $max_retries = 10;
 my $sleep_time  = 600;    # 10 minutes
 ## use critic
+my $once;
 my $stage_to_run;
 my $component_to_run;
 my $verbose;
@@ -107,7 +108,18 @@ if ( !$pipeline->stage_to_run && !$pipeline->component_to_run ) {
 $pipeline->say_if_verbose( $pipeline->input_overview );
 
 # Run pipeline
-$pipeline->run();
+if ( !$once ) {
+    $pipeline->run();
+}
+else {
+    $pipeline->run_once();
+
+    # If no jobs are running then either pipeline has finished and we need to
+    # clean up or no jobs can be run and we need to report the error
+    if ( !$pipeline->jobs_running ) {
+        $pipeline->run();
+    }
+}
 
 # Get entire command line
 sub get_cmd_line {
@@ -149,6 +161,7 @@ sub get_and_check_options {
         'sleep_time=i'      => \$sleep_time,
         'stage=s'           => \$stage_to_run,
         'component=i'       => \$component_to_run,
+        'once'              => \$once,
         'verbose'           => \$verbose,
         'help'              => \$help,
         'man'               => \$man,
@@ -187,6 +200,7 @@ sub get_and_check_options {
         [--sleep_time int]
         [--stage stage]
         [--component int]
+        [--once]
         [--verbose]
         [--help]
         [--man]
@@ -221,7 +235,7 @@ Maximum number of times to retry a failing job.
 
 =item B<--sleep_time INT>
 
-Time to sleep, in seconds, between each iteration of the pipeline.
+Time to sleep, in seconds, between each cycle of the pipeline.
 
 =item B<--stage STAGE>
 
@@ -230,6 +244,10 @@ The specific stage of the pipeline to be run.
 =item B<--component INT>
 
 The index of the component of the specified stage of the pipeline to be run.
+
+=item B<--once>
+
+Only run one cycle of the pipeline.
 
 =item B<--verbose>
 

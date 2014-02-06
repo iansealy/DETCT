@@ -855,10 +855,10 @@ sub get_stage_by_name {
 =method run
 
   Usage       : $pipeline->run();
-  Purpose     : Run pipeline
+  Purpose     : Run whole pipeline
   Returns     : undef
   Parameters  : None
-  Throws      : No exceptions
+  Throws      : If jobs can't be run but all stages have not finished
   Comments    : None
 
 =cut
@@ -876,88 +876,8 @@ sub run {
         # Assume no jobs running until find otherwise
         $self->set_jobs_running(0);
 
-        # Iterate over all stages of pipeline
-      STAGE: foreach my $stage ( @{ $self->get_all_stages() } ) {
-
-            # Check prerequisites have already run and skip this stage if not
-            foreach my $prereq_stage ( @{ $stage->get_all_prerequisites() } ) {
-                if ( !$prereq_stage->all_jobs_run ) {
-                    $self->say_if_verbose(
-                        sprintf 'Skipping %s because %s not run',
-                        $stage->name, $prereq_stage->name );
-                    next STAGE;
-                }
-            }
-
-            # Create directory for current stage of analysis
-            my $dir = $self->get_and_create_stage_dir($stage);
-
-            # Assume all jobs have run OK until we know otherwise
-            $stage->set_all_jobs_run(1);
-
-            # All jobs marked as having run OK?
-            my $done_marker_file = $dir . '.done';
-            if ( -e $done_marker_file ) {
-                $self->say_if_verbose( sprintf 'Stage %s has finished',
-                    $stage->name );
-                next STAGE;
-            }
-
-            # Running a specific stage, but not this one
-            if ( $self->stage_to_run
-                && refaddr( $self->stage_to_run ) != refaddr($stage) )
-            {
-                next STAGE;
-            }
-
-            # Get all parameters for all components of current stage
-            my @all_parameters = $self->all_parameters($stage);
-
-            $self->say_if_verbose( sprintf 'Stage %s has %d components',
-                $stage->name, scalar @all_parameters );
-
-            my $component = 0;    # Index for current component of current stage
-            foreach my $parameters (@all_parameters) {
-                $component++;
-
-                # Running a specific component, but not this one
-                if (
-                       $self->stage_to_run
-                    && $self->component_to_run
-                    && ( refaddr( $self->stage_to_run ) != refaddr($stage)
-                        || $self->component_to_run != $component )
-                  )
-                {
-                    next;
-                }
-
-                my $job = DETCT::Pipeline::Job->new(
-                    {
-                        stage     => $stage,
-                        component => $component,
-                        scheduler => $self->scheduler,
-                        base_filename =>
-                          File::Spec->catfile( $dir, $component ),
-                        parameters => $parameters,
-                    }
-                );
-
-                # Run job if running a specific component of a specific stage
-                if ( $self->stage_to_run && $self->component_to_run ) {
-                    $self->run_job($job);
-                    return;
-                }
-
-                $self->process_job($job);
-            }
-
-            if ( $stage->all_jobs_run ) {
-                write_file( $done_marker_file, '1' );
-            }
-            else {
-                $self->set_all_stages_run(0);
-            }
-        }
+        # Run a single cycle of the pipeline
+        $self->_run_cycle();
 
         if ( !$self->all_stages_run && !$self->jobs_running ) {
             $self->_delete_lock();
@@ -976,6 +896,129 @@ sub run {
     $self->clean_up();
 
     $self->_delete_lock();
+
+    return;
+}
+
+=method run_once
+
+  Usage       : $pipeline->run_once();
+  Purpose     : Run a single cycle of the pipeline
+  Returns     : undef
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_once {
+    my ($self) = @_;
+
+    $self->init_run();
+
+    # Assume all run until find otherwise
+    $self->set_all_stages_run(1);
+
+    # Assume no jobs running until find otherwise
+    $self->set_jobs_running(0);
+
+    # Run a single cycle of the pipeline
+    $self->_run_cycle();
+
+    $self->_delete_lock();
+
+    return;
+}
+
+# Usage       : $self->_run_cycle();
+# Purpose     : Run a single cycle of the pipeline
+# Returns     : undef
+# Parameters  : None
+# Throws      : No exceptions
+# Comments    : None
+sub _run_cycle {
+    my ($self) = @_;
+
+    # Iterate over all stages of pipeline
+  STAGE: foreach my $stage ( @{ $self->get_all_stages() } ) {
+
+        # Check prerequisites have already run and skip this stage if not
+        foreach my $prereq_stage ( @{ $stage->get_all_prerequisites() } ) {
+            if ( !$prereq_stage->all_jobs_run ) {
+                $self->say_if_verbose( sprintf 'Skipping %s because %s not run',
+                    $stage->name, $prereq_stage->name );
+                next STAGE;
+            }
+        }
+
+        # Create directory for current stage of analysis
+        my $dir = $self->get_and_create_stage_dir($stage);
+
+        # Assume all jobs have run OK until we know otherwise
+        $stage->set_all_jobs_run(1);
+
+        # All jobs marked as having run OK?
+        my $done_marker_file = $dir . '.done';
+        if ( -e $done_marker_file ) {
+            $self->say_if_verbose( sprintf 'Stage %s has finished',
+                $stage->name );
+            next STAGE;
+        }
+
+        # Running a specific stage, but not this one
+        if ( $self->stage_to_run
+            && refaddr( $self->stage_to_run ) != refaddr($stage) )
+        {
+            next STAGE;
+        }
+
+        # Get all parameters for all components of current stage
+        my @all_parameters = $self->all_parameters($stage);
+
+        $self->say_if_verbose( sprintf 'Stage %s has %d components',
+            $stage->name, scalar @all_parameters );
+
+        my $component = 0;    # Index for current component of current stage
+        foreach my $parameters (@all_parameters) {
+            $component++;
+
+            # Running a specific component, but not this one
+            if (
+                   $self->stage_to_run
+                && $self->component_to_run
+                && ( refaddr( $self->stage_to_run ) != refaddr($stage)
+                    || $self->component_to_run != $component )
+              )
+            {
+                next;
+            }
+
+            my $job = DETCT::Pipeline::Job->new(
+                {
+                    stage         => $stage,
+                    component     => $component,
+                    scheduler     => $self->scheduler,
+                    base_filename => File::Spec->catfile( $dir, $component ),
+                    parameters    => $parameters,
+                }
+            );
+
+            # Run job if running a specific component of a specific stage
+            if ( $self->stage_to_run && $self->component_to_run ) {
+                $self->run_job($job);
+                exit;
+            }
+
+            $self->process_job($job);
+        }
+
+        if ( $stage->all_jobs_run ) {
+            write_file( $done_marker_file, '1' );
+        }
+        else {
+            $self->set_all_stages_run(0);
+        }
+    }
 
     return;
 }
