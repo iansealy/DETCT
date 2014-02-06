@@ -54,6 +54,7 @@ private memory_limit_multiplier => my %memory_limit_multiplier;    # e.g. 1000
 private stage_to_run => my %stage_to_run;    # DETCT::Pipeline::Stage object
 private component_to_run => my %component_to_run;    # e.g. 5
 private all_stages_run   => my %all_stages_run;      # e.g. 1
+private jobs_running     => my %jobs_running;        # e.g. 1
 private verbose          => my %verbose;             # e.g. 1
 private hash_merge       => my %hash_merge;          # Hash::Merge object
 private stage            => my %stage;               # arrayref of stages
@@ -630,6 +631,39 @@ sub set_all_stages_run {
     return;
 }
 
+=method jobs_running
+
+  Usage       : my $jobs_running = $stage->jobs_running;
+  Purpose     : Getter for jobs running flag
+  Returns     : Boolean
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub jobs_running {
+    my ($self) = @_;
+    return $jobs_running{ id $self} || 0;
+}
+
+=method set_jobs_running
+
+  Usage       : $stage->set_jobs_running(1);
+  Purpose     : Setter for jobs running flag
+  Returns     : undef
+  Parameters  : Boolean
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_jobs_running {
+    my ( $self, $arg ) = @_;
+    $jobs_running{ id $self} = $arg ? 1 : 0;
+    return;
+}
+
 =method verbose
 
   Usage       : my $verbose = $pipeline->verbose;
@@ -835,9 +869,12 @@ sub run {
     $self->init_run();
 
     while ( !$self->all_stages_run ) {
+
+        # Assume all run until find otherwise
         $self->set_all_stages_run(1);
 
-        my $jobs_running_or_run = 0;
+        # Assume no jobs running until find otherwise
+        $self->set_jobs_running(0);
 
         # Iterate over all stages of pipeline
       STAGE: foreach my $stage ( @{ $self->get_all_stages() } ) {
@@ -911,7 +948,7 @@ sub run {
                     return;
                 }
 
-                $jobs_running_or_run += $self->process_job($job);
+                $self->process_job($job);
             }
 
             if ( $stage->all_jobs_run ) {
@@ -922,7 +959,7 @@ sub run {
             }
         }
 
-        if ( !$self->all_stages_run && !$jobs_running_or_run ) {
+        if ( !$self->all_stages_run && !$self->jobs_running ) {
             $self->_delete_lock();
             die 'Stopping pipeline - no jobs to run' . "\n";
         }
@@ -1018,25 +1055,23 @@ sub get_and_check_output_file {
 
 =method process_job
 
-  Usage       : $jobs_running_or_run += $pipeline->process_job($job);
+  Usage       : $pipeline->process_job($job);
   Purpose     : Process a job to see if needs to be submitted
-  Returns     : Boolean
+  Returns     : undef
   Parameters  : DETCT::Pipeline::Job
   Throws      : No exceptions
-  Comments    : Returns whether or not job has been run or was already running
+  Comments    : None
 
 =cut
 
 sub process_job {
     my ( $self, $job ) = @_;
 
-    my $job_running_or_run = 0;
-
     if ( $job->status_code eq 'NOT_RUN' ) {
 
         # Job not yet run so submit it
         $job->stage->set_all_jobs_run(0);
-        $job_running_or_run = 1;
+        $self->set_jobs_running(1);
         $self->submit_job($job);
         $self->say_if_verbose( sprintf '  Running component %d of %s%s',
             $job->component, $job->stage->name, $job->print_lsf_job_id );
@@ -1045,7 +1080,7 @@ sub process_job {
 
         # Job is running
         $job->stage->set_all_jobs_run(0);
-        $job_running_or_run = 1;
+        $self->set_jobs_running(1);
         $self->say_if_verbose(
             sprintf '  Component %d of %s is still running%s',
             $job->component, $job->stage->name, $job->print_lsf_job_id );
@@ -1060,7 +1095,7 @@ sub process_job {
             $job->status_text, $job->print_lsf_job_id
         );
         if ( $job->retries < $self->max_retries ) {
-            $job_running_or_run = 1;
+            $self->set_jobs_running(1);
             $self->submit_job($job);
             $self->say_if_verbose( sprintf '  Running component %d of %s%s',
                 $job->component, $job->stage->name, $job->print_lsf_job_id );
@@ -1073,7 +1108,7 @@ sub process_job {
         }
     }
 
-    return $job_running_or_run;
+    return;
 }
 
 =method submit_job
