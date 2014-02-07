@@ -935,6 +935,7 @@ sub run {
             $self->say_if_verbose(
                 sprintf 'Not running jobs because >%d jobs pending',
                 $self->max_jobs );
+            $self->set_jobs_running(1);
         }
 
         if ( !$self->all_stages_run && !$self->jobs_running ) {
@@ -988,6 +989,7 @@ sub run_once {
         $self->say_if_verbose(
             sprintf 'Not running jobs because >%d jobs pending',
             $self->max_jobs );
+        $self->set_jobs_running(1);
     }
 
     $self->end_run();
