@@ -20,6 +20,7 @@ use Try::Tiny;
 use Getopt::Long;
 use Pod::Usage;
 use Readonly;
+use DETCT::Misc qw( print_or_die printf_or_die );
 
 =head1 DESCRIPTION
 
@@ -31,12 +32,12 @@ not be valid because PNEXT is not updated.
 
     # Perturb BAM file by maximum of 200 bp for each read
     samtools view -h test1.bam \
-        | perl script/perturb_sam.pl \
+        | perl -Ilib script/perturb_sam.pl \
         | samtools view -bS - | samtools sort - test2
 
     # Reproducibly perturb BAM file by maximum of 50 bp for each read
     samtools view -h test1.bam \
-        | perl script/perturb_sam.pl --seed 1 --max_move 50 \
+        | perl -Ilib script/perturb_sam.pl --seed 1 --max_move 50 \
         | samtools view -bS - | samtools sort - test2
 
 =cut
@@ -77,7 +78,8 @@ while ( my $line = <> ) {
     }
     if ( !$printed_pg && $seen_pg && $line !~ m/\@PG/xms ) {
         ## no critic (RequireInterpolationOfMetachars)
-        printf "%s\n", join "\t", '@PG', 'ID:1', 'PN:perturb_sam.pl', "CL:$cl";
+        printf_or_die( "%s\n", join "\t", '@PG', 'ID:1', 'PN:perturb_sam.pl',
+            "CL:$cl" );
         ## use critic
         $printed_pg = 1;
     }
@@ -89,12 +91,12 @@ while ( my $line = <> ) {
         ( undef, $seq_region ) = split /:/xms, $seq_region;
         ( undef, $length )     = split /:/xms, $length;
         $length_of{$seq_region} = $length;
-        print $line, "\n";
+        print_or_die( $line, "\n" );
     }
     elsif ( $line =~ m/\@/xms ) {
 
         # Other header line
-        print $line, "\n";
+        print_or_die( $line, "\n" );
     }
     else {
         my @fields = split /\t/xms, $line;
@@ -110,7 +112,7 @@ while ( my $line = <> ) {
             $pos = $seq_region;
         }
         $fields[3] = $pos;    ## no critic (ProhibitMagicNumbers)
-        printf "%s\n", join "\t", @fields;
+        printf_or_die( "%s\n", join "\t", @fields );
     }
 }
 

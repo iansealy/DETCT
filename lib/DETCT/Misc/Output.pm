@@ -23,6 +23,7 @@ use File::Spec;
 use File::Path qw( make_path );
 use Sort::Naturally;
 use List::MoreUtils qw( uniq all );
+use DETCT::Misc qw( write_or_die );
 
 use base qw( Exporter );
 our @EXPORT_OK = qw(
@@ -447,7 +448,7 @@ sub begin_csv {
         $heading =~ s/"/""/xmsg;
         push @headings, q{"} . $heading . q{"};
     }
-    print {$fh} ( join q{,}, @headings ), "\r\n";
+    write_or_die( $fh, ( join q{,}, @headings ), "\r\n" );
 
     return;
 }
@@ -518,7 +519,7 @@ sub dump_csv {
 
         $i++;
     }
-    print {$fh} ( join q{,}, @output_row ), "\n";
+    write_or_die( $fh, ( join q{,}, @output_row ), "\n" );
 
     return;
 }
@@ -539,7 +540,7 @@ sub begin_tsv {
     my ( $fh, $definition ) = @_;
 
     my @headings = map { $_->[0] } @{$definition};
-    print {$fh} q{#}, ( join "\t", @headings ), "\n";
+    write_or_die( $fh, q{#}, ( join "\t", @headings ), "\n" );
 
     return;
 }
@@ -602,7 +603,7 @@ sub dump_tsv {
 
         $i++;
     }
-    print {$fh} ( join "\t", @output_row ), "\n";
+    write_or_die( $fh, ( join "\t", @output_row ), "\n" );
 
     return;
 }
@@ -622,7 +623,7 @@ sub dump_tsv {
 sub begin_html {
     my ( $fh, $definition ) = @_;
 
-    print {$fh} <<'HTML';
+    write_or_die( $fh, <<'HTML');
 <!DOCTYPE html>
 <html>
     <head>
@@ -637,10 +638,10 @@ HTML
 
     foreach my $column ( @{$definition} ) {
         my ($heading) = @{$column};
-        print {$fh} '<th>', $heading, '</th>', "\n";
+        write_or_die( $fh, '<th>', $heading, '</th>', "\n" );
     }
 
-    print {$fh} <<'HTML';
+    write_or_die( $fh, <<'HTML');
                 </tr>
             </thead>
             <tbody>
@@ -663,7 +664,7 @@ HTML
 sub end_html {
     my ($fh) = @_;
 
-    print {$fh} <<'HTML';
+    write_or_die( $fh, <<'HTML');
             </tbody>
         </table>
     </body>
@@ -689,7 +690,7 @@ HTML
 sub dump_html {
     my ( $fh, $definition, $row ) = @_;
 
-    print {$fh} '<tr>', "\n";
+    write_or_die( $fh, '<tr>', "\n" );
 
     my $i = 0;    # Index to definition
     foreach my $cell ( @{$row} ) {
@@ -702,7 +703,7 @@ sub dump_html {
             $data_to_link = [$data_to_link];
         }
 
-        print {$fh} '<td>';
+        write_or_die( $fh, '<td>' );
 
         my @data;
         my $j = 0;    # Index to each item when multiple items in one table cell
@@ -723,14 +724,14 @@ sub dump_html {
             $j++;
         }
 
-        print {$fh} join '<br />', @data;
+        write_or_die( $fh, join '<br />', @data );
 
-        print {$fh} '</td>', "\n";
+        write_or_die( $fh, '</td>', "\n" );
 
         $i++;
     }
 
-    print {$fh} '</tr>', "\n";
+    write_or_die( $fh, '</tr>', "\n" );
 
     return;
 }

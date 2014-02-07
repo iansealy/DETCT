@@ -24,6 +24,7 @@ use File::Slurp;
 use File::Spec;
 use File::Path qw( make_path );
 use Memoize qw( memoize flush_cache );
+use DETCT::Misc qw( write_or_die );
 
 use base qw( Exporter );
 our @EXPORT_OK = qw(
@@ -358,22 +359,28 @@ sub run_peak_hmm {
       File::Spec->catfile( $arg_ref->{dir}, $safe_seq_name . '.bins' );
     open my $bin_fh, '>', $bin_file;
     foreach my $bin ( sort { $a <=> $b } keys %{ $arg_ref->{read_bins} } ) {
-        print {$bin_fh} $bin, "\t", $arg_ref->{read_bins}->{$bin}, "\n";
+        write_or_die( $bin_fh, $bin, "\t", $arg_ref->{read_bins}->{$bin},
+            "\n" );
     }
     close $bin_fh;
 
     # Write summary to file
     my $sum_file =
       File::Spec->catfile( $arg_ref->{dir}, $safe_seq_name . '.params' );
+    ## no critic (RequireBriefOpen)
     open my $sum_fh, '>', $sum_file;
-    print {$sum_fh} $arg_ref->{summary}->{total_read_count_per_mb},     "\n";
-    print {$sum_fh} $arg_ref->{summary}->{total_sig_read_count_per_mb}, "\n";
-    print {$sum_fh} $arg_ref->{summary}->{total_sig_peak_width_in_mb},  "\n";
-    print {$sum_fh} $arg_ref->{summary}->{median_sig_peak_width},       "\n";
-    print {$sum_fh} $arg_ref->{summary}->{total_sig_peaks},             "\n";
-    print {$sum_fh} $arg_ref->{summary}->{peak_buffer_width},           "\n";
-    print {$sum_fh} $arg_ref->{summary}->{read_threshold},              "\n";
+    write_or_die( $sum_fh, $arg_ref->{summary}->{total_read_count_per_mb},
+        "\n" );
+    write_or_die( $sum_fh, $arg_ref->{summary}->{total_sig_read_count_per_mb},
+        "\n" );
+    write_or_die( $sum_fh, $arg_ref->{summary}->{total_sig_peak_width_in_mb},
+        "\n" );
+    write_or_die( $sum_fh, $arg_ref->{summary}->{median_sig_peak_width}, "\n" );
+    write_or_die( $sum_fh, $arg_ref->{summary}->{total_sig_peaks},       "\n" );
+    write_or_die( $sum_fh, $arg_ref->{summary}->{peak_buffer_width},     "\n" );
+    write_or_die( $sum_fh, $arg_ref->{summary}->{read_threshold},        "\n" );
     close $sum_fh;
+    ## use critic
 
     my $hmm_file =
       File::Spec->catfile( $arg_ref->{dir}, $safe_seq_name . '.hmm' );

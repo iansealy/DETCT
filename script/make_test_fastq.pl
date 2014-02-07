@@ -19,6 +19,7 @@ use Try::Tiny;
 
 use Getopt::Long;
 use Pod::Usage;
+use DETCT::Misc qw( write_or_die );
 
 =head1 DESCRIPTION
 
@@ -27,13 +28,13 @@ This script generates test transcript counting FASTQ files.
 =head1 EXAMPLES
 
     # Generate random FASTQ files using default values
-    perl script/make_test_fastq.pl --read_tags NNNNCTACCA
+    perl -Ilib script/make_test_fastq.pl --read_tags NNNNCTACCA
 
     # Generate FASTQ files with reproducible reads using default values
-    perl script/make_test_fastq.pl --seed 1 
+    perl -Ilib script/make_test_fastq.pl --seed 1 
 
     # Generate random FASTQ files with 1000 read pairs and 54 bp reads
-    perl script/make_test_fastq.pl \
+    perl -Ilib script/make_test_fastq.pl \
         --read_tags NNNNCTACCA \
         --read_pair_count 1000 \
         --read_length 54
@@ -90,14 +91,14 @@ foreach ( 1 .. $read_pair_count ) {
     # 20% of read 1s have no polyT
     my $has_polyt = int rand 5 ? 1 : 0;    ## no critic (ProhibitMagicNumbers)
 
-    print {$fh1} q{@}, $read_name, '/1', "\n";
-    print {$fh1} get_read1_seq( $read_length, $tag, $has_polyt ), "\n";
-    print {$fh1} "+\n";
-    print {$fh1} q{~} x $read_length, "\n";
-    print {$fh2} q{@}, $read_name, '/2', "\n";
-    print {$fh2} get_read2_seq($read_length), "\n";
-    print {$fh2} "+\n";
-    print {$fh2} q{~} x $read_length, "\n";
+    write_or_die( $fh1, q{@}, $read_name, '/1', "\n" );
+    write_or_die( $fh1, get_read1_seq( $read_length, $tag, $has_polyt ), "\n" );
+    write_or_die( $fh1, "+\n" );
+    write_or_die( $fh1, q{~} x $read_length, "\n" );
+    write_or_die( $fh2, q{@}, $read_name, '/2', "\n" );
+    write_or_die( $fh2, get_read2_seq($read_length), "\n" );
+    write_or_die( $fh2, "+\n" );
+    write_or_die( $fh2, q{~} x $read_length,         "\n" );
 
     if ( !$has_polyt ) {
         $tag = $read_tags[-1];             # Dummy tag

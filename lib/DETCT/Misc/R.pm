@@ -26,6 +26,7 @@ use File::Path qw( make_path );
 use Sort::Naturally;
 use List::Util qw( sum );
 use List::MoreUtils qw( uniq );
+use DETCT::Misc qw( write_or_die );
 
 use base qw( Exporter );
 our @EXPORT_OK = qw(
@@ -125,7 +126,7 @@ sub run_deseq {
     my @sample_names = map { $_->name } @samples;
     ## no critic (RequireBriefOpen)
     open my $input_fh, '>', $input_file;
-    print {$input_fh} ( join "\t", q{}, @sample_names ), "\n";
+    write_or_die( $input_fh, ( join "\t", q{}, @sample_names ), "\n" );
     foreach my $seq_name ( nsort( keys %{ $arg_ref->{regions} } ) ) {
         foreach my $region ( @{ $arg_ref->{regions}->{$seq_name} } ) {
             my $counts = $region->[-1];
@@ -135,7 +136,8 @@ sub run_deseq {
             my $strand = $region->[6];
             ## use critic
             my $region_text = join q{:}, $seq_name, $start, $end, $strand;
-            print {$input_fh} ( join "\t", $region_text, @{$counts} ), "\n";
+            write_or_die( $input_fh, ( join "\t", $region_text, @{$counts} ),
+                "\n" );
         }
     }
     close $input_fh;
@@ -157,8 +159,8 @@ sub run_deseq {
     }
     open my $samples_fh, '>', $samples_file;
     my @header = ( q{}, 'condition', 'group' )[ 0 .. $last_col_to_print ];
-    print {$samples_fh} ( join "\t", @header ), "\n";
-    print {$samples_fh} $samples_text;
+    write_or_die( $samples_fh, ( join "\t", @header ), "\n" );
+    write_or_die( $samples_fh, $samples_text );
     close $samples_fh;
 
     my $output_file = File::Spec->catfile( $arg_ref->{dir}, 'output.txt' );

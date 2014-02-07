@@ -19,6 +19,7 @@ use Try::Tiny;
 
 use Getopt::Long;
 use Pod::Usage;
+use DETCT::Misc qw( print_or_die printf_or_die );
 
 =head1 DESCRIPTION
 
@@ -28,13 +29,13 @@ maximum length of chromosomes can be varied.
 =head1 EXAMPLES
 
     # Generate random FASTA file using default values
-    perl script/make_test_fasta.pl > test.fa
+    perl -Ilib script/make_test_fasta.pl > test.fa
 
     # Generate FASTA file with reproducible chromosomes using default values
-    perl script/make_test_fasta.pl --seed 1 > test.fa
+    perl -Ilib script/make_test_fasta.pl --seed 1 > test.fa
 
     # Generate FASTA file with 25 chromosomes (each up to 50 Mbp long)
-    perl script/make_test_fasta.pl \
+    perl -Ilib script/make_test_fasta.pl \
         --seq_region_count 25 \
         --seq_region_max_length 50_000_000 \
         > test.fa
@@ -69,12 +70,12 @@ srand;
 
 # Generate sequence for each chromosome one by one
 foreach my $seq_region ( 1 .. $seq_region_count ) {
-    printf ">%s\n", $seq_region;
+    printf_or_die( ">%s\n", $seq_region );
     my $length_required = $length_of{$seq_region};
     my $length_printed  = 0;
     while ($length_required) {
         ## no critic (ProhibitMagicNumbers)
-        print qw( A G C T a g c t ) [ int rand 8 ];
+        print_or_die( qw( A G C T a g c t ) [ int rand 8 ] );
         ## use critic
         $length_required--;
         $length_printed++;
@@ -83,7 +84,7 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
         ## no critic (ProhibitMagicNumbers)
         if ( !( $length_printed % 80 ) ) {
             ## use critic
-            print "\n";
+            print_or_die("\n");
         }
     }
 
@@ -91,7 +92,7 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
     ## no critic (ProhibitMagicNumbers)
     if ( $length_printed % 80 ) {
         ## use critic
-        print "\n";
+        print_or_die("\n");
     }
 }
 

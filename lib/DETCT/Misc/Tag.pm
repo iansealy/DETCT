@@ -18,6 +18,8 @@ use autodie;
 use Carp;
 use Try::Tiny;
 
+use DETCT::Misc qw( write_or_die );
+
 use base qw( Exporter );
 our @EXPORT_OK = qw(
   detag_trim_fastq
@@ -167,14 +169,14 @@ sub detag_trim_fastq {
         $read1_id =~ s{ /1 \z}{#$tag_for_id/1}xms;
         $read2_id =~ s{ /2 \z}{#$tag_for_id/2}xms;
 
-        print { $fh_out_for->{$tag_found}->{1} } $read1_id,   "\n";
-        print { $fh_out_for->{$tag_found}->{1} } $read1_seq,  "\n";
-        print { $fh_out_for->{$tag_found}->{1} } $read1_plus, "\n";
-        print { $fh_out_for->{$tag_found}->{1} } $read1_qual, "\n";
-        print { $fh_out_for->{$tag_found}->{2} } $read2_id,   "\n";
-        print { $fh_out_for->{$tag_found}->{2} } $read2_seq,  "\n";
-        print { $fh_out_for->{$tag_found}->{2} } $read2_plus, "\n";
-        print { $fh_out_for->{$tag_found}->{2} } $read2_qual, "\n";
+        write_or_die( $fh_out_for->{$tag_found}->{1}, $read1_id,   "\n" );
+        write_or_die( $fh_out_for->{$tag_found}->{1}, $read1_seq,  "\n" );
+        write_or_die( $fh_out_for->{$tag_found}->{1}, $read1_plus, "\n" );
+        write_or_die( $fh_out_for->{$tag_found}->{1}, $read1_qual, "\n" );
+        write_or_die( $fh_out_for->{$tag_found}->{2}, $read2_id,   "\n" );
+        write_or_die( $fh_out_for->{$tag_found}->{2}, $read2_seq,  "\n" );
+        write_or_die( $fh_out_for->{$tag_found}->{2}, $read2_plus, "\n" );
+        write_or_die( $fh_out_for->{$tag_found}->{2}, $read2_qual, "\n" );
     }
 
     close $fh1_in;

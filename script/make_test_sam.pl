@@ -20,6 +20,7 @@ use Try::Tiny;
 use Getopt::Long;
 use Pod::Usage;
 use Readonly;
+use DETCT::Misc qw( print_or_die );
 
 =head1 DESCRIPTION
 
@@ -30,16 +31,16 @@ Read tags must be specified.
 =head1 EXAMPLES
 
     # Generate random BAM file using default values
-    perl script/make_test_sam.pl --read_tags NNNNCTACCA \
+    perl -Ilib script/make_test_sam.pl --read_tags NNNNCTACCA \
         | samtools view -bS - | samtools sort - test
 
     # Generate BAM file with reproducible chromosomes using default values
-    perl script/make_test_sam.pl --seed 1 --read_tags NNNNCTACCA \
+    perl -Ilib script/make_test_sam.pl --seed 1 --read_tags NNNNCTACCA \
         | samtools view -bS - | samtools sort - test
 
     # Generate BAM file with 25 chromosomes (each up to 50 Mbp long), 1000
     # alignments per chromosome and four 10mer tags
-    perl script/make_test_sam.pl \
+    perl -Ilib script/make_test_sam.pl \
         --seq_region_count 25 \
         --seq_region_max_length 50_000_000 \
         --read_pair_count 1000 \
@@ -127,13 +128,15 @@ push @cl, '--read2_length',          $read2_length;
 my $cl = join q{ }, @cl;
 
 # Print HD and RG SAM header
-print header_line( 'HD', [ 'VN', '1.4' ], [ 'SO', 'unsorted' ] );
-print header_line( 'RG', [ 'ID', q{1} ],  [ 'SM', 'TC' ] );
-print header_line(
-    'PG',
-    [ 'ID', q{1} ],
-    [ 'PN', 'make_test_sam.pl' ],
-    [ 'CL', $cl ]
+print_or_die( header_line( 'HD', [ 'VN', '1.4' ], [ 'SO', 'unsorted' ] ) );
+print_or_die( header_line( 'RG', [ 'ID', q{1} ],  [ 'SM', 'TC' ] ) );
+print_or_die(
+    header_line(
+        'PG',
+        [ 'ID', q{1} ],
+        [ 'PN', 'make_test_sam.pl' ],
+        [ 'CL', $cl ]
+    )
 );
 
 # Make each chromosome of random length and print SQ SAM headers
@@ -141,7 +144,8 @@ my %length_of;
 foreach my $seq_region ( 1 .. $seq_region_count ) {
     my $length = int rand( $seq_region_max_length + 1 );
     $length_of{$seq_region} = $length;
-    print header_line( 'SQ', [ 'SN', $seq_region ], [ 'LN', $length ] );
+    print_or_die(
+        header_line( 'SQ', [ 'SN', $seq_region ], [ 'LN', $length ] ) );
 }
 
 # Ensure alignments are always random
@@ -192,41 +196,45 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
         foreach my $read_pair_count ( 1 .. $num_duplicates + 1 ) {
 
             # First read
-            print alignment_line(
-                qname => $read1_qname,
-                flag  => $read1_flag,
-                rname => $seq_region,
-                pos   => $read1_pos,
-                mapq  => 255,
-                cigar => $read1_cigar,
-                rnext => q{=},
-                pnext => $read2_pos,
-                tlen  => $read1_tlen,
-                seq   => get_seq($read1_length),
-                qual  => get_qual($read1_length),
-                opt   => {
-                    'NM:i' => $read1_nm,
-                    'RG:Z' => q{1},
-                },
+            print_or_die(
+                alignment_line(
+                    qname => $read1_qname,
+                    flag  => $read1_flag,
+                    rname => $seq_region,
+                    pos   => $read1_pos,
+                    mapq  => 255,
+                    cigar => $read1_cigar,
+                    rnext => q{=},
+                    pnext => $read2_pos,
+                    tlen  => $read1_tlen,
+                    seq   => get_seq($read1_length),
+                    qual  => get_qual($read1_length),
+                    opt   => {
+                        'NM:i' => $read1_nm,
+                        'RG:Z' => q{1},
+                    },
+                )
             );
 
             # Second read
-            print alignment_line(
-                qname => $read2_qname,
-                flag  => $read2_flag,
-                rname => $seq_region,
-                pos   => $read2_pos,
-                mapq  => 255,
-                cigar => $read2_cigar,
-                rnext => q{=},
-                pnext => $read1_pos,
-                tlen  => $read2_tlen,
-                seq   => get_seq($read2_length),
-                qual  => get_qual($read2_length),
-                opt   => {
-                    'NM:i' => $read2_nm,
-                    'RG:Z' => q{1},
-                },
+            print_or_die(
+                alignment_line(
+                    qname => $read2_qname,
+                    flag  => $read2_flag,
+                    rname => $seq_region,
+                    pos   => $read2_pos,
+                    mapq  => 255,
+                    cigar => $read2_cigar,
+                    rnext => q{=},
+                    pnext => $read1_pos,
+                    tlen  => $read2_tlen,
+                    seq   => get_seq($read2_length),
+                    qual  => get_qual($read2_length),
+                    opt   => {
+                        'NM:i' => $read2_nm,
+                        'RG:Z' => q{1},
+                    },
+                )
             );
 
             if ( $read_pair_count == $num_real_duplicates + 1 ) {
