@@ -42,6 +42,7 @@ my @analysis_yamls;
 my $stages_yaml = 'stages.yaml';
 my @avoid_nodes;
 ## no critic (ProhibitMagicNumbers)
+my $max_jobs    = 1000;
 my $max_retries = 10;
 my $sleep_time  = 600;    # 10 minutes
 ## use critic
@@ -62,6 +63,8 @@ $base_cmd_line .=
   . $scheduler
   . ' --stages_yaml '
   . $stages_yaml
+  . ' --max_jobs '
+  . $max_jobs
   . ' --max_retries '
   . $max_retries;
 if (@avoid_nodes) {
@@ -91,6 +94,7 @@ foreach my $analysis_yaml (@analysis_yamls) {
             analysis_dir => $analysis_dir,
             analysis     => $analysis,
             cmd_line     => $cmd_line,
+            max_jobs     => $max_jobs,
             max_retries  => $max_retries,
             sleep_time   => $sleep_time,
             verbose      => $verbose,
@@ -190,6 +194,7 @@ sub get_and_check_options {
         'analysis_yamls=s{1,}' => \@analysis_yamls,
         'stages_yaml=s'        => \$stages_yaml,
         'avoid_nodes=s@{,}'    => \@avoid_nodes,
+        'max_jobs=i'           => \$max_jobs,
         'max_retries=i'        => \$max_retries,
         'sleep_time=i'         => \$sleep_time,
         'stage=s'              => \$stage_to_run,
@@ -227,6 +232,7 @@ sub get_and_check_options {
         [--analysis_yamls file...]
         [--stages_yaml file]
         [--avoid_nodes node...]
+        [--max_jobs int]
         [--max_retries int]
         [--sleep_time int]
         [--stage stage]
@@ -254,6 +260,10 @@ YAML stages configuration file.
 =item B<--avoid_nodes NODE...>
 
 Nodes to be avoided when submitting LSF jobs.
+
+=item B<--max_jobs INT>
+
+Approximate maximum number of jobs user can have pending.
 
 =item B<--max_retries INT>
 

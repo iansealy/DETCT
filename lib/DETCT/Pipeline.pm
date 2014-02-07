@@ -48,6 +48,7 @@ private analysis_dir => my %analysis_dir;    # e.g. .
 private analysis     => my %analysis;        # DETCT::Analysis object
 private cmd_line     => my %cmd_line;        # e.g. run_de_pipeline.pl
 private avoid_node   => my %avoid_node;      # arrayref of nodes to be avoided
+private max_jobs     => my %max_jobs;        # e.g. 1000
 private max_retries  => my %max_retries;     # e.g. 10
 private sleep_time   => my %sleep_time;      # e.g. 600
 private memory_limit_multiplier => my %memory_limit_multiplier;    # e.g. 1000
@@ -71,6 +72,7 @@ Readonly our %EXTENSION_TO_KEEP => map { $_ => 1 } qw(
                     analysis_dir => '.',
                     analysis     => $analysis,
                     cmd_line     => 'run_de_pipeline.pl',
+                    max_jobs     => 1000,
                     max_retries  => 10,
                     sleep_time   => 600,
                     verbose      => 1,
@@ -82,6 +84,7 @@ Readonly our %EXTENSION_TO_KEEP => map { $_ => 1 } qw(
                     analysis_dir => String,
                     analysis     => DETCT::Analysis,
                     cmd_line     => String,
+                    max_jobs     => Int,
                     max_retries  => Int,
                     sleep_time   => Int,
                     verbose      => Boolean or undef
@@ -98,6 +101,7 @@ sub new {
     $self->set_analysis_dir( $arg_ref->{analysis_dir} );
     $self->set_analysis( $arg_ref->{analysis} );
     $self->set_cmd_line( $arg_ref->{cmd_line} );
+    $self->set_max_jobs( $arg_ref->{max_jobs} );
     $self->set_max_retries( $arg_ref->{max_retries} );
     $self->set_sleep_time( $arg_ref->{sleep_time} );
     $self->set_verbose( $arg_ref->{verbose} );
@@ -340,6 +344,53 @@ sub get_all_avoid_nodes {
     my ($self) = @_;
 
     return $avoid_node{ id $self} || [];
+}
+
+=method max_jobs
+
+  Usage       : my $max_jobs = $pipeline->max_jobs;
+  Purpose     : Getter for max jobs attribute
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub max_jobs {
+    my ($self) = @_;
+    return $max_jobs{ id $self};
+}
+
+=method set_max_jobs
+
+  Usage       : $pipeline->set_max_jobs(1000);
+  Purpose     : Setter for max jobs attribute
+  Returns     : undef
+  Parameters  : +ve Int (the max jobs)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_max_jobs {
+    my ( $self, $arg ) = @_;
+    $max_jobs{ id $self} = _check_max_jobs($arg);
+    return;
+}
+
+# Usage       : $max_jobs = _check_max_jobs($max_jobs);
+# Purpose     : Check for valid max jobs
+# Returns     : +ve Int (the valid max jobs)
+# Parameters  : +ve Int (the max jobs)
+# Throws      : If max jobs is missing or not a positive integer
+# Comments    : None
+sub _check_max_jobs {
+    my ($max_jobs) = @_;
+    return $max_jobs
+      if defined $max_jobs && $max_jobs =~ m/\A \d+ \z/xms;
+    confess 'No max jobs specified' if !defined $max_jobs;
+    confess "Invalid max jobs ($max_jobs) specified";
 }
 
 =method max_retries
@@ -876,8 +927,15 @@ sub run {
         # Assume no jobs running until find otherwise
         $self->set_jobs_running(0);
 
-        # Run a single cycle of the pipeline
-        $self->_run_cycle();
+        # Run a single cycle of the pipeline if number of pending jobs not high
+        if ( $self->num_pending_jobs < $self->max_jobs ) {
+            $self->_run_cycle();
+        }
+        else {
+            $self->say_if_verbose(
+                sprintf 'Not running jobs because >%d jobs pending',
+                $self->max_jobs );
+        }
 
         if ( !$self->all_stages_run && !$self->jobs_running ) {
             $self->_delete_lock();
@@ -922,8 +980,15 @@ sub run_once {
     # Assume no jobs running until find otherwise
     $self->set_jobs_running(0);
 
-    # Run a single cycle of the pipeline
-    $self->_run_cycle();
+    # Run a single cycle of the pipeline if number of pending jobs not high
+    if ( $self->num_pending_jobs < $self->max_jobs ) {
+        $self->_run_cycle();
+    }
+    else {
+        $self->say_if_verbose(
+            sprintf 'Not running jobs because >%d jobs pending',
+            $self->max_jobs );
+    }
 
     $self->end_run();
 
@@ -1530,6 +1595,33 @@ sub _move_or_delete {
     }
 
     return;
+}
+
+=method num_pending_jobs
+
+  Usage       : my $num_pending_jobs = $pipeline->num_pending_jobs;
+  Purpose     : Get number of pending jobs
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : If don't capture a positive integer
+  Comments    : None
+
+=cut
+
+sub num_pending_jobs {
+    my ($self) = @_;
+
+    return 0 if $self->scheduler ne 'lsf';
+
+    my @output           = capture('busers');
+    my @fields           = split /\s+/xms, $output[1];    # Ignore header line
+    my $num_pending_jobs = $fields[4];                    # PEND is 5th field
+
+    if ( $num_pending_jobs !~ m/\A \d+ \z/xms ) {
+        confess 'Number of pending jobs not numeric';
+    }
+
+    return $num_pending_jobs;
 }
 
 1;
