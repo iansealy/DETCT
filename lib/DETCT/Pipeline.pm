@@ -1656,7 +1656,7 @@ sub summarise_memory_usage {
         my $bw = File::ReadBackwards->new($stdout_file)
           or confess "Can't read $stdout_file: $OS_ERROR";
         while ( defined( my $line = $bw->readline ) ) {
-            if ( $line =~ m/\A \s+ Max \s Memory \s : \s+ (\d+) \s MB \z/xms ) {
+            if ( $line =~ m/\A \s+ Max \s Memory \s : \s+ (\d+) \s MB/xms ) {
                 push @max_memory, $1;
                 last;
             }
@@ -1665,7 +1665,7 @@ sub summarise_memory_usage {
 
     # Output summary
     my $memory_summary_file = $dir . '.memory.txt';
-    DumpFile( $memory_summary_file, @max_memory );
+    DumpFile( $memory_summary_file, \@max_memory );
 
     return;
 }
