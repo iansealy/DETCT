@@ -1619,9 +1619,9 @@ sub num_pending_jobs {
 
     return 0 if $self->scheduler ne 'lsf';
 
-    my @output           = capture('busers');
-    my @fields           = split /\s+/xms, $output[1];    # Ignore header line
-    my $num_pending_jobs = $fields[4];                    # PEND is 5th field
+    my @output = capture('busers');
+    my @fields = split /\s+/xms, $output[1];    # Ignore header line
+    my $num_pending_jobs = $fields[4];    ## no critic (ProhibitMagicNumbers)
 
     if ( $num_pending_jobs !~ m/\A \d+ \z/xms ) {
         confess 'Number of pending jobs not numeric';
