@@ -28,6 +28,7 @@ use File::Slurp;
 use File::Spec;
 use File::Path qw( make_path );
 use Hash::Merge;
+use File::ReadBackwards;
 use YAML::Tiny qw( DumpFile );
 use Sys::Hostname;
 use File::Basename;
@@ -1083,6 +1084,7 @@ sub _run_cycle {
 
         if ( $stage->all_jobs_run ) {
             write_file( $done_marker_file, '1' );
+            $self->summarise_memory_usage( $stage, $component );
         }
         else {
             $self->set_all_stages_run(0);
@@ -1626,6 +1628,46 @@ sub num_pending_jobs {
     }
 
     return $num_pending_jobs;
+}
+
+=method summarise_memory_usage
+
+  Usage       : $self->summarise_memory_usage( $stage, $last_component );
+  Purpose     : Summarise memory usage of all components of a stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Stage
+                Int (the last component)
+  Throws      : If STDOUT file can't be read
+  Comments    : None
+
+=cut
+
+sub summarise_memory_usage {
+    my ( $self, $stage, $last_component ) = @_;
+
+    return if $self->scheduler ne 'lsf';
+
+    # Get directory for this stage
+    my $dir = $self->get_and_create_stage_dir($stage);
+
+    my @max_memory;
+    foreach my $component ( 1 .. $last_component ) {
+        my $stdout_file = File::Spec->catfile( $dir, $component . '.o' );
+        my $bw = File::ReadBackwards->new($stdout_file)
+          or confess "Can't read $stdout_file: $OS_ERROR";
+        while ( defined( my $line = $bw->readline ) ) {
+            if ( $line =~ m/\A \s+ Max \s Memory \s : \s+ (\d+) \s MB \z/xms ) {
+                push @max_memory, $1;
+                last;
+            }
+        }
+    }
+
+    # Output summary
+    my $memory_summary_file = $dir . '.memory.txt';
+    DumpFile( $memory_summary_file, @max_memory );
+
+    return;
 }
 
 1;
