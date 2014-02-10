@@ -25,6 +25,9 @@ if (numFactors > 2) {
 if (numConditions != 2) {
     write.table( c(), file=outputFile, col.names=FALSE, row.names=FALSE,
         quote=FALSE, sep="\t" )
+    dds <- estimateSizeFactors(dds)
+    write.table( sizeFactors( dds ), file=sizeFactorsFile, col.names=FALSE,
+        row.names=FALSE, quote=FALSE, sep="\t" )
     stop("Not two conditions")
 }
 
