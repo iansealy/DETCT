@@ -20,8 +20,13 @@ if (numFactors > 2) {
     stop("Too many factors")
 }
 
-# If not two conditions then just write empty output (but can handle this better
-# in future)
+# Create DESeqDataSet (with design according to number of factors)
+dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ condition)
+if (numFactors == 2) {
+    design(dds) <- formula(~ group + condition)
+}
+
+# If not two conditions then just write empty output
 if (numConditions != 2) {
     write.table( c(), file=outputFile, col.names=FALSE, row.names=FALSE,
         quote=FALSE, sep="\t" )
@@ -29,12 +34,6 @@ if (numConditions != 2) {
     write.table( sizeFactors( dds ), file=sizeFactorsFile, col.names=FALSE,
         row.names=FALSE, quote=FALSE, sep="\t" )
     stop("Not two conditions")
-}
-
-# Create DESeqDataSet (with design according to number of factors)
-dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ condition)
-if (numFactors == 2) {
-    design(dds) <- formula(~ group + condition)
 }
 
 # Ensure control level (usually "sibling") is first level (i.e. before "mutant")
