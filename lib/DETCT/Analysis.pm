@@ -157,6 +157,11 @@ sub new_from_yaml {
 
     my $yaml = YAML::Tiny->read($yaml_file);
 
+    if ( !$yaml ) {
+        confess sprintf 'YAML file (%s) is invalid: %s', $yaml_file,
+          YAML::Tiny->errstr;
+    }
+
     $self->set_name( $yaml->[0]->{name} );
     $self->set_read1_length( $yaml->[0]->{read1_length} );
     $self->set_read2_length( $yaml->[0]->{read2_length} );
