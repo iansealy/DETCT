@@ -82,6 +82,9 @@ foreach my $analysis_yaml (@analysis_yamls) {
     my $analysis_dir = $analysis_yaml;
     $analysis_dir =~ s/[.]yaml \z//xms;
 
+    # Skip already completed pipelines
+    next if -e File::Spec->catfile( $analysis_dir, 'cleanup.done' );
+
     # Finish command line
     my $cmd_line = $base_cmd_line;
     $cmd_line .=
