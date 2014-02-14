@@ -56,7 +56,7 @@ sub new {
 
 =method slice_adaptor
 
-  Usage       : my $slice_adaptor = $analysis->slice_adaptor;
+  Usage       : my $slice_adaptor = $gene_finder->slice_adaptor;
   Purpose     : Getter for Ensembl slice adaptor attribute
   Returns     : Bio::EnsEMBL::DBSQL::SliceAdaptor
   Parameters  : None
@@ -72,7 +72,7 @@ sub slice_adaptor {
 
 =method set_slice_adaptor
 
-  Usage       : $analysis->set_slice_adaptor($slice_adaptor);
+  Usage       : $gene_finder->set_slice_adaptor($slice_adaptor);
   Purpose     : Setter for Ensembl slice adaptor attribute
   Returns     : undef
   Parameters  : Bio::EnsEMBL::DBSQL::SliceAdaptor
