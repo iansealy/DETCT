@@ -24,7 +24,7 @@ use English qw( -no_match_vars );
 use File::Spec;
 use File::Slurp;
 use DETCT::Pipeline::DiffExpr;
-use DETCT::Analysis;
+use DETCT::Analysis::DiffExpr;
 
 =head1 DESCRIPTION
 
@@ -76,7 +76,7 @@ my @pipelines;
 foreach my $analysis_yaml (@analysis_yamls) {
 
     # Create analysis
-    my $analysis = DETCT::Analysis->new_from_yaml($analysis_yaml);
+    my $analysis = DETCT::Analysis::DiffExpr->new_from_yaml($analysis_yaml);
 
     # Working directory is based on YAML filename
     my $analysis_dir = $analysis_yaml;

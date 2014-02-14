@@ -5,22 +5,33 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 99;
+plan tests => 148;
 
-use DETCT::Analysis;
+use DETCT::Analysis::DiffExpr;
 
 use File::Path qw( make_path );
 use IO::Socket::INET;
 
 my $is_ensembl_reachable = is_ensembl_reachable();
 
-my $analysis = DETCT::Analysis->new(
+my $analysis = DETCT::Analysis::DiffExpr->new(
     {
-        name        => 'zmp_ph1',
-        chunk_total => 20,
+        name               => 'zmp_ph1',
+        read1_length       => 30,
+        read2_length       => 54,
+        mismatch_threshold => 2,
+        bin_size           => 100,
+        peak_buffer_width  => 100,
+        hmm_sig_level      => 0.001,
+        hmm_binary         => 'chiphmmnew',
+        r_binary           => 'R',
+        deseq_script       => 'script/run_deseq.R',
+        output_sig_level   => 0.05,
+        chunk_total        => 20,
     }
 );
 
+isa_ok( $analysis, 'DETCT::Analysis::DiffExpr' );
 isa_ok( $analysis, 'DETCT::Analysis' );
 
 # Test name attribute
@@ -32,6 +43,93 @@ my $long_name = 'X' x ( $DETCT::Analysis::MAX_NAME_LENGTH + 1 );
 throws_ok { $analysis->set_name('') } qr/Empty name specified/ms, 'Empty name';
 throws_ok { $analysis->set_name($long_name) } qr/longer than \d+ characters/ms,
   'Long name';
+
+# Test read 1 length attribute
+is( $analysis->read1_length,         30,    'Get read 1 length' );
+is( $analysis->set_read1_length(40), undef, 'Set read 1 length' );
+is( $analysis->read1_length,         40,    'Get new read 1 length' );
+throws_ok { $analysis->set_read1_length() } qr/No read 1 length specified/ms,
+  'No read 1 length';
+throws_ok { $analysis->set_read1_length(-1) } qr/Invalid read 1 length/ms,
+  'Invalid read 1 length';
+
+# Test read 2 length attribute
+is( $analysis->read2_length,         54,    'Get read 2 length' );
+is( $analysis->set_read2_length(64), undef, 'Set read 2 length' );
+is( $analysis->read2_length,         64,    'Get new read 2 length' );
+throws_ok { $analysis->set_read2_length() } qr/No read 2 length specified/ms,
+  'No read 2 length';
+throws_ok { $analysis->set_read2_length(-2) } qr/Invalid read 2 length/ms,
+  'Invalid read 2 length';
+
+# Test mismatch threshold attribute
+is( $analysis->mismatch_threshold,        2,     'Get mismatch threshold' );
+is( $analysis->set_mismatch_threshold(3), undef, 'Set mismatch threshold' );
+is( $analysis->mismatch_threshold,        3,     'Get new mismatch threshold' );
+throws_ok { $analysis->set_mismatch_threshold() }
+qr/No mismatch threshold specified/ms, 'No mismatch threshold';
+throws_ok { $analysis->set_mismatch_threshold(-1) }
+qr/Invalid mismatch threshold/ms, 'Invalid mismatch threshold';
+
+# Test bin size attribute
+is( $analysis->bin_size,          100,   'Get bin size' );
+is( $analysis->set_bin_size(200), undef, 'Set bin size' );
+is( $analysis->bin_size,          200,   'Get new bin size' );
+throws_ok { $analysis->set_bin_size() } qr/No bin size specified/ms,
+  'No bin size';
+throws_ok { $analysis->set_bin_size(-1) } qr/Invalid bin size/ms,
+  'Invalid bin size';
+
+# Test peak buffer width attribute
+is( $analysis->peak_buffer_width,          100,   'Get peak buffer width' );
+is( $analysis->set_peak_buffer_width(200), undef, 'Set peak buffer width' );
+is( $analysis->peak_buffer_width,          200,   'Get new peak buffer width' );
+throws_ok { $analysis->set_peak_buffer_width() }
+qr/No peak buffer width specified/ms, 'No peak buffer width';
+throws_ok { $analysis->set_peak_buffer_width(-1) }
+qr/Invalid peak buffer width/ms, 'Invalid peak buffer width';
+
+# Test HMM significance level attribute
+is( $analysis->hmm_sig_level,          0.001, 'Get HMM significance level' );
+is( $analysis->set_hmm_sig_level(0.1), undef, 'Set HMM significance level' );
+is( $analysis->hmm_sig_level, 0.1, 'Get new HMM significance level' );
+throws_ok { $analysis->set_hmm_sig_level() }
+qr/No HMM significance level specified/ms, 'No HMM significance level';
+throws_ok { $analysis->set_hmm_sig_level(1) }
+qr/Invalid HMM significance level/ms, 'Invalid HMM significance level';
+
+# Test HMM binary attribute
+is( $analysis->hmm_binary,                   'chiphmmnew', 'Get HMM binary' );
+is( $analysis->set_hmm_binary('chiphmmnew'), undef,        'Set HMM binary' );
+is( $analysis->hmm_binary, 'chiphmmnew', 'Get new HMM binary' );
+throws_ok { $analysis->set_hmm_binary() } qr/No HMM binary specified/ms,
+  'No HMM binary';
+
+# Test R binary attribute
+is( $analysis->r_binary,          'R',   'Get R binary' );
+is( $analysis->set_r_binary('S'), undef, 'Set R binary' );
+is( $analysis->r_binary,          'S',   'Get new R binary' );
+throws_ok { $analysis->set_r_binary() } qr/No R binary specified/ms,
+  'No R binary';
+
+# Test DESeq script attribute
+is( $analysis->deseq_script, 'script/run_deseq.R', 'Get DESeq script' );
+is( $analysis->set_deseq_script('script'), undef,    'Set DESeq script' );
+is( $analysis->deseq_script,               'script', 'Get new DESeq script' );
+throws_ok { $analysis->set_deseq_script() } qr/No DESeq script specified/ms,
+  'No DESeq script';
+throws_ok { $analysis->set_deseq_script('nonexistent') }
+qr/does not exist or cannot be read/ms, 'Missing DESeq script';
+
+# Test output significance level attribute
+is( $analysis->output_sig_level, 0.05, 'Get output significance level' );
+is( $analysis->set_output_sig_level(0.01),
+    undef, 'Set output significance level' );
+is( $analysis->output_sig_level, 0.01, 'Get new output significance level' );
+throws_ok { $analysis->set_output_sig_level() }
+qr/No output significance level specified/ms, 'No output significance level';
+throws_ok { $analysis->set_output_sig_level(1) }
+qr/Invalid output significance level/ms, 'Invalid output significance level';
 
 # Test reference FASTA attribute
 is( $analysis->ref_fasta, undef, 'Get reference FASTA' );
@@ -167,21 +265,26 @@ $chunks = $analysis->get_all_chunks();
 is( scalar @{$chunks}, 3, '3 chunks' );
 
 # Test constructing from YAML
-$analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis12.yaml');
-isa_ok( $analysis, 'DETCT::Analysis' );
+$analysis =
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis12.yaml');
+isa_ok( $analysis, 'DETCT::Analysis::DiffExpr' );
 $samples = $analysis->get_all_samples();
 is( scalar @{$samples}, 2, 'Get two YAML samples' );
-throws_ok { $analysis = DETCT::Analysis->new_from_yaml('nonexistent.yaml') }
+throws_ok {
+    $analysis = DETCT::Analysis::DiffExpr->new_from_yaml('nonexistent.yaml');
+}
 qr/does not exist or cannot be read/ms, 'Missing YAML file';
 
 # Test validating analysis
 throws_ok {
-    $analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis13.yaml');
+    $analysis =
+      DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis13.yaml');
 }
 qr/use different reference/ms, 'Different reference';
 
 # Test summary info
-$analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis1122.yaml');
+$analysis =
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis1122.yaml');
 my @bam_files = $analysis->list_all_bam_files();
 is( scalar @bam_files, 2, '2 BAM files' );
 is( $bam_files[0], 't/data/test1.bam', 'Got BAM file' );
@@ -192,21 +295,24 @@ is( $tags[0],     'NNNNBAGAAG', 'Got tag' );
 my $seq;
 
 # Set FASTA index
-$analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis12.yaml');
+$analysis =
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis12.yaml');
 throws_ok { $analysis->set_fasta_index(); } qr/No FASTA index specified/ms,
   'No FASTA index';
 throws_ok { $analysis->set_fasta_index('invalid'); } qr/Class of FASTA index/ms,
   'Invalid FASTA index';
 
 # Set Ensembl slice adaptor
-$analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis12.yaml');
+$analysis =
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis12.yaml');
 throws_ok { $analysis->set_slice_adaptor(); }
 qr/No Ensembl slice adaptor specified/ms, 'No slice adaptor';
 throws_ok { $analysis->set_slice_adaptor('invalid'); }
 qr/Class of Ensembl slice adaptor/ms, 'Invalid slice adaptor';
 
 # Get subsequence with missing parameters
-$analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis12.yaml');
+$analysis =
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis12.yaml');
 throws_ok { $analysis->get_subsequence(); } qr/No sequence name specified/ms,
   'No sequence name';
 throws_ok { $analysis->get_subsequence('1'); }
@@ -223,7 +329,8 @@ qr/No sequence strand specified/ms, 'No sequence strand';
 head -2 t/data/test12.fa
 =cut
 
-$analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis12.yaml');
+$analysis =
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis12.yaml');
 $seq = $analysis->get_subsequence( '1', 1, 10, 1 );
 is( length $seq, 10,           'FASTA subsequence length' );
 is( $seq,        'CCAGGCGCGG', 'FASTA subsequence' );
@@ -248,11 +355,21 @@ is( $seq,        '', 'Large start and end FASTA subsequence' );
 SKIP: {
     skip 'Ensembl not reachable', 4 if !$is_ensembl_reachable;
 
-    $analysis = DETCT::Analysis->new(
+    $analysis = DETCT::Analysis::DiffExpr->new(
         {
-            name            => 'zmp_ph1',
-            chunk_total     => 20,
-            ensembl_species => 'danio_rerio',
+            name               => 'zmp_ph1',
+            read1_length       => 30,
+            read2_length       => 54,
+            mismatch_threshold => 2,
+            bin_size           => 100,
+            peak_buffer_width  => 100,
+            hmm_sig_level      => 0.001,
+            hmm_binary         => 'chiphmmnew',
+            r_binary           => 'R',
+            deseq_script       => 'script/run_deseq.R',
+            output_sig_level   => 0.05,
+            chunk_total        => 20,
+            ensembl_species    => 'danio_rerio',
         }
     );
     $seq = $analysis->get_subsequence( '1', 1, 10, 1 );
@@ -264,10 +381,20 @@ SKIP: {
 }
 
 # Check getting sequence without FASTA file or Ensembl database
-$analysis = DETCT::Analysis->new(
+$analysis = DETCT::Analysis::DiffExpr->new(
     {
-        name        => 'zmp_ph1',
-        chunk_total => 20,
+        name               => 'zmp_ph1',
+        read1_length       => 30,
+        read2_length       => 54,
+        mismatch_threshold => 2,
+        bin_size           => 100,
+        peak_buffer_width  => 100,
+        hmm_sig_level      => 0.001,
+        hmm_binary         => 'chiphmmnew',
+        r_binary           => 'R',
+        deseq_script       => 'script/run_deseq.R',
+        output_sig_level   => 0.05,
+        chunk_total        => 20,
     }
 );
 throws_ok { $analysis->get_subsequence( '1', 1, 10, 1 ); }
@@ -280,15 +407,25 @@ SKIP: {
     # Avoid warnings about loading the same databases again
     Bio::EnsEMBL::Registry::clear();
 
-    $analysis = DETCT::Analysis->new(
+    $analysis = DETCT::Analysis::DiffExpr->new(
         {
-            name            => 'zmp_ph1',
-            chunk_total     => 20,
-            ensembl_host    => 'ensembldb.ensembl.org',
-            ensembl_port    => 5306,
-            ensembl_user    => 'anonymous',
-            ensembl_pass    => '',
-            ensembl_species => 'danio_rerio',
+            name               => 'zmp_ph1',
+            read1_length       => 30,
+            read2_length       => 54,
+            mismatch_threshold => 2,
+            bin_size           => 100,
+            peak_buffer_width  => 100,
+            hmm_sig_level      => 0.001,
+            hmm_binary         => 'chiphmmnew',
+            r_binary           => 'R',
+            deseq_script       => 'script/run_deseq.R',
+            output_sig_level   => 0.05,
+            chunk_total        => 20,
+            ensembl_host       => 'ensembldb.ensembl.org',
+            ensembl_port       => 5306,
+            ensembl_user       => 'anonymous',
+            ensembl_pass       => '',
+            ensembl_species    => 'danio_rerio',
         }
     );
     $seq = $analysis->get_subsequence( '1', 1, 10, 1 );
@@ -307,15 +444,25 @@ mysql -u anonymous -h ensembldb.ensembl.org -P 5306 -Bse \
 SKIP: {
     skip 'Ensembl not reachable', 2 if !$is_ensembl_reachable;
 
-    $analysis = DETCT::Analysis->new(
+    $analysis = DETCT::Analysis::DiffExpr->new(
         {
-            name         => 'zmp_ph1',
-            chunk_total  => 20,
-            ensembl_host => 'ensembldb.ensembl.org',
-            ensembl_port => 5306,
-            ensembl_user => 'anonymous',
-            ensembl_pass => '',
-            ensembl_name => 'danio_rerio_core_73_9',
+            name               => 'zmp_ph1',
+            read1_length       => 30,
+            read2_length       => 54,
+            mismatch_threshold => 2,
+            bin_size           => 100,
+            peak_buffer_width  => 100,
+            hmm_sig_level      => 0.001,
+            hmm_binary         => 'chiphmmnew',
+            r_binary           => 'R',
+            deseq_script       => 'script/run_deseq.R',
+            output_sig_level   => 0.05,
+            chunk_total        => 20,
+            ensembl_host       => 'ensembldb.ensembl.org',
+            ensembl_port       => 5306,
+            ensembl_user       => 'anonymous',
+            ensembl_pass       => '',
+            ensembl_name       => 'danio_rerio_core_73_9',
         }
     );
     $seq = $analysis->get_subsequence( '1', 1, 10, 1 );

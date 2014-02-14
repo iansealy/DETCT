@@ -24,7 +24,7 @@ use English qw( -no_match_vars );
 use File::Spec;
 use File::Slurp;
 use DETCT::Pipeline::DiffExpr;
-use DETCT::Analysis;
+use DETCT::Analysis::DiffExpr;
 
 =head1 DESCRIPTION
 
@@ -60,7 +60,7 @@ my $cmd_line = get_cmd_line();
 get_and_check_options();
 
 # Create analysis
-my $analysis = DETCT::Analysis->new_from_yaml($analysis_yaml);
+my $analysis = DETCT::Analysis::DiffExpr->new_from_yaml($analysis_yaml);
 
 # Create pipeline
 my $pipeline = DETCT::Pipeline::DiffExpr->new(
