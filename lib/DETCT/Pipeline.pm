@@ -1423,23 +1423,6 @@ sub input_overview {
     }
     push @output, 'Working directory: ' . $self->analysis_dir;
 
-    push @output, 'BAM files: ' . join q{ },
-      $self->analysis->list_all_bam_files();
-
-    push @output, sprintf 'Number of samples: %d',
-      scalar @{ $self->analysis->get_all_samples };
-    push @output, sprintf 'Number of sequences: %d',
-      scalar @{ $self->analysis->get_all_sequences };
-    push @output, sprintf 'Number of chunks: %d', $self->analysis->chunk_total;
-
-    push @output, 'Number of sequences per chunk:';
-    my $chunk_component = 0;
-    foreach my $chunk ( @{ $self->analysis->get_all_chunks } ) {
-        $chunk_component++;
-        push @output, sprintf "  Chunk $chunk_component: %d sequences",
-          scalar @{$chunk};
-    }
-
     return @output;
 }
 

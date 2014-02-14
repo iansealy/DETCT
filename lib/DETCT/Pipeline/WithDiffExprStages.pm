@@ -1273,4 +1273,46 @@ sub run_dump_as_table {
     return;
 }
 
+=method input_overview
+
+  Usage       : $pipeline->say_if_verbose($pipeline->input_overview);
+  Purpose     : Return textual overview of pipeline's input
+  Returns     : Array of Strings
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub input_overview {
+    my ($self) = @_;
+
+    my @output;
+
+    push @output, 'Command line:', $self->cmd_line;
+    if ( defined $DETCT::VERSION ) {
+        push @output, 'DETCT version: ' . $DETCT::VERSION;
+    }
+    push @output, 'Working directory: ' . $self->analysis_dir;
+
+    push @output, 'BAM files: ' . join q{ },
+      $self->analysis->list_all_bam_files();
+
+    push @output, sprintf 'Number of samples: %d',
+      scalar @{ $self->analysis->get_all_samples };
+    push @output, sprintf 'Number of sequences: %d',
+      scalar @{ $self->analysis->get_all_sequences };
+    push @output, sprintf 'Number of chunks: %d', $self->analysis->chunk_total;
+
+    push @output, 'Number of sequences per chunk:';
+    my $chunk_component = 0;
+    foreach my $chunk ( @{ $self->analysis->get_all_chunks } ) {
+        $chunk_component++;
+        push @output, sprintf "  Chunk $chunk_component: %d sequences",
+          scalar @{$chunk};
+    }
+
+    return @output;
+}
+
 1;
