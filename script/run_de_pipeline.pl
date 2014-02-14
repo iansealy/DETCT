@@ -23,7 +23,7 @@ use Pod::Usage;
 use English qw( -no_match_vars );
 use File::Spec;
 use File::Slurp;
-use DETCT::Pipeline::WithDiffExprStages;
+use DETCT::Pipeline::DiffExpr;
 use DETCT::Analysis;
 
 =head1 DESCRIPTION
@@ -63,7 +63,7 @@ get_and_check_options();
 my $analysis = DETCT::Analysis->new_from_yaml($analysis_yaml);
 
 # Create pipeline
-my $pipeline = DETCT::Pipeline::WithDiffExprStages->new(
+my $pipeline = DETCT::Pipeline::DiffExpr->new(
     {
         scheduler    => $scheduler,
         analysis_dir => $analysis_dir,
