@@ -19,11 +19,11 @@ use File::Slurp;
 
 Test random FASTQ files can be regenerated using:
 
-perl script/make_test_fastq.pl --seed 1 --output_prefix test1 \
+perl -Ilib script/make_test_fastq.pl --seed 1 --output_prefix test1 \
 --read_tags NNNNBGAGGC NNNNBAGAAG
-perl script/make_test_fastq.pl --seed 2 --output_prefix test2 \
+perl -Ilib script/make_test_fastq.pl --seed 2 --output_prefix test2 \
 --read_tags NNNNBGAGGC NNNNBAGAAG --read_length 54
-perl script/make_test_fastq.pl --seed 3 --output_prefix test3 \
+perl -Ilib script/make_test_fastq.pl --seed 3 --output_prefix test3 \
 --read_tags NNNNBBBBNNNNATCACGTT NNNNBBBBNNNNCGATGTTT
 mv test* t/data/
 
