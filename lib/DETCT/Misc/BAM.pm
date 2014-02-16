@@ -37,6 +37,7 @@ our @EXPORT_OK = qw(
   choose_three_prime_end
   count_reads
   merge_read_counts
+  stats
 );
 
 =head1 SYNOPSIS
@@ -1224,6 +1225,89 @@ sub merge_read_counts {
     return { $arg_ref->{seq_name} => \@regions_with_three_prime_ends };
 }
 
+=func stats
+
+  Usage       : my $stats = DETCT::Misc::BAM::stats( {
+                    bam_file => $bam_file,
+                    tags     => ['NNNNBGAGGC', 'NNNNBAGAAG'],
+                } );
+  Purpose     : Generate stats per tag in a BAM file
+  Returns     : Hashref {
+                    String (tag) => Hashref {
+                        paired_read_count          => Int,
+                        mapped_paired_read_count   => Int,
+                        properly_paired_read_count => Int,
+                    }
+                }
+  Parameters  : Hashref {
+                    bam_file => String (the BAM file)
+                    tags     => Arrayref of strings (the tags)
+                }
+  Throws      : If BAM file is missing
+                If tags are missing
+  Comments    : None
+
+=cut
+
+sub stats {
+    my ($arg_ref) = @_;
+
+    confess 'No BAM file specified' if !defined $arg_ref->{bam_file};
+    confess 'No tags specified'     if !defined $arg_ref->{tags};
+
+    my @tags = @{ $arg_ref->{tags} };
+
+    # Convert tags to regular expressions
+    my %re_for = DETCT::Misc::Tag::convert_tag_to_regexp(@tags);
+
+    my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
+
+    my %stats = map {
+        $_ => {
+            paired_read_count          => 0,
+            mapped_paired_read_count   => 0,
+            properly_paired_read_count => 0,
+          }
+    } @tags;
+
+    # Check last tag seen first because likely to be seen next
+    my $prev_tag = $tags[0];    # Arbitrarily choose first tag
+
+    # Get all reads
+    my $alignments = $sam->features( -iterator => 1, );
+    while ( my $alignment = $alignments->next_seq ) {
+
+        # Match tag
+        my $tag_found;
+        my ($tag_in_read) = $alignment->query->name =~ m/[#] ([AGCT]+) \z/xmsg;
+        next if !$tag_in_read;
+      TAG: foreach my $tag ( $prev_tag, sort keys %re_for ) {
+            my $regexps = $re_for{$tag};
+            foreach my $re ( @{$regexps} ) {
+                if ( $tag_in_read =~ $re ) {
+                    $tag_found = $tag;
+                    $prev_tag  = $tag;
+                    last TAG;
+                }
+            }
+        }
+        next if !$tag_found;
+
+        # Counts
+        if ( is_paired($alignment) ) {
+            $stats{$tag_found}{paired_read_count}++;
+        }
+        if ( !$alignment->unmapped && !$alignment->munmapped ) {
+            $stats{$tag_found}{mapped_paired_read_count}++;
+        }
+        if ( is_properly_paired($alignment) ) {
+            $stats{$tag_found}{properly_paired_read_count}++;
+        }
+    }
+
+    return \%stats;
+}
+
 =func matched_tag
 
   Usage       : next if !matched_tag($alignment, \%re_for);
@@ -1292,6 +1376,42 @@ sub is_duplicate {
     my ($alignment) = @_;
 
     return ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms )
+      ? 1
+      : 0;
+}
+
+=func is_paired
+
+  Usage       : next if is_paired($alignment);
+  Purpose     : Check if alignment represents a read paired in sequencing
+  Returns     : 1 or 0
+  Parameters  : Bio::DB::Bam::AlignWrapper
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub is_paired {
+    my ($alignment) = @_;
+
+    return ( $alignment->get_tag_values('FLAGS') =~ m/\bPAIRED\b/xms ) ? 1 : 0;
+}
+
+=func is_properly_paired
+
+  Usage       : next if is_properly_paired($alignment);
+  Purpose     : Check if alignment represents a properly paired read
+  Returns     : 1 or 0
+  Parameters  : Bio::DB::Bam::AlignWrapper
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub is_properly_paired {
+    my ($alignment) = @_;
+
+    return ( $alignment->get_tag_values('FLAGS') =~ m/\bMAP_PAIR\b/xms )
       ? 1
       : 0;
 }

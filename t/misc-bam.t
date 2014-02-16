@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 349;
+plan tests => 352;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -19,6 +19,7 @@ use DETCT::Misc::BAM qw(
   choose_three_prime_end
   count_reads
   merge_read_counts
+  stats
 );
 
 =for comment
@@ -1811,3 +1812,24 @@ is( $read_counts->{'1'}->[0]->[7],   undef, q{3' end read count} );
 is( scalar @{ $read_counts->{'1'}->[0]->[8] }, 2,  '2 samples' );
 is( $read_counts->{'1'}->[0]->[8]->[0],        10, '10 reads' );
 is( $read_counts->{'1'}->[0]->[8]->[1],        20, '20 reads' );
+
+# Stats
+# Should be 1288 paired reads, 1086 mapped paired reads and 1288 properly paired
+# reads according to:
+
+=for comment
+samtools view -h t/data/test1.bam | grep -E '^@SQ|#.....GAGGC' \
+| samtools view -bS - | samtools flagstat -
+=cut
+
+my $stats = stats(
+    {
+        bam_file => 't/data/test1.bam',
+        tags     => ['NNNNBGAGGC'],
+    }
+);
+is( $stats->{NNNNBGAGGC}->{paired_read_count}, 1288, 'Paired read count' );
+is( $stats->{NNNNBGAGGC}->{mapped_paired_read_count},
+    1086, 'Mapped paired read count' );
+is( $stats->{NNNNBGAGGC}->{properly_paired_read_count},
+    1288, 'Properly paired read count' );
