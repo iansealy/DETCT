@@ -21,6 +21,7 @@ use Try::Tiny;
 use Readonly;
 use Bio::DB::Sam;
 use List::Util qw( min );
+use List::MoreUtils qw( all );
 use Data::Compare;
 use DETCT::Misc::Tag;
 
@@ -38,6 +39,7 @@ our @EXPORT_OK = qw(
   count_reads
   merge_read_counts
   stats
+  downsample
 );
 
 =head1 SYNOPSIS
@@ -1076,18 +1078,9 @@ sub count_reads {
             next if $alignment->strand != $three_prime_strand;
 
             # Match tag
-            my ($tag_in_read) =
-              $alignment->query->name =~ m/[#] ([AGCT]+) \z/xmsg;
-            next if !$tag_in_read;
-          TAG: foreach my $tag ( sort keys %re_for ) {
-                my $regexps = $re_for{$tag};
-                foreach my $re ( @{$regexps} ) {
-                    if ( $tag_in_read =~ $re ) {
-                        $count{$tag}++;
-                        last TAG;
-                    }
-                }
-            }
+            my $tag = matched_tag( $alignment, \%re_for );
+            next if !$tag;
+            $count{$tag}++;
         }
 
         # Add read counts to regions
@@ -1270,34 +1263,19 @@ sub stats {
           }
     } @tags;
 
-    # Check last tag seen first because likely to be seen next
-    my $prev_tag = $tags[0];    # Arbitrarily choose first tag
-
     # Get all reads
     my $alignments = $sam->features( -iterator => 1, );
     while ( my $alignment = $alignments->next_seq ) {
 
         # Match tag
-        my $tag_found;
-        my ($tag_in_read) = $alignment->query->name =~ m/[#] ([AGCT]+) \z/xmsg;
-        next if !$tag_in_read;
-      TAG: foreach my $tag ( $prev_tag, sort keys %re_for ) {
-            my $regexps = $re_for{$tag};
-            foreach my $re ( @{$regexps} ) {
-                if ( $tag_in_read =~ $re ) {
-                    $tag_found = $tag;
-                    $prev_tag  = $tag;
-                    last TAG;
-                }
-            }
-        }
+        my $tag_found = matched_tag( $alignment, \%re_for );
         next if !$tag_found;
 
         # Counts
         if ( is_paired($alignment) ) {
             $stats{$tag_found}{paired_read_count}++;
         }
-        if ( !$alignment->unmapped && !$alignment->munmapped ) {
+        if ( is_mapped_pair($alignment) ) {
             $stats{$tag_found}{mapped_paired_read_count}++;
         }
         if ( is_properly_paired($alignment) ) {
@@ -1308,11 +1286,122 @@ sub stats {
     return \%stats;
 }
 
+=func downsample
+
+  Usage       : DETCT::Misc::BAM::downsample( {
+                    source_bam_file   => $bam_file,
+                    source_read_count => 1_234_234,
+                    tag               => 'NNNNBGAGGC',
+                    target_bam_file   => $new_bam_file,
+                    target_read_count => 1_000_000,
+                    read_count_type   => 'proper',
+                } );
+  Purpose     : Downsample a BAM file to a target read count of chosen type
+  Returns     : +ve Int (the number of reads in the target BAM file)
+  Parameters  : Hashref {
+                    source_bam_file   => String (the original BAM file)
+                    source_read_count => Int (the original read count)
+                    tag               => String (the tag)
+                    target_bam_file   => String (the downsampled BAM file)
+                    target_read_count => Int (the target read count)
+                    read_count_type   => String ('paired', 'mapped' or 'proper')
+                }
+  Throws      : If source BAM file is missing
+                If source read count is missing
+                If tag is missing
+                If target BAM file is missing
+                If target read count is missing
+                If read count type is missing or invalid
+  Comments    : None
+
+=cut
+
+sub downsample {
+    my ($arg_ref) = @_;
+
+    confess 'No source BAM file specified'
+      if !defined $arg_ref->{source_bam_file};
+    confess 'No source read count specified'
+      if !defined $arg_ref->{source_read_count};
+    confess 'No tag specified' if !defined $arg_ref->{tag};
+    confess 'No target BAM file specified'
+      if !defined $arg_ref->{target_bam_file};
+    confess 'No target read count specified'
+      if !defined $arg_ref->{target_read_count};
+    confess 'No read count type specified'
+      if !defined $arg_ref->{read_count_type};
+    if ( all { $_ ne $arg_ref->{read_count_type} } qw(paired mapped proper) ) {
+        confess sprintf 'Invalid read count type (%s) specified',
+          $arg_ref->{read_count_type};
+    }
+
+    # Convert tag to regular expressions
+    my $tag    = $arg_ref->{tag};
+    my %re_for = DETCT::Misc::Tag::convert_tag_to_regexp($tag);
+
+    # Open source and target and write header to target
+    my $bam_in  = Bio::DB::Bam->open( $arg_ref->{source_bam_file}, q{r} );
+    my $bam_out = Bio::DB::Bam->open( $arg_ref->{target_bam_file}, q{w} );
+    $bam_out->header_write( $bam_in->header );
+
+    # Calculate probability of keeping read
+    my $keep_chance =
+      $arg_ref->{target_read_count} / $arg_ref->{source_read_count};
+
+    # Cache read names whilst waiting for other of pair
+    my %keep;
+    my %discard;
+
+    my $total_kept = 0;
+
+    # Get all reads
+    while ( my $alignment = $bam_in->read1 ) {
+        last if $total_kept >= $arg_ref->{target_read_count};
+
+        # Write read if kept mate
+        if ( exists $keep{ $alignment->qname } ) {
+            delete $keep{ $alignment->qname };
+            $bam_out->write1($alignment);
+            $total_kept++;
+            next;
+        }
+
+        # Discard read if discarded mate
+        if ( exists $discard{ $alignment->qname } ) {
+            delete $discard{ $alignment->qname };
+            next;
+        }
+
+        # Skip reads of wrong type
+        next if !is_paired($alignment);
+        next
+          if $arg_ref->{read_count_type} eq 'mapped'
+          && !is_mapped_pair($alignment);
+        next
+          if $arg_ref->{read_count_type} eq 'proper'
+          && !is_properly_paired($alignment);
+
+        # Match tag
+        next if !matched_tag( $alignment, \%re_for );
+
+        if ( rand() < $keep_chance ) {
+            $keep{ $alignment->qname } = 1;
+            $bam_out->write1($alignment);
+            $total_kept++;
+        }
+        else {
+            $discard{ $alignment->qname } = 1;
+        }
+    }
+
+    return $total_kept;
+}
+
 =func matched_tag
 
   Usage       : next if !matched_tag($alignment, \%re_for);
-  Purpose     : Check if alignment doesn't match required tags
-  Returns     : 1 or 0
+  Purpose     : Get tag matching alignment
+  Returns     : String (the matched tag) or undef
   Parameters  : Bio::DB::Bam::Alignment or Bio::DB::Bam::AlignWrapper
               : Hashref of regular expressions
   Throws      : No exceptions
@@ -1323,23 +1412,20 @@ sub stats {
 sub matched_tag {
     my ( $alignment, $re_for ) = @_;
 
-    my $got_match = 0;
-
     # Match tag
     my ($tag_in_read) = $alignment->query->name =~ m/[#] ([AGCT]+) \z/xmsg;
     if ($tag_in_read) {
-      TAG: foreach my $tag ( sort keys %{$re_for} ) {
+        foreach my $tag ( sort keys %{$re_for} ) {
             my $regexps = $re_for->{$tag};
             foreach my $re ( @{$regexps} ) {
                 if ( $tag_in_read =~ $re ) {
-                    $got_match = 1;
-                    last TAG;
+                    return $tag;
                 }
             }
         }
     }
 
-    return $got_match;
+    return;
 }
 
 =func is_read2
@@ -1395,6 +1481,23 @@ sub is_paired {
     my ($alignment) = @_;
 
     return ( $alignment->get_tag_values('FLAGS') =~ m/\bPAIRED\b/xms ) ? 1 : 0;
+}
+
+=func is_mapped_pair
+
+  Usage       : next if is_mapped_pair($alignment);
+  Purpose     : Check if alignment represents a pair of mapped reads
+  Returns     : 1 or 0
+  Parameters  : Bio::DB::Bam::AlignWrapper
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub is_mapped_pair {
+    my ($alignment) = @_;
+
+    return ( $alignment->unmapped || $alignment->munmapped ) ? 0 : 1;
 }
 
 =func is_properly_paired
