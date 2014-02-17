@@ -451,6 +451,8 @@ sub get_unmapped {
     my ( $read1_flag, $read2_flag, $read1_pos, $read2_pos ) = @_;
 
     if ( rand() < $CHANCE_UNMAPPED ) {
+        $read1_flag = $read1_flag ^ $FLAG_PROPER_PAIR;
+        $read2_flag = $read2_flag ^ $FLAG_PROPER_PAIR;
         if ( rand() < 0.5 ) {    ## no critic (ProhibitMagicNumbers)
                                  # Read 1 unmapped
             $read1_flag = $read1_flag | $FLAG_READ_UNMAPPED;
