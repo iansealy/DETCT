@@ -278,7 +278,8 @@ qr/does not exist or cannot be read/ms, 'Missing YAML file';
 # Test validating analysis
 throws_ok {
     $analysis =
-      DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de13.yaml');
+      DETCT::Analysis::DiffExpr->new_from_yaml(
+        't/data/test_analysis_de13.yaml');
 }
 qr/use different reference/ms, 'Different reference';
 
