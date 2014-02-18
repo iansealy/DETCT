@@ -266,7 +266,7 @@ is( scalar @{$chunks}, 3, '3 chunks' );
 
 # Test constructing from YAML
 $analysis =
-  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis12.yaml');
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de12.yaml');
 isa_ok( $analysis, 'DETCT::Analysis::DiffExpr' );
 $samples = $analysis->get_all_samples();
 is( scalar @{$samples}, 2, 'Get two YAML samples' );
@@ -278,13 +278,13 @@ qr/does not exist or cannot be read/ms, 'Missing YAML file';
 # Test validating analysis
 throws_ok {
     $analysis =
-      DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis13.yaml');
+      DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de13.yaml');
 }
 qr/use different reference/ms, 'Different reference';
 
 # Test summary info
 $analysis =
-  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis1122.yaml');
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de1122.yaml');
 my @bam_files = $analysis->list_all_bam_files();
 is( scalar @bam_files, 2, '2 BAM files' );
 is( $bam_files[0], 't/data/test1.bam', 'Got BAM file' );
@@ -296,7 +296,7 @@ my $seq;
 
 # Set FASTA index
 $analysis =
-  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis12.yaml');
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de12.yaml');
 throws_ok { $analysis->set_fasta_index(); } qr/No FASTA index specified/ms,
   'No FASTA index';
 throws_ok { $analysis->set_fasta_index('invalid'); } qr/Class of FASTA index/ms,
@@ -304,7 +304,7 @@ throws_ok { $analysis->set_fasta_index('invalid'); } qr/Class of FASTA index/ms,
 
 # Set Ensembl slice adaptor
 $analysis =
-  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis12.yaml');
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de12.yaml');
 throws_ok { $analysis->set_slice_adaptor(); }
 qr/No Ensembl slice adaptor specified/ms, 'No slice adaptor';
 throws_ok { $analysis->set_slice_adaptor('invalid'); }
@@ -312,7 +312,7 @@ qr/Class of Ensembl slice adaptor/ms, 'Invalid slice adaptor';
 
 # Get subsequence with missing parameters
 $analysis =
-  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis12.yaml');
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de12.yaml');
 throws_ok { $analysis->get_subsequence(); } qr/No sequence name specified/ms,
   'No sequence name';
 throws_ok { $analysis->get_subsequence('1'); }
@@ -330,7 +330,7 @@ head -2 t/data/test12.fa
 =cut
 
 $analysis =
-  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis12.yaml');
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de12.yaml');
 $seq = $analysis->get_subsequence( '1', 1, 10, 1 );
 is( length $seq, 10,           'FASTA subsequence length' );
 is( $seq,        'CCAGGCGCGG', 'FASTA subsequence' );
