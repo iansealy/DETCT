@@ -1,0 +1,35 @@
+name: zmp_ph1
+chunk_total: 3
+read_count_type: paired
+round_down_to: 100
+ref_fasta: t/data/test12.fa
+ensembl_species: danio_rerio
+samples:
+  -
+    name:        zmp_ph1_1m
+    description: ZMP phenotype 1.1 mutant
+    condition:   mutant
+    group:       1
+    tag:         NNNNBGAGGC
+    bam_file:    t/data/test1.bam
+  -
+    name:        zmp_ph1_1s
+    description: ZMP phenotype 1.1 sibling
+    condition:   sibling
+    group:       1
+    tag:         NNNNBAGAAG
+    bam_file:    t/data/test1.bam
+  -
+    name:        zmp_ph1_2m
+    description: ZMP phenotype 1.2 mutant
+    condition:   mutant
+    group:       2
+    tag:         NNNNBCAGAG
+    bam_file:    t/data/test2.bam
+  -
+    name:        zmp_ph1_2s
+    description: ZMP phenotype 1.2 sibling
+    condition:   sibling
+    group:       2
+    tag:         NNNNBGCACG
+    bam_file:    t/data/test2.bam
