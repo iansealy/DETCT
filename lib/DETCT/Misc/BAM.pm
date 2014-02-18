@@ -1227,9 +1227,9 @@ sub merge_read_counts {
   Purpose     : Generate stats per tag in a BAM file
   Returns     : Hashref {
                     String (tag) => Hashref {
-                        paired_read_count          => Int,
-                        mapped_paired_read_count   => Int,
-                        properly_paired_read_count => Int,
+                        paired => Int (paired read count),
+                        mapped => Int (mapped paired read count),
+                        proper => Int (properly paired read count),
                     }
                 }
   Parameters  : Hashref {
@@ -1255,13 +1255,7 @@ sub stats {
 
     my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
 
-    my %stats = map {
-        $_ => {
-            paired_read_count          => 0,
-            mapped_paired_read_count   => 0,
-            properly_paired_read_count => 0,
-          }
-    } @tags;
+    my %stats = map { $_ => { paired => 0, mapped => 0, proper => 0, } } @tags;
 
     # Get all reads
     my $alignments = $sam->features( -iterator => 1, );
@@ -1273,13 +1267,13 @@ sub stats {
 
         # Counts
         if ( is_paired($alignment) ) {
-            $stats{$tag_found}{paired_read_count}++;
+            $stats{$tag_found}{paired}++;
         }
         if ( is_mapped_pair($alignment) ) {
-            $stats{$tag_found}{mapped_paired_read_count}++;
+            $stats{$tag_found}{mapped}++;
         }
         if ( is_properly_paired($alignment) ) {
-            $stats{$tag_found}{properly_paired_read_count}++;
+            $stats{$tag_found}{proper}++;
         }
     }
 

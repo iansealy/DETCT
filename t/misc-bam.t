@@ -1833,11 +1833,9 @@ my $stats = stats(
         tags     => ['NNNNBGAGGC'],
     }
 );
-is( $stats->{NNNNBGAGGC}->{paired_read_count}, 2008, 'Paired read count' );
-is( $stats->{NNNNBGAGGC}->{mapped_paired_read_count},
-    1616, 'Mapped paired read count' );
-is( $stats->{NNNNBGAGGC}->{properly_paired_read_count},
-    1616, 'Properly paired read count' );
+is( $stats->{NNNNBGAGGC}->{paired}, 2008, 'Paired read count' );
+is( $stats->{NNNNBGAGGC}->{mapped}, 1616, 'Mapped paired read count' );
+is( $stats->{NNNNBGAGGC}->{proper}, 1616, 'Properly paired read count' );
 
 # Downsample
 
