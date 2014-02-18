@@ -1,0 +1,8 @@
+-
+  name:           stats
+  default_memory: 100
+-
+  name:           downsample
+  default_memory: 250
+  prerequisites:
+    - stats

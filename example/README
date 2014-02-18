@@ -16,14 +16,29 @@ samtools view -h example/example1.bam \
 | samtools view -bS - | samtools sort - example/example3
 ls example/example*.bam | xargs -n1 samtools index
 
-To run the example (again from the top level directory):
+To run the example differential expression pipeline (again from the top level
+directory):
 
 perl -Ilib script/run_de_pipeline.pl --scheduler local --dir tmp \
---analysis_yaml example/analysis.yaml --stages_yaml example/de.yaml \
+--analysis_yaml example/de-analysis.yaml --stages_yaml example/de.yaml \
 --sleep_time 1 --verbose
 
 Or (using LSF):
 
 perl -Ilib script/run_de_pipeline.pl --dir tmp \
---analysis_yaml example/analysis.yaml --stages_yaml example/de.yaml \
+--analysis_yaml example/de-analysis.yaml --stages_yaml example/de.yaml \
+--sleep_time 60 --verbose
+
+To run the example downsampling pipeline (again from the top level directory):
+
+perl -Ilib script/run_downsample_pipeline.pl --scheduler local --dir tmp \
+--analysis_yaml example/downsample-analysis.yaml \
+--stages_yaml example/downsample.yaml \
+--sleep_time 1 --verbose
+
+Or (using LSF):
+
+perl -Ilib script/run_downsample_pipeline.pl --dir tmp \
+--analysis_yaml example/downsample-analysis.yaml \
+--stages_yaml example/downsample.yaml \
 --sleep_time 60 --verbose
