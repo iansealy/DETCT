@@ -15,7 +15,6 @@ use DETCT::Misc::PeakHMM qw(
 );
 
 use File::Temp qw( tempdir );
-use File::Path qw( make_path );
 use IPC::Cmd qw( can_run );
 
 my $path_to_hmm_binary = can_run('chiphmmnew');

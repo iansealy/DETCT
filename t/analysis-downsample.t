@@ -9,7 +9,6 @@ plan tests => 109;
 
 use DETCT::Analysis::Downsample;
 
-use File::Path qw( make_path );
 use IO::Socket::INET;
 
 my $is_ensembl_reachable = is_ensembl_reachable();
