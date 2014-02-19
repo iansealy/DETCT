@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 105;
+plan tests => 109;
 
 use DETCT::Analysis::Downsample;
 
@@ -35,6 +35,13 @@ throws_ok { $analysis->set_name('') } qr/Empty name specified/ms, 'Empty name';
 throws_ok { $analysis->set_name($long_name) } qr/longer than \d+ characters/ms,
   'Long name';
 
+# Test target read count attribute
+is( $analysis->target_read_count,           undef, 'Get target read count' );
+is( $analysis->set_target_read_count(5000), undef, 'Set target read count' );
+is( $analysis->target_read_count, 5000, 'Get new target read count' );
+throws_ok { $analysis->set_target_read_count(-5000) }
+qr/Invalid target read count/ms, 'Invalid target read count';
+
 # Test read count type attribute
 is( $analysis->read_count_type,               'paired', 'Get read count type' );
 is( $analysis->set_read_count_type('mapped'), undef,    'Set read count type' );
@@ -46,8 +53,8 @@ qr/Invalid read count type/ms, 'Invalid read count type';
 
 # Test round down to attribute
 is( $analysis->round_down_to,           undef, 'Get round down to' );
-is( $analysis->set_round_down_to(1000), undef,   'Set round down to' );
-is( $analysis->round_down_to,           1000,    'Get new round down to' );
+is( $analysis->set_round_down_to(1000), undef, 'Set round down to' );
+is( $analysis->round_down_to,           1000,  'Get new round down to' );
 throws_ok { $analysis->set_round_down_to(-1000) } qr/Invalid round down to/ms,
   'Invalid round down to';
 

@@ -32,31 +32,34 @@ use YAML::Tiny;
 =cut
 
 # Attributes:
-private read_count_type => my %read_count_type;    # e.g. paired
-private round_down_to   => my %round_down_to;      # e.g. 1000000
+private target_read_count => my %target_read_count;    # e.g. 15000000
+private read_count_type   => my %read_count_type;      # e.g. paired
+private round_down_to     => my %round_down_to;        # e.g. 1000000
 
 =method new
 
   Usage       : my $analysis = DETCT::Analysis::Downsample->new( {
-                    name            => 'zmp_ph1',
-                    read_count_type => 'paired',
-                    round_down_to   => 1000000,
-                    chunk_total     => 20,
+                    name              => 'zmp_ph1',
+                    target_read_count => 15000000,
+                    read_count_type   => 'paired',
+                    round_down_to     => 1000000,
+                    chunk_total       => 20,
                 } );
   Purpose     : Constructor for analysis objects
   Returns     : DETCT::Analysis::Downsample
   Parameters  : Hashref {
-                    name            => String,
-                    read_count_type => String ('paired', 'mapped' or 'proper'),
-                    round_down_to   => Int or undef,
-                    ensembl_host    => String or undef,
-                    ensembl_port    => Int or undef,
-                    ensembl_user    => String or undef,
-                    ensembl_pass    => String or undef,
-                    ensembl_name    => String or undef,
-                    ensembl_species => String or undef,
-                    chunk_total     => Int,
-                    test_chunk      => Int or undef,
+                    name              => String,
+                    target_read_count => Int or undef,
+                    read_count_type   => String ('paired', 'mapped' or 'proper'),
+                    round_down_to     => Int or undef,
+                    ensembl_host      => String or undef,
+                    ensembl_port      => Int or undef,
+                    ensembl_user      => String or undef,
+                    ensembl_pass      => String or undef,
+                    ensembl_name      => String or undef,
+                    ensembl_species   => String or undef,
+                    chunk_total       => Int,
+                    test_chunk        => Int or undef,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -66,6 +69,7 @@ private round_down_to   => my %round_down_to;      # e.g. 1000000
 sub new {
     my ( $class, $arg_ref ) = @_;
     my $self = $class->SUPER::new($arg_ref);
+    $self->set_target_read_count( $arg_ref->{target_read_count} );
     $self->set_read_count_type( $arg_ref->{read_count_type} );
     $self->set_round_down_to( $arg_ref->{round_down_to} );
     return $self;
@@ -97,10 +101,58 @@ sub new_from_yaml {
           YAML::Tiny->errstr;
     }
 
+    $self->set_target_read_count( $yaml->[0]->{target_read_count} );
     $self->set_read_count_type( $yaml->[0]->{read_count_type} );
     $self->set_round_down_to( $yaml->[0]->{round_down_to} );
 
     return $self;
+}
+
+=method target_read_count
+
+  Usage       : my $target_read_count = $analysis->target_read_count;
+  Purpose     : Getter for target read count attribute
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub target_read_count {
+    my ($self) = @_;
+    return $target_read_count{ id $self};
+}
+
+=method set_target_read_count
+
+  Usage       : $analysis->set_target_read_count(15000000);
+  Purpose     : Setter for target read count attribute
+  Returns     : undef
+  Parameters  : +ve Int (the target read count)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_target_read_count {
+    my ( $self, $arg ) = @_;
+    $target_read_count{ id $self} = _check_target_read_count($arg);
+    return;
+}
+
+# Usage       : $target_read_count
+#                   = _check_target_read_count($target_read_count);
+# Purpose     : Check for valid target read count
+# Returns     : +ve Int (the valid target read count)
+# Parameters  : +ve Int (the target read count)
+# Throws      : If target read count is defined but not a positive integer
+# Comments    : None
+sub _check_target_read_count {
+    my ($target_read_count) = @_;
+    return $target_read_count
+      if !defined $target_read_count || $target_read_count =~ m/\A \d+ \z/xms;
+    confess "Invalid target read count ($target_read_count) specified";
 }
 
 =method read_count_type
