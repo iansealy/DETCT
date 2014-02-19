@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 106;
+plan tests => 105;
 
 use DETCT::Analysis::Downsample;
 
@@ -49,8 +49,6 @@ qr/Invalid read count type/ms, 'Invalid read count type';
 is( $analysis->round_down_to,           1000000, 'Get round down to' );
 is( $analysis->set_round_down_to(1000), undef,   'Set round down to' );
 is( $analysis->round_down_to,           1000,    'Get new round down to' );
-throws_ok { $analysis->set_round_down_to() } qr/No round down to specified/ms,
-  'No round down to';
 throws_ok { $analysis->set_round_down_to(-1000) } qr/Invalid round down to/ms,
   'Invalid round down to';
 

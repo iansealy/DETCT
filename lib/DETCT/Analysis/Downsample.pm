@@ -48,7 +48,7 @@ private round_down_to   => my %round_down_to;      # e.g. 1000000
   Parameters  : Hashref {
                     name            => String,
                     read_count_type => String ('paired', 'mapped' or 'proper'),
-                    round_down_to   => Int,
+                    round_down_to   => Int or undef,
                     ensembl_host    => String or undef,
                     ensembl_port    => Int or undef,
                     ensembl_user    => String or undef,
@@ -188,13 +188,12 @@ sub set_round_down_to {
 # Purpose     : Check for valid round down to
 # Returns     : +ve Int (the valid round down to)
 # Parameters  : +ve Int (the read count to round down to)
-# Throws      : If round down to is missing or not a positive integer
+# Throws      : If round down to is defined but not a positive integer
 # Comments    : None
 sub _check_round_down_to {
     my ($round_down_to) = @_;
     return $round_down_to
-      if defined $round_down_to && $round_down_to =~ m/\A \d+ \z/xms;
-    confess 'No round down to specified' if !defined $round_down_to;
+      if !defined $round_down_to || $round_down_to =~ m/\A \d+ \z/xms;
     confess "Invalid round down to ($round_down_to) specified";
 }
 
