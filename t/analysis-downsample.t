@@ -18,7 +18,6 @@ my $analysis = DETCT::Analysis::Downsample->new(
     {
         name            => 'zmp_ph1',
         read_count_type => 'paired',
-        round_down_to   => 1_000_000,
         chunk_total     => 20,
     }
 );
@@ -46,7 +45,7 @@ throws_ok { $analysis->set_read_count_type('invalid') }
 qr/Invalid read count type/ms, 'Invalid read count type';
 
 # Test round down to attribute
-is( $analysis->round_down_to,           1000000, 'Get round down to' );
+is( $analysis->round_down_to,           undef, 'Get round down to' );
 is( $analysis->set_round_down_to(1000), undef,   'Set round down to' );
 is( $analysis->round_down_to,           1000,    'Get new round down to' );
 throws_ok { $analysis->set_round_down_to(-1000) } qr/Invalid round down to/ms,
@@ -272,7 +271,6 @@ SKIP: {
         {
             name            => 'zmp_ph1',
             read_count_type => 'paired',
-            round_down_to   => 1000000,
             chunk_total     => 20,
             ensembl_species => 'danio_rerio',
         }
@@ -290,7 +288,6 @@ $analysis = DETCT::Analysis::Downsample->new(
     {
         name            => 'zmp_ph1',
         read_count_type => 'paired',
-        round_down_to   => 1000000,
         chunk_total     => 20,
     }
 );
@@ -308,7 +305,6 @@ SKIP: {
         {
             name            => 'zmp_ph1',
             read_count_type => 'paired',
-            round_down_to   => 1000000,
             chunk_total     => 20,
             ensembl_host    => 'ensembldb.ensembl.org',
             ensembl_port    => 5306,
@@ -337,7 +333,6 @@ SKIP: {
         {
             name            => 'zmp_ph1',
             read_count_type => 'paired',
-            round_down_to   => 1000000,
             chunk_total     => 20,
             ensembl_host    => 'ensembldb.ensembl.org',
             ensembl_port    => 5306,
