@@ -4,3 +4,6 @@ DETCT-*/
 perltidy.LOG
 poisson.out
 tmp
+picard-tools-*-detct.zip
+picard-tools-*-detct/
+snappy-java-*.jar
