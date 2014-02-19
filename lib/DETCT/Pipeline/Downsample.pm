@@ -120,12 +120,22 @@ sub all_parameters_for_downsample {
         }
     }
 
-    # Calculate read count to downsample to
-    my $min = min( map { $_->[2] } @all_parameters );
-    my $target_read_count = $min - ( $min % $self->analysis->round_down_to );
-    ## no critic (ProhibitMagicNumbers)
-    map { $_->[3] = $target_read_count } @all_parameters;
-    ## use critic
+    # Calculate maximum possible target read count
+    my $max = min( map { $_->[2] } @all_parameters );
+
+    # If no target read count specified or larger than maximum then use maximum
+    if (  !$self->analysis->target_read_count
+        || $self->analysis->target_read_count > $max )
+    {
+        $self->analysis->set_target_read_count($max);
+    }
+
+    # Round down to specified whole number if required
+    if ( $self->analysis->round_down_to ) {
+        my $count = $self->analysis->target_read_count;
+        $count = $count - ( $count % $self->analysis->round_down_to );
+        $self->analysis->set_target_read_count($count);
+    }
 
     return @all_parameters;
 }
@@ -144,8 +154,7 @@ sub all_parameters_for_downsample {
 sub run_downsample {
     my ( $self, $job ) = @_;
 
-    my ( $source_bam_file, $tag, $source_read_count, $target_read_count ) =
-      @{ $job->parameters };
+    my ( $source_bam_file, $tag, $source_read_count ) = @{ $job->parameters };
 
     # Downsample BAM file
     my $read_count = downsample(
@@ -154,14 +163,14 @@ sub run_downsample {
             source_read_count => $source_read_count,
             tag               => $tag,
             target_bam_file   => $job->base_filename . '.bam',
-            target_read_count => $target_read_count,
+            target_read_count => $self->analysis->target_read_count,
             read_count_type   => $self->analysis->read_count_type,
         }
     );
 
     # Only mark as finished if reached target read count
     # Will happen 50% of the time
-    if ( $read_count == $target_read_count ) {
+    if ( $read_count == $self->analysis->target_read_count ) {
         my $output_file = $job->base_filename . '.out';
         DumpFile( $output_file, 1 );
     }
