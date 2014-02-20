@@ -1,1 +1,3 @@
 tmp
+^snappy-java-[\w.-]+.jar$
+^picard-tools-[\d.]+-detct
