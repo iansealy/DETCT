@@ -78,7 +78,7 @@ while ( my $line = <> ) {
     }
     if ( !$printed_pg && $seen_pg && $line !~ m/\@PG/xms ) {
         ## no critic (RequireInterpolationOfMetachars)
-        printf_or_die( "%s\n", join "\t", '@PG', 'ID:1', 'PN:perturb_sam.pl',
+        printf_or_die( "%s\n", join "\t", '@PG', 'ID:2', 'PN:perturb_sam.pl',
             "CL:$cl" );
         ## use critic
         $printed_pg = 1;
