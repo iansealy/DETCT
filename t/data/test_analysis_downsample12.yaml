@@ -2,6 +2,8 @@ name: zmp_ph1
 chunk_total: 1
 read_count_type: paired
 round_down_to: 100
+java_binary: java
+mark_duplicates_jar: picard-tools-1.79-detct/MarkDuplicates.jar
 ref_fasta: t/data/test12.fa
 samples:
   -

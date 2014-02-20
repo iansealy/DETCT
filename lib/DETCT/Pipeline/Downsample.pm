@@ -28,6 +28,9 @@ use DETCT::Misc::BAM qw(
   stats
   downsample
 );
+use DETCT::Misc::Picard qw(
+  mark_duplicates
+);
 
 =head1 SYNOPSIS
 
@@ -174,6 +177,74 @@ sub run_downsample {
         my $output_file = $job->base_filename . '.out';
         DumpFile( $output_file, 1 );
     }
+
+    return;
+}
+
+=method all_parameters_for_mark_duplicates
+
+  Usage       : all_parameters_for_mark_duplicates();
+  Purpose     : Get all parameters for mark_duplicates stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_mark_duplicates {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my $component = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        my @tags = $self->analysis->list_all_tags_by_bam_file($bam_file);
+        foreach my $tag (@tags) {
+            $component++;
+            my $input_bam_file =
+              File::Spec->catfile( $self->analysis_dir, 'downsample',
+                $component . '.bam' );
+            push @all_parameters, [$input_bam_file];
+        }
+    }
+
+    return @all_parameters;
+}
+
+=method run_mark_duplicates
+
+  Usage       : run_mark_duplicates();
+  Purpose     : Run function for mark_duplicates stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_mark_duplicates {
+    my ( $self, $job ) = @_;
+
+    my ($input_bam_file) = @{ $job->parameters };
+
+    # Mark duplicates
+    mark_duplicates(
+        {
+            dir                 => $job->base_filename,
+            input_bam_file      => $input_bam_file,
+            output_bam_file     => $job->base_filename . '.bam',
+            metrics_file        => $job->base_filename . '.metrics',
+            java_binary         => $self->analysis->java_binary,
+            mark_duplicates_jar => $self->analysis->mark_duplicates_jar,
+            memory              => $job->memory,
+            consider_tags       => 1,
+        }
+    );
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, 1 );
 
     return;
 }

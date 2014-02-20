@@ -5,19 +5,32 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 109;
+plan tests => 118;
 
 use DETCT::Analysis::Downsample;
 
+use File::Path qw( make_path );
+use File::Slurp;
 use IO::Socket::INET;
+
+# If picard-tools-1.79-detct/MarkDuplicates.jar doesn't exist then create a fake
+# MarkDuplicates JAR (which won't actually be run)
+my $picard_dir          = 'picard-tools-1.79-detct';
+my $mark_duplicates_jar = $picard_dir . '/MarkDuplicates.jar';
+if ( !-e $mark_duplicates_jar ) {
+    make_path($picard_dir);
+    write_file( $mark_duplicates_jar, { no_clobber => 1 }, 'MarkDuplicates' );
+}
 
 my $is_ensembl_reachable = is_ensembl_reachable();
 
 my $analysis = DETCT::Analysis::Downsample->new(
     {
-        name            => 'zmp_ph1',
-        read_count_type => 'paired',
-        chunk_total     => 20,
+        name                => 'zmp_ph1',
+        read_count_type     => 'paired',
+        java_binary         => 'java',
+        mark_duplicates_jar => $mark_duplicates_jar,
+        chunk_total         => 20,
     }
 );
 
@@ -56,6 +69,24 @@ is( $analysis->set_round_down_to(1000), undef, 'Set round down to' );
 is( $analysis->round_down_to,           1000,  'Get new round down to' );
 throws_ok { $analysis->set_round_down_to(-1000) } qr/Invalid round down to/ms,
   'Invalid round down to';
+
+# Test Java binary attribute
+is( $analysis->java_binary,                      'java', 'Get Java binary' );
+is( $analysis->set_java_binary('/usr/bin/java'), undef,  'Set Java binary' );
+is( $analysis->java_binary, '/usr/bin/java', 'Get new Java binary' );
+throws_ok { $analysis->set_java_binary() } qr/No Java binary specified/ms,
+  'No Java binary';
+
+# Test MarkDuplicates JAR attribute
+is( $analysis->mark_duplicates_jar,
+    $mark_duplicates_jar, 'Get MarkDuplicates JAR' );
+is( $analysis->set_mark_duplicates_jar($picard_dir),
+    undef, 'Set MarkDuplicates JAR' );
+is( $analysis->mark_duplicates_jar, $picard_dir, 'Get new MarkDuplicates JAR' );
+throws_ok { $analysis->set_mark_duplicates_jar() }
+qr/No MarkDuplicates JAR specified/ms, 'No MarkDuplicates JAR';
+throws_ok { $analysis->set_mark_duplicates_jar('nonexistent') }
+qr/does not exist or cannot be read/ms, 'Missing MarkDuplicates JAR';
 
 # Test Ensembl host attribute
 is( $analysis->ensembl_host, undef, 'Get Ensembl host' );
@@ -275,10 +306,12 @@ SKIP: {
 
     $analysis = DETCT::Analysis::Downsample->new(
         {
-            name            => 'zmp_ph1',
-            read_count_type => 'paired',
-            chunk_total     => 20,
-            ensembl_species => 'danio_rerio',
+            name                => 'zmp_ph1',
+            read_count_type     => 'paired',
+            java_binary         => 'java',
+            mark_duplicates_jar => $mark_duplicates_jar,
+            chunk_total         => 20,
+            ensembl_species     => 'danio_rerio',
         }
     );
     $seq = $analysis->get_subsequence( '1', 1, 10, 1 );
@@ -292,9 +325,11 @@ SKIP: {
 # Check getting sequence without FASTA file or Ensembl database
 $analysis = DETCT::Analysis::Downsample->new(
     {
-        name            => 'zmp_ph1',
-        read_count_type => 'paired',
-        chunk_total     => 20,
+        name                => 'zmp_ph1',
+        read_count_type     => 'paired',
+        java_binary         => 'java',
+        mark_duplicates_jar => $mark_duplicates_jar,
+        chunk_total         => 20,
     }
 );
 throws_ok { $analysis->get_subsequence( '1', 1, 10, 1 ); }
@@ -309,14 +344,16 @@ SKIP: {
 
     $analysis = DETCT::Analysis::Downsample->new(
         {
-            name            => 'zmp_ph1',
-            read_count_type => 'paired',
-            chunk_total     => 20,
-            ensembl_host    => 'ensembldb.ensembl.org',
-            ensembl_port    => 5306,
-            ensembl_user    => 'anonymous',
-            ensembl_pass    => '',
-            ensembl_species => 'danio_rerio',
+            name                => 'zmp_ph1',
+            read_count_type     => 'paired',
+            java_binary         => 'java',
+            mark_duplicates_jar => $mark_duplicates_jar,
+            chunk_total         => 20,
+            ensembl_host        => 'ensembldb.ensembl.org',
+            ensembl_port        => 5306,
+            ensembl_user        => 'anonymous',
+            ensembl_pass        => '',
+            ensembl_species     => 'danio_rerio',
         }
     );
     $seq = $analysis->get_subsequence( '1', 1, 10, 1 );
@@ -337,14 +374,16 @@ SKIP: {
 
     $analysis = DETCT::Analysis::Downsample->new(
         {
-            name            => 'zmp_ph1',
-            read_count_type => 'paired',
-            chunk_total     => 20,
-            ensembl_host    => 'ensembldb.ensembl.org',
-            ensembl_port    => 5306,
-            ensembl_user    => 'anonymous',
-            ensembl_pass    => '',
-            ensembl_name    => 'danio_rerio_core_73_9',
+            name                => 'zmp_ph1',
+            read_count_type     => 'paired',
+            java_binary         => 'java',
+            mark_duplicates_jar => $mark_duplicates_jar,
+            chunk_total         => 20,
+            ensembl_host        => 'ensembldb.ensembl.org',
+            ensembl_port        => 5306,
+            ensembl_user        => 'anonymous',
+            ensembl_pass        => '',
+            ensembl_name        => 'danio_rerio_core_73_9',
         }
     );
     $seq = $analysis->get_subsequence( '1', 1, 10, 1 );

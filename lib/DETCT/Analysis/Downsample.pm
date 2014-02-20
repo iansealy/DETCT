@@ -32,34 +32,40 @@ use YAML::Tiny;
 =cut
 
 # Attributes:
-private target_read_count => my %target_read_count;    # e.g. 15000000
-private read_count_type   => my %read_count_type;      # e.g. paired
-private round_down_to     => my %round_down_to;        # e.g. 1000000
+private target_read_count   => my %target_read_count;      # e.g. 15000000
+private read_count_type     => my %read_count_type;        # e.g. paired
+private round_down_to       => my %round_down_to;          # e.g. 1000000
+private java_binary         => my %java_binary;            # e.g. java
+private mark_duplicates_jar => my %mark_duplicates_jar;    # e.g. MarkDupes.jar
 
 =method new
 
   Usage       : my $analysis = DETCT::Analysis::Downsample->new( {
-                    name              => 'zmp_ph1',
-                    target_read_count => 15000000,
-                    read_count_type   => 'paired',
-                    round_down_to     => 1000000,
-                    chunk_total       => 20,
+                    name                => 'zmp_ph1',
+                    target_read_count   => 15000000,
+                    read_count_type     => 'paired',
+                    round_down_to       => 1000000,
+                    java_binary         => 'java',
+                    mark_duplicates_jar => 'picard/MarkDuplicates.jar',
+                    chunk_total         => 20,
                 } );
   Purpose     : Constructor for analysis objects
   Returns     : DETCT::Analysis::Downsample
   Parameters  : Hashref {
-                    name              => String,
-                    target_read_count => Int or undef,
-                    read_count_type   => String ('paired', 'mapped' or 'proper'),
-                    round_down_to     => Int or undef,
-                    ensembl_host      => String or undef,
-                    ensembl_port      => Int or undef,
-                    ensembl_user      => String or undef,
-                    ensembl_pass      => String or undef,
-                    ensembl_name      => String or undef,
-                    ensembl_species   => String or undef,
-                    chunk_total       => Int,
-                    test_chunk        => Int or undef,
+                    name                => String,
+                    target_read_count   => Int or undef,
+                    read_count_type     => String ('paired', 'mapped' or 'proper'),
+                    round_down_to       => Int or undef,
+                    java_binary         => String,
+                    mark_duplicates_jar => String,
+                    ensembl_host        => String or undef,
+                    ensembl_port        => Int or undef,
+                    ensembl_user        => String or undef,
+                    ensembl_pass        => String or undef,
+                    ensembl_name        => String or undef,
+                    ensembl_species     => String or undef,
+                    chunk_total         => Int,
+                    test_chunk          => Int or undef,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -72,6 +78,8 @@ sub new {
     $self->set_target_read_count( $arg_ref->{target_read_count} );
     $self->set_read_count_type( $arg_ref->{read_count_type} );
     $self->set_round_down_to( $arg_ref->{round_down_to} );
+    $self->set_java_binary( $arg_ref->{java_binary} );
+    $self->set_mark_duplicates_jar( $arg_ref->{mark_duplicates_jar} );
     return $self;
 }
 
@@ -104,6 +112,8 @@ sub new_from_yaml {
     $self->set_target_read_count( $yaml->[0]->{target_read_count} );
     $self->set_read_count_type( $yaml->[0]->{read_count_type} );
     $self->set_round_down_to( $yaml->[0]->{round_down_to} );
+    $self->set_java_binary( $yaml->[0]->{java_binary} );
+    $self->set_mark_duplicates_jar( $yaml->[0]->{mark_duplicates_jar} );
 
     return $self;
 }
@@ -247,6 +257,100 @@ sub _check_round_down_to {
     return $round_down_to
       if !defined $round_down_to || $round_down_to =~ m/\A \d+ \z/xms;
     confess "Invalid round down to ($round_down_to) specified";
+}
+
+=method java_binary
+
+  Usage       : my $java_binary = $analysis->java_binary;
+  Purpose     : Getter for Java binary attribute
+  Returns     : String
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub java_binary {
+    my ($self) = @_;
+    return $java_binary{ id $self};
+}
+
+=method set_java_binary
+
+  Usage       : $analysis->set_java_binary('java');
+  Purpose     : Setter for Java binary attribute
+  Returns     : undef
+  Parameters  : String (the Java binary)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_java_binary {
+    my ( $self, $arg ) = @_;
+    $java_binary{ id $self} = _check_java_binary($arg);
+    return;
+}
+
+# Usage       : $java_binary = _check_java_binary($java_binary);
+# Purpose     : Check for valid Java binary
+# Returns     : String (the valid Java binary)
+# Parameters  : String (the Java binary)
+# Throws      : If Java binary is missing
+# Comments    : None
+sub _check_java_binary {
+    my ($java_binary) = @_;
+    return $java_binary if defined $java_binary;
+    confess 'No Java binary specified';
+}
+
+=method mark_duplicates_jar
+
+  Usage       : my $mark_duplicates_jar = $analysis->mark_duplicates_jar;
+  Purpose     : Getter for MarkDuplicates JAR attribute
+  Returns     : String
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub mark_duplicates_jar {
+    my ($self) = @_;
+    return $mark_duplicates_jar{ id $self};
+}
+
+=method set_mark_duplicates_jar
+
+  Usage       : $analysis->set_mark_duplicates_jar('picard/MarkDuplicates.jar');
+  Purpose     : Setter for MarkDuplicates JAR attribute
+  Returns     : undef
+  Parameters  : String (the MarkDuplicates JAR)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_mark_duplicates_jar {
+    my ( $self, $arg ) = @_;
+    $mark_duplicates_jar{ id $self} = _check_mark_duplicates_jar($arg);
+    return;
+}
+
+# Usage       : $mark_duplicates_jar
+#                   = _check_mark_duplicates_jar($mark_duplicates_jar);
+# Purpose     : Check for valid MarkDuplicates JAR
+# Returns     : String (the valid MarkDuplicates JAR)
+# Parameters  : String (the MarkDuplicates JAR)
+# Throws      : If MarkDuplicates JAR is missing or not readable
+# Comments    : None
+sub _check_mark_duplicates_jar {
+    my ($mark_duplicates_jar) = @_;
+    return $mark_duplicates_jar
+      if defined $mark_duplicates_jar && -r $mark_duplicates_jar;
+    confess 'No MarkDuplicates JAR specified' if !defined $mark_duplicates_jar;
+    confess sprintf 'MarkDuplicates JAR (%s) does not exist or cannot be read',
+      $mark_duplicates_jar;
 }
 
 1;
