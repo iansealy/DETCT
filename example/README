@@ -31,6 +31,9 @@ perl -Ilib script/run_de_pipeline.pl --dir tmp \
 
 To run the example downsampling pipeline (again from the top level directory):
 
+wget https://github.com/iansealy/picard-detct/releases/download/v1.79-detct/picard-tools-1.79-detct.zip
+unzip picard-tools-1.79-detct.zip
+
 perl -Ilib script/run_downsample_pipeline.pl --scheduler local --dir tmp \
 --analysis_yaml example/downsample-analysis.yaml \
 --stages_yaml example/downsample.yaml \

@@ -6,3 +6,8 @@
   default_memory: 250
   prerequisites:
     - stats
+-
+  name:           mark_duplicates
+  default_memory: 4000
+  prerequisites:
+    - downsample

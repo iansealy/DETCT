@@ -2,6 +2,8 @@ name: zmp_ph1
 chunk_total: 3
 read_count_type: proper
 round_down_to: 500
+java_binary: java
+mark_duplicates_jar: picard-tools-1.79-detct/MarkDuplicates.jar
 ref_fasta: example/example.fa
 ensembl_species: danio_rerio
 samples:
