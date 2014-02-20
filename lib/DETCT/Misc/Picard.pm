@@ -1,0 +1,123 @@
+## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
+package DETCT::Misc::Picard;
+## use critic
+
+# ABSTRACT: Miscellaneous functions wrapping Picard
+
+## Author         : is1
+## Maintainer     : is1
+## Created        : 2014-02-19
+## Last commit by : $Author$
+## Last modified  : $Date$
+## Revision       : $Revision$
+## Repository URL : $HeadURL$
+
+use warnings;
+use strict;
+use autodie;
+use Carp;
+use Try::Tiny;
+
+use English qw( -no_match_vars );
+use POSIX qw( WIFEXITED);
+use File::Spec;
+use File::Path qw( make_path );
+
+use base qw( Exporter );
+our @EXPORT_OK = qw(
+  mark_duplicates
+);
+
+=head1 SYNOPSIS
+
+    # Brief code examples
+
+=cut
+
+=func mark_duplicates
+
+  Usage       : DETCT::Misc::Picard::mark_duplicates( {
+                    dir                 => '.',
+                    input_bam_file      => $input_bam_file,
+                    output_bam_file     => $output_bam_file,
+                    metrics_file        => $metrics_file,
+                    java_binary         => 'java',
+                    mark_duplicates_jar => 'MarkDuplicates.jar',
+                    memory              => 4000,
+                    consider_tags       => 1,
+                } );
+  Purpose     : Run MarkDuplicates
+  Returns     : undef
+  Parameters  : Hashref {
+                    dir                 => String (the working directory),
+                    input_bam_file      => String (the input BAM file),
+                    output_bam_file     => string (the output BAM file),
+                    metrics_file        => String (the metrics file),
+                    java_binary         => String (the Java binary),
+                    mark_duplicates_jar => String (the MarkDuplicates JAR),
+                    memory              => Int (the memory allocated),
+                    consider_tags       => Boolean (whether to consider tags),
+                }
+  Throws      : If directory is missing
+                If input BAM file is missing
+                If output BAM file is missing
+                If metrics file is missing
+                If Java binary is missing
+                If MarkDuplicates JAR is missing
+                If command line can't be run
+  Comments    : None
+
+=cut
+
+sub mark_duplicates {
+    my ($arg_ref) = @_;
+
+    confess 'No directory specified' if !defined $arg_ref->{dir};
+    confess 'No input BAM file specified'
+      if !defined $arg_ref->{input_bam_file};
+    confess 'No output BAM file specified'
+      if !defined $arg_ref->{output_bam_file};
+    confess 'No metrics file specified' if !defined $arg_ref->{metrics_file};
+    confess 'No Java binary specified'  if !defined $arg_ref->{java_binary};
+    confess 'No MarkDuplicates JAR specified'
+      if !defined $arg_ref->{mark_duplicates_jar};
+
+    # Make sure working directory exists
+    if ( !-d $arg_ref->{dir} ) {
+        make_path( $arg_ref->{dir} );
+    }
+
+    # Options
+    my %option = (
+        INPUT                 => $arg_ref->{input_bam_file},
+        OUTPUT                => $arg_ref->{output_bam_file},
+        METRICS_FILE          => $arg_ref->{metrics_file},
+        REMOVE_DUPLICATES     => 'false',
+        TMP_DIR               => $arg_ref->{dir},
+        VALIDATION_STRINGENCY => 'SILENT',
+        CREATE_INDEX          => 'false',
+    );
+    if ( $arg_ref->{consider_tags} ) {
+        $option{CONSIDER_TAGS} = 'true';
+    }
+    my @options = map { $_ . q{=} . $option{$_} } sort keys %option;
+
+    my $stdout_file =
+      File::Spec->catfile( $arg_ref->{dir}, 'markduplicates.o' );
+    my $stderr_file =
+      File::Spec->catfile( $arg_ref->{dir}, 'markduplicates.e' );
+
+    my $memory = $arg_ref->{memory}
+      ? sprintf '-Xmx%dm', $arg_ref->{memory}
+      : q{};
+
+    my $cmd = join q{ }, $arg_ref->{java_binary}, '-XX:ParallelGCThreads=1',
+      $memory, '-jar', $arg_ref->{mark_duplicates_jar}, @options;
+    $cmd .= ' 1>' . $stdout_file;
+    $cmd .= ' 2>' . $stderr_file;
+    WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
+
+    return;
+}
+
+1;
