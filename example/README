@@ -9,10 +9,10 @@ perl -Ilib script/make_test_sam.pl --seed 10 --seq_region_count 10 \
 --read_tags NNNNBGAGGC NNNNBAGAAG \
 | samtools view -bS - | samtools sort - example/example1
 samtools view -h example/example1.bam \
-| perl script/perturb_sam.pl --seed 10 \
+| perl -Ilib script/perturb_sam.pl --seed 10 \
 | samtools view -bS - | samtools sort - example/example2
 samtools view -h example/example1.bam \
-| perl script/perturb_sam.pl --seed 20 \
+| perl -Ilib script/perturb_sam.pl --seed 20 \
 | samtools view -bS - | samtools sort - example/example3
 ls example/example*.bam | xargs -n1 samtools index
 
