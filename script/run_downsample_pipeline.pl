@@ -103,7 +103,7 @@ if ( !$pipeline->stage_to_run && !$pipeline->component_to_run ) {
     my @log = map { "$_\n" } $pipeline->input_overview;
     push @log, "\nYAML analysis config file:\n\n", read_file($analysis_yaml);
     push @log, "\nYAML stages config file:\n\n",   read_file($stages_yaml);
-    $pipeline->write_log_file( 'de.log', @log );
+    $pipeline->write_log_file( 'downsample.log', @log );
 }
 
 # Print overview of pipeline input
