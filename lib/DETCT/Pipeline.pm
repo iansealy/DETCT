@@ -65,6 +65,9 @@ private stage            => my %stage;               # arrayref of stages
 Readonly our %EXTENSION_TO_KEEP => map { $_ => 1 } qw(
   csv html pdf tsv txt
 );
+Readonly our %EXTENSION_TO_DELETE => map { $_ => 1 } qw(
+  bam bai
+);
 
 =method new
 
@@ -1531,9 +1534,22 @@ sub clean_up {
 
     print 'Cleaning up...' . "\n";
 
-    # Tar all stages
     my @stage_dirs =
       map { $self->get_and_create_stage_dir($_) } @{ $self->get_all_stages() };
+
+    my $wanted;
+
+    # Delete files, so not archived
+    $wanted = \&_delete;
+    find(
+        {
+            wanted   => sub { $wanted->( $self->analysis_dir ) },
+            no_chdir => 1,
+        },
+        @stage_dirs
+    );
+
+    # Tar all stages
     my $tarball_file =
       File::Spec->catfile( $self->analysis_dir, 'archive.tar.gz' );
     my $cmd = join q{ }, 'tar', 'cf', q{-}, @stage_dirs, q{|}, 'gzip', '-9',
@@ -1541,7 +1557,7 @@ sub clean_up {
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
     # Delete or move files
-    my $wanted = \&_move_or_delete;
+    $wanted = \&_move_or_delete;
     find(
         {
             wanted      => sub { $wanted->( $self->analysis_dir ) },
@@ -1580,6 +1596,30 @@ sub _move_or_delete {
           File::Spec->catfile( $archive_dir, $filename );
     }
     else {
+        unlink $File::Find::name;
+    }
+
+    return;
+}
+
+# Usage       : find(\&_delete, $dir);
+# Purpose     : Delete intermediate files with specific extensions
+# Returns     : undef
+# Parameters  : None
+# Throws      : No exceptions
+# Comments    : None
+sub _delete {
+    my ($archive_dir) = @_;
+
+    return if -d;    # Ignore directories
+
+    my ( $filename, undef, $extension ) =
+      fileparse( $File::Find::name, qr/[.][^.]+/xms );
+    $filename .= $extension;
+    $extension =~ s/\A [.]//xms;
+
+    # Delete?
+    if ( $EXTENSION_TO_DELETE{$extension} ) {
         unlink $File::Find::name;
     }
 
