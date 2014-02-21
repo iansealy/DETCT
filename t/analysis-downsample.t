@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 124;
+plan tests => 128;
 
 use DETCT::Analysis::Downsample;
 
@@ -31,6 +31,7 @@ my $analysis = DETCT::Analysis::Downsample->new(
     {
         name                => 'zmp_ph1',
         read_count_type     => 'paired',
+        samtools_binary     => 'samtools',
         java_binary         => 'java',
         mark_duplicates_jar => $mark_duplicates_jar,
         merge_sam_files_jar => $merge_sam_files_jar,
@@ -82,6 +83,15 @@ is( $analysis->set_java_binary('/usr/bin/java'), undef,  'Set Java binary' );
 is( $analysis->java_binary, '/usr/bin/java', 'Get new Java binary' );
 throws_ok { $analysis->set_java_binary() } qr/No Java binary specified/ms,
   'No Java binary';
+
+# Test SAMtools binary attribute
+is( $analysis->samtools_binary, 'samtools', 'Get SAMtools binary' );
+is( $analysis->set_samtools_binary('/usr/bin/samtools'),
+    undef, 'Set SAMtools binary' );
+is( $analysis->samtools_binary, '/usr/bin/samtools',
+    'Get new SAMtools binary' );
+throws_ok { $analysis->set_samtools_binary() }
+qr/No SAMtools binary specified/ms, 'No SAMtools binary';
 
 # Test MarkDuplicates JAR attribute
 is( $analysis->mark_duplicates_jar,
@@ -325,6 +335,7 @@ SKIP: {
         {
             name                => 'zmp_ph1',
             read_count_type     => 'paired',
+            samtools_binary     => 'samtools',
             java_binary         => 'java',
             mark_duplicates_jar => $mark_duplicates_jar,
             merge_sam_files_jar => $merge_sam_files_jar,
@@ -345,6 +356,7 @@ $analysis = DETCT::Analysis::Downsample->new(
     {
         name                => 'zmp_ph1',
         read_count_type     => 'paired',
+        samtools_binary     => 'samtools',
         java_binary         => 'java',
         mark_duplicates_jar => $mark_duplicates_jar,
         merge_sam_files_jar => $merge_sam_files_jar,
@@ -365,6 +377,7 @@ SKIP: {
         {
             name                => 'zmp_ph1',
             read_count_type     => 'paired',
+            samtools_binary     => 'samtools',
             java_binary         => 'java',
             mark_duplicates_jar => $mark_duplicates_jar,
             merge_sam_files_jar => $merge_sam_files_jar,
@@ -396,6 +409,7 @@ SKIP: {
         {
             name                => 'zmp_ph1',
             read_count_type     => 'paired',
+            samtools_binary     => 'samtools',
             java_binary         => 'java',
             mark_duplicates_jar => $mark_duplicates_jar,
             merge_sam_files_jar => $merge_sam_files_jar,

@@ -2,6 +2,7 @@ name: zmp_ph1
 chunk_total: 3
 read_count_type: paired
 round_down_to: 100
+samtools_binary: samtools
 java_binary: java
 mark_duplicates_jar: picard-tools-1.79-detct/MarkDuplicates.jar
 merge_sam_files_jar: picard-tools-1.79-detct/MergeSamFiles.jar

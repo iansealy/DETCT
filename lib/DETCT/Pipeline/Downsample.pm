@@ -32,6 +32,9 @@ use DETCT::Misc::Picard qw(
   mark_duplicates
   merge
 );
+use DETCT::Misc::SAMtools qw(
+  make_index
+);
 
 =head1 SYNOPSIS
 
@@ -311,6 +314,56 @@ sub run_merge {
             java_binary         => $self->analysis->java_binary,
             merge_sam_files_jar => $self->analysis->merge_sam_files_jar,
             memory              => $job->memory,
+        }
+    );
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, 1 );
+
+    return;
+}
+
+=method all_parameters_for_make_index
+
+  Usage       : all_parameters_for_make_index();
+  Purpose     : Get all parameters for make_index stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_make_index {
+    my ($self) = @_;
+
+    return [];
+}
+
+=method run_make_index
+
+  Usage       : run_make_index();
+  Purpose     : Run function for make_index stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_make_index {
+    my ( $self, $job ) = @_;
+
+    my $bam_file = File::Spec->catfile( $self->analysis_dir,
+        $self->analysis->name . '.bam' );
+
+    # Index BAM file
+    make_index(
+        {
+            dir             => $job->base_filename,
+            bam_file        => $bam_file,
+            samtools_binary => $self->analysis->samtools_binary,
         }
     );
 

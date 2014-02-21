@@ -16,3 +16,8 @@
   default_memory: 4000
   prerequisites:
     - mark_duplicates
+-
+  name:           make_index
+  default_memory: 100
+  prerequisites:
+    - merge

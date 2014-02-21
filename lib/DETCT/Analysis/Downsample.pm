@@ -35,6 +35,7 @@ use YAML::Tiny;
 private target_read_count => my %target_read_count;    # e.g. 15000000
 private read_count_type   => my %read_count_type;      # e.g. paired
 private round_down_to     => my %round_down_to;        # e.g. 1000000
+private samtools_binary   => my %samtools_binary;      # e.g. samtools
 private java_binary       => my %java_binary;          # e.g. java
 private mark_duplicates_jar =>
   my %mark_duplicates_jar;                             # e.g. MarkDuplicates.jar
@@ -47,6 +48,7 @@ private merge_sam_files_jar => my %merge_sam_files_jar; # e.g. MergeSamFiles.jar
                     target_read_count   => 15000000,
                     read_count_type     => 'paired',
                     round_down_to       => 1000000,
+                    samtools_binary     => 'samtools',
                     java_binary         => 'java',
                     mark_duplicates_jar => 'picard/MarkDuplicates.jar',
                     merge_sam_files_jar => 'picard/MergeSamFiles.jar',
@@ -59,6 +61,7 @@ private merge_sam_files_jar => my %merge_sam_files_jar; # e.g. MergeSamFiles.jar
                     target_read_count   => Int or undef,
                     read_count_type     => String ('paired', 'mapped' or 'proper'),
                     round_down_to       => Int or undef,
+                    samtools_binary     => String,
                     java_binary         => String,
                     mark_duplicates_jar => String,
                     merge_sam_files_jar => String,
@@ -82,6 +85,7 @@ sub new {
     $self->set_target_read_count( $arg_ref->{target_read_count} );
     $self->set_read_count_type( $arg_ref->{read_count_type} );
     $self->set_round_down_to( $arg_ref->{round_down_to} );
+    $self->set_samtools_binary( $arg_ref->{samtools_binary} );
     $self->set_java_binary( $arg_ref->{java_binary} );
     $self->set_mark_duplicates_jar( $arg_ref->{mark_duplicates_jar} );
     $self->set_merge_sam_files_jar( $arg_ref->{merge_sam_files_jar} );
@@ -117,6 +121,7 @@ sub new_from_yaml {
     $self->set_target_read_count( $yaml->[0]->{target_read_count} );
     $self->set_read_count_type( $yaml->[0]->{read_count_type} );
     $self->set_round_down_to( $yaml->[0]->{round_down_to} );
+    $self->set_samtools_binary( $yaml->[0]->{samtools_binary} );
     $self->set_java_binary( $yaml->[0]->{java_binary} );
     $self->set_mark_duplicates_jar( $yaml->[0]->{mark_duplicates_jar} );
     $self->set_merge_sam_files_jar( $yaml->[0]->{merge_sam_files_jar} );
@@ -263,6 +268,51 @@ sub _check_round_down_to {
     return $round_down_to
       if !defined $round_down_to || $round_down_to =~ m/\A \d+ \z/xms;
     confess "Invalid round down to ($round_down_to) specified";
+}
+
+=method samtools_binary
+
+  Usage       : my $samtools_binary = $analysis->samtools_binary;
+  Purpose     : Getter for SAMtools binary attribute
+  Returns     : String
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub samtools_binary {
+    my ($self) = @_;
+    return $samtools_binary{ id $self};
+}
+
+=method set_samtools_binary
+
+  Usage       : $analysis->set_samtools_binary('samtools');
+  Purpose     : Setter for SAMtools binary attribute
+  Returns     : undef
+  Parameters  : String (the SAMtools binary)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_samtools_binary {
+    my ( $self, $arg ) = @_;
+    $samtools_binary{ id $self} = _check_samtools_binary($arg);
+    return;
+}
+
+# Usage       : $samtools_binary = _check_samtools_binary($samtools_binary);
+# Purpose     : Check for valid SAMtools binary
+# Returns     : String (the valid SAMtools binary)
+# Parameters  : String (the SAMtools binary)
+# Throws      : If SAMtools binary is missing
+# Comments    : None
+sub _check_samtools_binary {
+    my ($samtools_binary) = @_;
+    return $samtools_binary if defined $samtools_binary;
+    confess 'No SAMtools binary specified';
 }
 
 =method java_binary
