@@ -190,14 +190,16 @@ sub set_name {
 # Returns     : String (the valid name)
 # Parameters  : String (the name)
 # Throws      : If name is missing
+#               If name is invalid (i.e. not alphanumeric)
 #               If name is empty
 #               If name > $MAX_NAME_LENGTH characters
 # Comments    : None
 sub _check_name {
     my ($name) = @_;
 
-    confess 'No name specified' if !defined $name;
-    confess 'Empty name specified' if !length $name;
+    confess 'No name specified'      if !defined $name;
+    confess 'Empty name specified'   if !length $name;
+    confess 'Invalid name specified' if $name !~ m/\A [\w.-]+ \z/xms;
     confess "Name ($name) longer than $MAX_NAME_LENGTH characters"
       if length $name > $MAX_NAME_LENGTH;
 

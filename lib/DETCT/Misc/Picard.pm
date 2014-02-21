@@ -26,6 +26,7 @@ use File::Path qw( make_path );
 use base qw( Exporter );
 our @EXPORT_OK = qw(
   mark_duplicates
+  merge
 );
 
 =head1 SYNOPSIS
@@ -51,7 +52,7 @@ our @EXPORT_OK = qw(
   Parameters  : Hashref {
                     dir                 => String (the working directory),
                     input_bam_file      => String (the input BAM file),
-                    output_bam_file     => string (the output BAM file),
+                    output_bam_file     => String (the output BAM file),
                     metrics_file        => String (the metrics file),
                     java_binary         => String (the Java binary),
                     mark_duplicates_jar => String (the MarkDuplicates JAR),
@@ -94,6 +95,8 @@ sub mark_duplicates {
         METRICS_FILE          => $arg_ref->{metrics_file},
         REMOVE_DUPLICATES     => 'false',
         TMP_DIR               => $arg_ref->{dir},
+        VERBOSITY             => 'WARNING',
+        QUIET                 => 'true',
         VALIDATION_STRINGENCY => 'SILENT',
         CREATE_INDEX          => 'false',
     );
@@ -107,12 +110,93 @@ sub mark_duplicates {
     my $stderr_file =
       File::Spec->catfile( $arg_ref->{dir}, 'markduplicates.e' );
 
-    my $memory = $arg_ref->{memory}
+    my $memory =
+      $arg_ref->{memory}
       ? sprintf '-Xmx%dm', $arg_ref->{memory}
       : q{};
 
     my $cmd = join q{ }, $arg_ref->{java_binary}, '-XX:ParallelGCThreads=1',
       $memory, '-jar', $arg_ref->{mark_duplicates_jar}, @options;
+    $cmd .= ' 1>' . $stdout_file;
+    $cmd .= ' 2>' . $stderr_file;
+    WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
+
+    return;
+}
+
+=func merge
+
+  Usage       : DETCT::Misc::Picard::merge( {
+                    dir                 => '.',
+                    input_bam_files     => \@input_bam_files,
+                    output_bam_file     => $output_bam_file,
+                    java_binary         => 'java',
+                    merge_sam_files_jar => 'MergeSamFiles.jar',
+                    memory              => 4000,
+                } );
+  Purpose     : Run MergeSamFiles
+  Returns     : undef
+  Parameters  : Hashref {
+                    dir                 => String (the working directory),
+                    input_bam_files     => Arrayref of strings (the BAM files),
+                    output_bam_file     => String (the output BAM file),
+                    java_binary         => String (the Java binary),
+                    merge_sam_files_jar => String (the MergeSamFiles JAR),
+                    memory              => Int (the memory allocated),
+                }
+  Throws      : If directory is missing
+                If input BAM files are missing
+                If output BAM file is missing
+                If Java binary is missing
+                If MergeSamFiles JAR is missing
+                If command line can't be run
+  Comments    : None
+
+=cut
+
+sub merge {
+    my ($arg_ref) = @_;
+
+    confess 'No directory specified' if !defined $arg_ref->{dir};
+    confess 'No input BAM files specified'
+      if !defined $arg_ref->{input_bam_files};
+    confess 'No output BAM file specified'
+      if !defined $arg_ref->{output_bam_file};
+    confess 'No Java binary specified' if !defined $arg_ref->{java_binary};
+    confess 'No MergeSamFiles JAR specified'
+      if !defined $arg_ref->{merge_sam_files_jar};
+
+    # Make sure working directory exists
+    if ( !-d $arg_ref->{dir} ) {
+        make_path( $arg_ref->{dir} );
+    }
+
+    # Options
+    my %option = (
+        OUTPUT                      => $arg_ref->{output_bam_file},
+        ASSUME_SORTED               => 'false',
+        MERGE_SEQUENCE_DICTIONARIES => 'true',
+        TMP_DIR                     => $arg_ref->{dir},
+        VERBOSITY                   => 'WARNING',
+        QUIET                       => 'true',
+        VALIDATION_STRINGENCY       => 'SILENT',
+        CREATE_INDEX                => 'false',
+    );
+    my @options = map { $_ . q{=} . $option{$_} } sort keys %option;
+    foreach my $input_bam_file ( @{ $arg_ref->{input_bam_files} } ) {
+        unshift @options, 'INPUT=' . $input_bam_file;
+    }
+
+    my $stdout_file = File::Spec->catfile( $arg_ref->{dir}, 'mergesamfiles.o' );
+    my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'mergesamfiles.e' );
+
+    my $memory =
+      $arg_ref->{memory}
+      ? sprintf '-Xmx%dm', $arg_ref->{memory}
+      : q{};
+
+    my $cmd = join q{ }, $arg_ref->{java_binary}, '-XX:ParallelGCThreads=1',
+      $memory, '-jar', $arg_ref->{merge_sam_files_jar}, @options;
     $cmd .= ' 1>' . $stdout_file;
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";

@@ -30,6 +30,7 @@ use DETCT::Misc::BAM qw(
 );
 use DETCT::Misc::Picard qw(
   mark_duplicates
+  merge
 );
 
 =head1 SYNOPSIS
@@ -239,6 +240,77 @@ sub run_mark_duplicates {
             mark_duplicates_jar => $self->analysis->mark_duplicates_jar,
             memory              => $job->memory,
             consider_tags       => 1,
+        }
+    );
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, 1 );
+
+    return;
+}
+
+=method all_parameters_for_merge
+
+  Usage       : all_parameters_for_merge();
+  Purpose     : Get all parameters for merge stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_merge {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my @input_bam_files;
+    my $component = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        my @tags = $self->analysis->list_all_tags_by_bam_file($bam_file);
+        foreach my $tag (@tags) {
+            $component++;
+            my $input_bam_file =
+              File::Spec->catfile( $self->analysis_dir, 'mark_duplicates',
+                $component . '.bam' );
+            push @input_bam_files, $input_bam_file;
+        }
+    }
+    push @all_parameters, \@input_bam_files;
+
+    return @all_parameters;
+}
+
+=method run_merge
+
+  Usage       : run_merge();
+  Purpose     : Run function for merge stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_merge {
+    my ( $self, $job ) = @_;
+
+    my $input_bam_files = $job->parameters;
+
+    my $output_bam_file = File::Spec->catfile( $self->analysis_dir,
+        $self->analysis->name . '.bam' );
+
+    # Merge BAM files
+    merge(
+        {
+            dir                 => $job->base_filename,
+            input_bam_files     => $input_bam_files,
+            output_bam_file     => $output_bam_file,
+            java_binary         => $self->analysis->java_binary,
+            merge_sam_files_jar => $self->analysis->merge_sam_files_jar,
+            memory              => $job->memory,
         }
     );
 

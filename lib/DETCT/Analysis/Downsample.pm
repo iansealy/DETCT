@@ -32,11 +32,13 @@ use YAML::Tiny;
 =cut
 
 # Attributes:
-private target_read_count   => my %target_read_count;      # e.g. 15000000
-private read_count_type     => my %read_count_type;        # e.g. paired
-private round_down_to       => my %round_down_to;          # e.g. 1000000
-private java_binary         => my %java_binary;            # e.g. java
-private mark_duplicates_jar => my %mark_duplicates_jar;    # e.g. MarkDupes.jar
+private target_read_count => my %target_read_count;    # e.g. 15000000
+private read_count_type   => my %read_count_type;      # e.g. paired
+private round_down_to     => my %round_down_to;        # e.g. 1000000
+private java_binary       => my %java_binary;          # e.g. java
+private mark_duplicates_jar =>
+  my %mark_duplicates_jar;                             # e.g. MarkDuplicates.jar
+private merge_sam_files_jar => my %merge_sam_files_jar; # e.g. MergeSamFiles.jar
 
 =method new
 
@@ -47,6 +49,7 @@ private mark_duplicates_jar => my %mark_duplicates_jar;    # e.g. MarkDupes.jar
                     round_down_to       => 1000000,
                     java_binary         => 'java',
                     mark_duplicates_jar => 'picard/MarkDuplicates.jar',
+                    merge_sam_files_jar => 'picard/MergeSamFiles.jar',
                     chunk_total         => 20,
                 } );
   Purpose     : Constructor for analysis objects
@@ -58,6 +61,7 @@ private mark_duplicates_jar => my %mark_duplicates_jar;    # e.g. MarkDupes.jar
                     round_down_to       => Int or undef,
                     java_binary         => String,
                     mark_duplicates_jar => String,
+                    merge_sam_files_jar => String,
                     ensembl_host        => String or undef,
                     ensembl_port        => Int or undef,
                     ensembl_user        => String or undef,
@@ -80,6 +84,7 @@ sub new {
     $self->set_round_down_to( $arg_ref->{round_down_to} );
     $self->set_java_binary( $arg_ref->{java_binary} );
     $self->set_mark_duplicates_jar( $arg_ref->{mark_duplicates_jar} );
+    $self->set_merge_sam_files_jar( $arg_ref->{merge_sam_files_jar} );
     return $self;
 }
 
@@ -114,6 +119,7 @@ sub new_from_yaml {
     $self->set_round_down_to( $yaml->[0]->{round_down_to} );
     $self->set_java_binary( $yaml->[0]->{java_binary} );
     $self->set_mark_duplicates_jar( $yaml->[0]->{mark_duplicates_jar} );
+    $self->set_merge_sam_files_jar( $yaml->[0]->{merge_sam_files_jar} );
 
     return $self;
 }
@@ -351,6 +357,55 @@ sub _check_mark_duplicates_jar {
     confess 'No MarkDuplicates JAR specified' if !defined $mark_duplicates_jar;
     confess sprintf 'MarkDuplicates JAR (%s) does not exist or cannot be read',
       $mark_duplicates_jar;
+}
+
+=method merge_sam_files_jar
+
+  Usage       : my $merge_sam_files_jar = $analysis->merge_sam_files_jar;
+  Purpose     : Getter for MergeSamFiles JAR attribute
+  Returns     : String
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub merge_sam_files_jar {
+    my ($self) = @_;
+    return $merge_sam_files_jar{ id $self};
+}
+
+=method set_merge_sam_files_jar
+
+  Usage       : $analysis->set_merge_sam_files_jar('picard/MergeSamFiles.jar');
+  Purpose     : Setter for MergeSamFiles JAR attribute
+  Returns     : undef
+  Parameters  : String (the MergeSamFiles JAR)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_merge_sam_files_jar {
+    my ( $self, $arg ) = @_;
+    $merge_sam_files_jar{ id $self} = _check_merge_sam_files_jar($arg);
+    return;
+}
+
+# Usage       : $merge_sam_files_jar
+#                   = _check_merge_sam_files_jar($merge_sam_files_jar);
+# Purpose     : Check for valid MergeSamFiles JAR
+# Returns     : String (the valid MergeSamFiles JAR)
+# Parameters  : String (the MergeSamFiles JAR)
+# Throws      : If MergeSamFiles JAR is missing or not readable
+# Comments    : None
+sub _check_merge_sam_files_jar {
+    my ($merge_sam_files_jar) = @_;
+    return $merge_sam_files_jar
+      if defined $merge_sam_files_jar && -r $merge_sam_files_jar;
+    confess 'No MergeSamFiles JAR specified' if !defined $merge_sam_files_jar;
+    confess sprintf 'MergeSamFiles JAR (%s) does not exist or cannot be read',
+      $merge_sam_files_jar;
 }
 
 1;

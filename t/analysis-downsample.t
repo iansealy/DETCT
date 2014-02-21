@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 118;
+plan tests => 124;
 
 use DETCT::Analysis::Downsample;
 
@@ -13,13 +13,16 @@ use File::Path qw( make_path );
 use File::Slurp;
 use IO::Socket::INET;
 
-# If picard-tools-1.79-detct/MarkDuplicates.jar doesn't exist then create a fake
-# MarkDuplicates JAR (which won't actually be run)
-my $picard_dir          = 'picard-tools-1.79-detct';
+# If Picard JAR files don't exist then create text files (which won't be run)
+my $picard_dir = 'picard-tools-1.79-detct';
+make_path($picard_dir);
 my $mark_duplicates_jar = $picard_dir . '/MarkDuplicates.jar';
 if ( !-e $mark_duplicates_jar ) {
-    make_path($picard_dir);
     write_file( $mark_duplicates_jar, { no_clobber => 1 }, 'MarkDuplicates' );
+}
+my $merge_sam_files_jar = $picard_dir . '/MergeSamFiles.jar';
+if ( !-e $merge_sam_files_jar ) {
+    write_file( $merge_sam_files_jar, { no_clobber => 1 }, 'MergeSamFiles' );
 }
 
 my $is_ensembl_reachable = is_ensembl_reachable();
@@ -30,6 +33,7 @@ my $analysis = DETCT::Analysis::Downsample->new(
         read_count_type     => 'paired',
         java_binary         => 'java',
         mark_duplicates_jar => $mark_duplicates_jar,
+        merge_sam_files_jar => $merge_sam_files_jar,
         chunk_total         => 20,
     }
 );
@@ -43,6 +47,8 @@ is( $analysis->set_name('zmp_ph2'), undef,     'Set name' );
 is( $analysis->name,                'zmp_ph2', 'Get new name' );
 throws_ok { $analysis->set_name() } qr/No name specified/ms, 'No name';
 my $long_name = 'X' x ( $DETCT::Analysis::MAX_NAME_LENGTH + 1 );
+throws_ok { $analysis->set_name(' ') } qr/Invalid name specified/ms,
+  'Invalid name';
 throws_ok { $analysis->set_name('') } qr/Empty name specified/ms, 'Empty name';
 throws_ok { $analysis->set_name($long_name) } qr/longer than \d+ characters/ms,
   'Long name';
@@ -87,6 +93,17 @@ throws_ok { $analysis->set_mark_duplicates_jar() }
 qr/No MarkDuplicates JAR specified/ms, 'No MarkDuplicates JAR';
 throws_ok { $analysis->set_mark_duplicates_jar('nonexistent') }
 qr/does not exist or cannot be read/ms, 'Missing MarkDuplicates JAR';
+
+# Test MergeSamFiles JAR attribute
+is( $analysis->merge_sam_files_jar,
+    $merge_sam_files_jar, 'Get MergeSamFiles JAR' );
+is( $analysis->set_merge_sam_files_jar($picard_dir),
+    undef, 'Set MergeSamFiles JAR' );
+is( $analysis->merge_sam_files_jar, $picard_dir, 'Get new MergeSamFiles JAR' );
+throws_ok { $analysis->set_merge_sam_files_jar() }
+qr/No MergeSamFiles JAR specified/ms, 'No MergeSamFiles JAR';
+throws_ok { $analysis->set_merge_sam_files_jar('nonexistent') }
+qr/does not exist or cannot be read/ms, 'Missing MergeSamFiles JAR';
 
 # Test Ensembl host attribute
 is( $analysis->ensembl_host, undef, 'Get Ensembl host' );
@@ -310,6 +327,7 @@ SKIP: {
             read_count_type     => 'paired',
             java_binary         => 'java',
             mark_duplicates_jar => $mark_duplicates_jar,
+            merge_sam_files_jar => $merge_sam_files_jar,
             chunk_total         => 20,
             ensembl_species     => 'danio_rerio',
         }
@@ -329,6 +347,7 @@ $analysis = DETCT::Analysis::Downsample->new(
         read_count_type     => 'paired',
         java_binary         => 'java',
         mark_duplicates_jar => $mark_duplicates_jar,
+        merge_sam_files_jar => $merge_sam_files_jar,
         chunk_total         => 20,
     }
 );
@@ -348,6 +367,7 @@ SKIP: {
             read_count_type     => 'paired',
             java_binary         => 'java',
             mark_duplicates_jar => $mark_duplicates_jar,
+            merge_sam_files_jar => $merge_sam_files_jar,
             chunk_total         => 20,
             ensembl_host        => 'ensembldb.ensembl.org',
             ensembl_port        => 5306,
@@ -378,6 +398,7 @@ SKIP: {
             read_count_type     => 'paired',
             java_binary         => 'java',
             mark_duplicates_jar => $mark_duplicates_jar,
+            merge_sam_files_jar => $merge_sam_files_jar,
             chunk_total         => 20,
             ensembl_host        => 'ensembldb.ensembl.org',
             ensembl_port        => 5306,

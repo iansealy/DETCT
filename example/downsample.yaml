@@ -11,3 +11,8 @@
   default_memory: 4000
   prerequisites:
     - downsample
+-
+  name:           merge
+  default_memory: 4000
+  prerequisites:
+    - mark_duplicates

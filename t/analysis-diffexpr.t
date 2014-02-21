@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 148;
+plan tests => 149;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -39,6 +39,8 @@ is( $analysis->set_name('zmp_ph2'), undef,     'Set name' );
 is( $analysis->name,                'zmp_ph2', 'Get new name' );
 throws_ok { $analysis->set_name() } qr/No name specified/ms, 'No name';
 my $long_name = 'X' x ( $DETCT::Analysis::MAX_NAME_LENGTH + 1 );
+throws_ok { $analysis->set_name(' ') } qr/Invalid name specified/ms,
+  'Invalid name';
 throws_ok { $analysis->set_name('') } qr/Empty name specified/ms, 'Empty name';
 throws_ok { $analysis->set_name($long_name) } qr/longer than \d+ characters/ms,
   'Long name';
