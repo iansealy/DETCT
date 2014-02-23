@@ -61,7 +61,7 @@ my $base_cmd_line = get_base_cmd_line();
 get_and_check_options();
 
 # Modules
-my $module = $pipeline_type eq 'de' ? 'DiffExpr' : 'Downsample';
+my $module          = $pipeline_type eq 'de' ? 'DiffExpr' : 'Downsample';
 my $analysis_module = 'DETCT::Analysis::' . $module;
 my $pipeline_module = 'DETCT::Pipeline::' . $module;
 
@@ -227,10 +227,13 @@ sub get_and_check_options {
     }
 
     # If necessary, assign pipeline based on script name
-    if (!$pipeline_type) {
-        if ($PROGRAM_NAME =~ m/run_multiple_de_pipelines[.]pl \z/xms) {
+    if ( !$pipeline_type ) {
+        if ( $PROGRAM_NAME =~ m/run_multiple_de_pipelines[.]pl \z/xms ) {
             $pipeline_type = 'de';
-        } elsif ($PROGRAM_NAME =~ m/run_multiple_downsample_pipelines[.]pl \z/xms) {
+        }
+        elsif (
+            $PROGRAM_NAME =~ m/run_multiple_downsample_pipelines[.]pl \z/xms )
+        {
             $pipeline_type = 'downsample';
         }
     }
