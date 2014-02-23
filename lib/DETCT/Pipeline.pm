@@ -47,7 +47,7 @@ use DETCT::Pipeline::Stage;
 private scheduler    => my %scheduler;       # e.g. lsf
 private analysis_dir => my %analysis_dir;    # e.g. .
 private analysis     => my %analysis;        # DETCT::Analysis object
-private cmd_line     => my %cmd_line;        # e.g. run_de_pipeline.pl
+private cmd_line     => my %cmd_line;        # e.g. run_pipeline.pl
 private avoid_node   => my %avoid_node;      # arrayref of nodes to be avoided
 private max_jobs     => my %max_jobs;        # e.g. 1000
 private max_retries  => my %max_retries;     # e.g. 10
@@ -75,7 +75,7 @@ Readonly our %EXTENSION_TO_DELETE => map { $_ => 1 } qw(
                     scheduler    => 'lsf',
                     analysis_dir => '.',
                     analysis     => $analysis,
-                    cmd_line     => 'run_de_pipeline.pl',
+                    cmd_line     => 'run_pipeline.pl',
                     max_jobs     => 1000,
                     max_retries  => 10,
                     sleep_time   => 600,
@@ -264,7 +264,7 @@ sub _check_analysis {
 
   Usage       : my $cmd_line = $pipeline->cmd_line;
   Purpose     : Getter for command line attribute
-  Returns     : String (e.g. "run_de_pipeline.pl")
+  Returns     : String (e.g. "run_pipeline.pl")
   Parameters  : None
   Throws      : No exceptions
   Comments    : None
@@ -278,7 +278,7 @@ sub cmd_line {
 
 =method set_cmd_line
 
-  Usage       : $pipeline->set_cmd_line('run_de_pipeline.pl');
+  Usage       : $pipeline->set_cmd_line('run_pipeline.pl');
   Purpose     : Setter for command line attribute
   Returns     : undef
   Parameters  : String (the command line)

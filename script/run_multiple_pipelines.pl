@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
-# PODNAME: run_multiple_de_pipelines.pl
-# ABSTRACT: Run multiple DETCT differential expression pipeline simultaneously
+# PODNAME: run_multiple_pipelines.pl
+# ABSTRACT: Run multiple DETCT pipelines simultaneously
 
 ## Author         : is1
 ## Maintainer     : is1
@@ -23,8 +23,10 @@ use Pod::Usage;
 use English qw( -no_match_vars );
 use File::Spec;
 use File::Slurp;
-use DETCT::Pipeline::DiffExpr;
 use DETCT::Analysis::DiffExpr;
+use DETCT::Analysis::Downsample;
+use DETCT::Pipeline::DiffExpr;
+use DETCT::Pipeline::Downsample;
 
 =head1 DESCRIPTION
 
@@ -37,6 +39,7 @@ use DETCT::Analysis::DiffExpr;
 =cut
 
 # Default options
+my $pipeline_type;
 my $scheduler = 'lsf';
 my @analysis_yamls;
 my $stages_yaml = 'stages.yaml';
@@ -57,9 +60,16 @@ my $base_cmd_line = get_base_cmd_line();
 # Get and check command line options
 get_and_check_options();
 
+# Modules
+my $module = $pipeline_type eq 'de' ? 'DiffExpr' : 'Downsample';
+my $analysis_module = 'DETCT::Analysis::' . $module;
+my $pipeline_module = 'DETCT::Pipeline::' . $module;
+
 # Extend base command line with common options
 $base_cmd_line .=
-    ' --scheduler '
+    ' --pipeline '
+  . $pipeline_type
+  . ' --scheduler '
   . $scheduler
   . ' --stages_yaml '
   . $stages_yaml
@@ -76,7 +86,7 @@ my @pipelines;
 foreach my $analysis_yaml (@analysis_yamls) {
 
     # Create analysis
-    my $analysis = DETCT::Analysis::DiffExpr->new_from_yaml($analysis_yaml);
+    my $analysis = $analysis_module->new_from_yaml($analysis_yaml);
 
     # Working directory is based on YAML filename
     my $analysis_dir = $analysis_yaml;
@@ -91,7 +101,7 @@ foreach my $analysis_yaml (@analysis_yamls) {
       ' --dir ' . $analysis_dir . ' --analysis_yaml ' . $analysis_yaml;
 
     # Create pipeline
-    my $pipeline = DETCT::Pipeline::DiffExpr->new(
+    my $pipeline = $pipeline_module->new(
         {
             scheduler    => $scheduler,
             analysis_dir => $analysis_dir,
@@ -182,7 +192,7 @@ sub get_base_cmd_line {
 
     # Alter script name
     my $program_name = $PROGRAM_NAME;
-    $program_name =~ s/run_multiple_de_pipelines/run_de_pipeline/xms;
+    $program_name =~ s/run_multiple_(de_)*pipelines/run_pipeline/xms;
 
     return join q{ }, Probe::Perl->find_perl_interpreter(), @libs,
       $program_name;
@@ -193,6 +203,7 @@ sub get_and_check_options {
 
     # Get options
     GetOptions(
+        'pipeline=s'           => \$pipeline_type,
         'scheduler=s'          => \$scheduler,
         'analysis_yamls=s{1,}' => \@analysis_yamls,
         'stages_yaml=s'        => \$stages_yaml,
@@ -215,7 +226,19 @@ sub get_and_check_options {
         pod2usage( -verbose => 2 );
     }
 
+    # If necessary, assign pipeline based on script name
+    if (!$pipeline_type) {
+        if ($PROGRAM_NAME =~ m/run_multiple_de_pipelines[.]pl \z/xms) {
+            $pipeline_type = 'de';
+        } elsif ($PROGRAM_NAME =~ m/run_multiple_downsample_pipelines[.]pl \z/xms) {
+            $pipeline_type = 'downsample';
+        }
+    }
+
     # Check options
+    if ( $pipeline_type ne 'de' && $pipeline_type ne 'downsample' ) {
+        pod2usage("--scheduler must be 'de' or 'downsample'\n");
+    }
     if ( $scheduler ne 'lsf' && $scheduler ne 'local' ) {
         pod2usage("--scheduler must be 'lsf' or 'local'\n");
     }
@@ -230,7 +253,8 @@ sub get_and_check_options {
 
 =head1 USAGE
 
-    run_multiple_de_pipelines.pl
+    run_multiple_pipelines.pl
+        [--pipeline de|downsample]
         [--scheduler lsf|local]
         [--analysis_yamls file...]
         [--stages_yaml file]
@@ -247,6 +271,10 @@ sub get_and_check_options {
 =head1 OPTIONS
 
 =over 8
+
+=item B<--pipeline de|downsample>
+
+Pipeline to run - de or downsample.
 
 =item B<--scheduler lsf|local>
 
