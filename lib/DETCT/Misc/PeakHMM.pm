@@ -24,6 +24,7 @@ use File::Slurp;
 use File::Spec;
 use File::Path qw( make_path );
 use Memoize qw( memoize flush_cache );
+use Cwd;
 use DETCT::Misc qw( write_or_die );
 
 use base qw( Exporter );
@@ -350,13 +351,16 @@ sub run_peak_hmm {
         make_path( $arg_ref->{dir} );
     }
 
+    # Store original directory and change to working directory
+    my $original_dir = getcwd();
+    chdir $arg_ref->{dir};
+
     # Sanitise sequence name for using in filenames
     my $safe_seq_name = $arg_ref->{seq_name};
     $safe_seq_name =~ s/\W+//xmsg;
 
     # Write read bins to file
-    my $bin_file =
-      File::Spec->catfile( $arg_ref->{dir}, $safe_seq_name . '.bins' );
+    my $bin_file = $safe_seq_name . '.bins';
     open my $bin_fh, '>', $bin_file;
     foreach my $bin ( sort { $a <=> $b } keys %{ $arg_ref->{read_bins} } ) {
         write_or_die( $bin_fh, $bin, "\t", $arg_ref->{read_bins}->{$bin},
@@ -365,8 +369,7 @@ sub run_peak_hmm {
     close $bin_fh;
 
     # Write summary to file
-    my $sum_file =
-      File::Spec->catfile( $arg_ref->{dir}, $safe_seq_name . '.params' );
+    my $sum_file = $safe_seq_name . '.params';
     ## no critic (RequireBriefOpen)
     open my $sum_fh, '>', $sum_file;
     write_or_die( $sum_fh, $arg_ref->{summary}->{total_read_count_per_mb},
@@ -382,12 +385,9 @@ sub run_peak_hmm {
     close $sum_fh;
     ## use critic
 
-    my $hmm_file =
-      File::Spec->catfile( $arg_ref->{dir}, $safe_seq_name . '.hmm' );
-    my $stdout_file =
-      File::Spec->catfile( $arg_ref->{dir}, $safe_seq_name . '.o' );
-    my $stderr_file =
-      File::Spec->catfile( $arg_ref->{dir}, $safe_seq_name . '.e' );
+    my $hmm_file    = $safe_seq_name . '.hmm';
+    my $stdout_file = $safe_seq_name . '.o';
+    my $stderr_file = $safe_seq_name . '.e';
 
     my $num_bins = ceil( $arg_ref->{seq_bp} / $arg_ref->{bin_size} );
 
@@ -409,6 +409,9 @@ sub run_peak_hmm {
             push @hmm_output, [ $bin, $read_count, $log_prob ];
         }
     }
+
+    # Change back to original directory
+    chdir $original_dir;
 
     return { $arg_ref->{seq_name} => \@hmm_output };
 }
