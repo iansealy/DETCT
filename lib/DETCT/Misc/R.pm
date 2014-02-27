@@ -393,6 +393,11 @@ sub calc_group_fold_changes {
 sub calc_fold_change {
     my ( $array1_ref, $array2_ref ) = @_;
 
+    # Can't calculate fold change with empty arrays
+    if ( !defined $array1_ref || !defined $array2_ref ) {
+        return undef, undef;
+    }
+
     my $fold_change;
     my $log2_fold_change;
     my $mean1 = sum( @{$array1_ref} ) / scalar @{$array1_ref};
