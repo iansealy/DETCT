@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 362;
+plan tests => 378;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -1043,6 +1043,60 @@ is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
 is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
 is( $three_prime_ends->{'1'}->[0]->[4],   1,    'Region strand' );
 is( @{ $three_prime_ends->{'1'}->[0]->[5] }, 0, q{0 3' ends} );
+
+# Mock analysis object returning polyA then non-polyA
+$analysis = Test::MockObject->new();
+$analysis->set_isa('DETCT::Analysis');
+$analysis->set_series( 'get_subsequence', 'AAAATTTTTT', 'TTTTTTTTTT' );
+
+# Test filtering 3' ends
+$three_prime_ends = filter_three_prime_ends(
+    {
+        analysis => $analysis,
+        seq_name => '1',
+        regions  => [
+            [
+                1, 1000, 10, -10, 1,
+                [ [ '1', 1000, 1, 20 ], [ '1', 1005, 1, 10 ], ]
+            ]
+        ],
+    }
+);
+is( scalar keys %{$three_prime_ends},     1,    '1 sequence' );
+is( scalar @{ $three_prime_ends->{'1'} }, 1,    '1 region' );
+is( $three_prime_ends->{'1'}->[0]->[0],   1,    'Region start' );
+is( $three_prime_ends->{'1'}->[0]->[1],   1000, 'Region end' );
+is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
+is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
+is( $three_prime_ends->{'1'}->[0]->[4],   1,    'Region strand' );
+is( @{ $three_prime_ends->{'1'}->[0]->[5] }, 0, q{0 3' ends} );
+
+# Mock analysis object returning polyA then non-polyA
+$analysis = Test::MockObject->new();
+$analysis->set_isa('DETCT::Analysis');
+$analysis->set_series( 'get_subsequence', 'AAAATTTTTT', 'TTTTTTTTTT' );
+
+# Test filtering 3' ends
+$three_prime_ends = filter_three_prime_ends(
+    {
+        analysis => $analysis,
+        seq_name => '1',
+        regions  => [
+            [
+                1, 1000, 10, -10, 1,
+                [ [ '1', 1000, 1, 20 ], [ '1', 1010, 1, 10 ], ]
+            ]
+        ],
+    }
+);
+is( scalar keys %{$three_prime_ends},     1,    '1 sequence' );
+is( scalar @{ $three_prime_ends->{'1'} }, 1,    '1 region' );
+is( $three_prime_ends->{'1'}->[0]->[0],   1,    'Region start' );
+is( $three_prime_ends->{'1'}->[0]->[1],   1000, 'Region end' );
+is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
+is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
+is( $three_prime_ends->{'1'}->[0]->[4],   1,    'Region strand' );
+is( @{ $three_prime_ends->{'1'}->[0]->[5] }, 1, q{1 3' end} );
 
 # Check choosing 3' end required parameters
 throws_ok {
