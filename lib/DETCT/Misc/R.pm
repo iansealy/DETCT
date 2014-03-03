@@ -395,7 +395,7 @@ sub calc_fold_change {
 
     # Can't calculate fold change with empty arrays
     if ( !defined $array1_ref || !defined $array2_ref ) {
-        return undef, undef;
+        return (undef, undef);
     }
 
     my $fold_change;
