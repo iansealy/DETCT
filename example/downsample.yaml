@@ -1,16 +1,16 @@
 -
-  name:           stats
+  name:           stats_by_tag
   default_memory: 100
 -
-  name:           downsample
+  name:           downsample_by_tag
   default_memory: 250
   prerequisites:
-    - stats
+    - stats_by_tag
 -
   name:           mark_duplicates
   default_memory: 4000
   prerequisites:
-    - downsample
+    - downsample_by_tag
 -
   name:           merge
   default_memory: 4000

@@ -19,8 +19,8 @@ use DETCT::Misc::BAM qw(
   choose_three_prime_end
   count_reads
   merge_read_counts
-  stats
-  downsample
+  stats_by_tag
+  downsample_by_tag
 );
 
 use File::Temp qw( tempdir );
@@ -1881,7 +1881,7 @@ samtools view -h t/data/test1.bam | grep -E '^@SQ|#.....GAGGC' \
 | samtools view -bS - | samtools flagstat -
 =cut
 
-my $stats = stats(
+my $stats = stats_by_tag(
     {
         bam_file => 't/data/test1.bam',
         tags     => ['NNNNBGAGGC'],
@@ -1893,7 +1893,7 @@ is( $stats->{NNNNBGAGGC}->{proper}, 1616, 'Properly paired read count' );
 
 # Downsample
 
-$count = downsample(
+$count = downsample_by_tag(
     {
         source_bam_file   => 't/data/test1.bam',
         source_read_count => 2008,
@@ -1905,7 +1905,7 @@ $count = downsample(
 );
 ok( $count <= 500, 'Downsample to 500 paired reads' );
 
-$count = downsample(
+$count = downsample_by_tag(
     {
         source_bam_file   => 't/data/test1.bam',
         source_read_count => 1616,
@@ -1917,7 +1917,7 @@ $count = downsample(
 );
 ok( $count <= 500, 'Downsample to 500 mapped paired reads' );
 
-$count = downsample(
+$count = downsample_by_tag(
     {
         source_bam_file   => 't/data/test1.bam',
         source_read_count => 1616,
@@ -1930,7 +1930,7 @@ $count = downsample(
 ok( $count <= 500, 'Downsample to 500 properly paired reads' );
 
 throws_ok {
-    $count = downsample(
+    $count = downsample_by_tag(
         {
             source_read_count => 1616,
             tag               => 'NNNNBGAGGC',
@@ -1942,7 +1942,7 @@ throws_ok {
 }
 qr/No source BAM file specified/ms, 'No source BAM file';
 throws_ok {
-    $count = downsample(
+    $count = downsample_by_tag(
         {
             source_bam_file   => 't/data/test1.bam',
             tag               => 'NNNNBGAGGC',
@@ -1954,7 +1954,7 @@ throws_ok {
 }
 qr/No source read count specified/ms, 'No source read count';
 throws_ok {
-    $count = downsample(
+    $count = downsample_by_tag(
         {
             source_bam_file   => 't/data/test1.bam',
             source_read_count => 1616,
@@ -1966,7 +1966,7 @@ throws_ok {
 }
 qr/No tag specified/ms, 'No tag';
 throws_ok {
-    $count = downsample(
+    $count = downsample_by_tag(
         {
             source_bam_file   => 't/data/test1.bam',
             source_read_count => 1616,
@@ -1978,7 +1978,7 @@ throws_ok {
 }
 qr/No target BAM file specified/ms, 'No target BAM file';
 throws_ok {
-    $count = downsample(
+    $count = downsample_by_tag(
         {
             source_bam_file   => 't/data/test1.bam',
             source_read_count => 1616,
@@ -1990,7 +1990,7 @@ throws_ok {
 }
 qr/No target read count specified/ms, 'No target read count';
 throws_ok {
-    $count = downsample(
+    $count = downsample_by_tag(
         {
             source_bam_file   => 't/data/test1.bam',
             source_read_count => 1616,
@@ -2002,7 +2002,7 @@ throws_ok {
 }
 qr/No read count type specified/ms, 'No read count type';
 throws_ok {
-    $count = downsample(
+    $count = downsample_by_tag(
         {
             source_bam_file   => 't/data/test1.bam',
             source_read_count => 1616,

@@ -38,8 +38,8 @@ our @EXPORT_OK = qw(
   choose_three_prime_end
   count_reads
   merge_read_counts
-  stats
-  downsample
+  stats_by_tag
+  downsample_by_tag
 );
 
 =head1 SYNOPSIS
@@ -1235,9 +1235,9 @@ sub merge_read_counts {
     return { $arg_ref->{seq_name} => \@regions_with_three_prime_ends };
 }
 
-=func stats
+=func stats_by_tag
 
-  Usage       : my $stats = DETCT::Misc::BAM::stats( {
+  Usage       : my $stats = DETCT::Misc::BAM::stats_by_tag( {
                     bam_file => $bam_file,
                     tags     => ['NNNNBGAGGC', 'NNNNBAGAAG'],
                 } );
@@ -1259,7 +1259,7 @@ sub merge_read_counts {
 
 =cut
 
-sub stats {
+sub stats_by_tag {
     my ($arg_ref) = @_;
 
     confess 'No BAM file specified' if !defined $arg_ref->{bam_file};
@@ -1297,9 +1297,9 @@ sub stats {
     return \%stats;
 }
 
-=func downsample
+=func downsample_by_tag
 
-  Usage       : DETCT::Misc::BAM::downsample( {
+  Usage       : DETCT::Misc::BAM::downsample_by_tag( {
                     source_bam_file   => $bam_file,
                     source_read_count => 1_234_234,
                     tag               => 'NNNNBGAGGC',
@@ -1327,7 +1327,7 @@ sub stats {
 
 =cut
 
-sub downsample {
+sub downsample_by_tag {
     my ($arg_ref) = @_;
 
     confess 'No source BAM file specified'

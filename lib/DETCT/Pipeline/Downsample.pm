@@ -25,8 +25,8 @@ use List::Util qw( min );
 use YAML qw( DumpFile LoadFile );
 use File::Spec;
 use DETCT::Misc::BAM qw(
-  stats
-  downsample
+  stats_by_tag
+  downsample_by_tag
 );
 use DETCT::Misc::Picard qw(
   mark_duplicates
@@ -42,10 +42,10 @@ use DETCT::Misc::SAMtools qw(
 
 =cut
 
-=method all_parameters_for_stats
+=method all_parameters_for_stats_by_tag
 
-  Usage       : all_parameters_for_stats();
-  Purpose     : Get all parameters for stats stage
+  Usage       : all_parameters_for_stats_by_tag();
+  Purpose     : Get all parameters for stats_by_tag stage
   Returns     : Array of arrayrefs
   Parameters  : None
   Throws      : No exceptions
@@ -53,7 +53,7 @@ use DETCT::Misc::SAMtools qw(
 
 =cut
 
-sub all_parameters_for_stats {
+sub all_parameters_for_stats_by_tag {
     my ($self) = @_;
 
     my @all_parameters;
@@ -66,10 +66,10 @@ sub all_parameters_for_stats {
     return @all_parameters;
 }
 
-=method run_stats
+=method run_stats_by_tag
 
-  Usage       : run_stats();
-  Purpose     : Run function for stats stage
+  Usage       : run_stats_by_tag();
+  Purpose     : Run function for stats_by_tag stage
   Returns     : undef
   Parameters  : DETCT::Pipeline::Job
   Throws      : No exceptions
@@ -77,13 +77,13 @@ sub all_parameters_for_stats {
 
 =cut
 
-sub run_stats {
+sub run_stats_by_tag {
     my ( $self, $job ) = @_;
 
     my ( $bam_file, @tags ) = @{ $job->parameters };
 
     # Get stats for BAM file
-    my $stats = stats(
+    my $stats = stats_by_tag(
         {
             bam_file => $bam_file,
             tags     => \@tags,
@@ -97,10 +97,10 @@ sub run_stats {
     return;
 }
 
-=method all_parameters_for_downsample
+=method all_parameters_for_downsample_by_tag
 
-  Usage       : all_parameters_for_downsample();
-  Purpose     : Get all parameters for downsample stage
+  Usage       : all_parameters_for_downsample_by_tag();
+  Purpose     : Get all parameters for downsample_by_tag stage
   Returns     : Array of arrayrefs
   Parameters  : None
   Throws      : No exceptions
@@ -108,7 +108,7 @@ sub run_stats {
 
 =cut
 
-sub all_parameters_for_downsample {
+sub all_parameters_for_downsample_by_tag {
     my ($self) = @_;
 
     my @all_parameters;
@@ -117,7 +117,7 @@ sub all_parameters_for_downsample {
     foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
         $component++;
         my $stats_output_file =
-          $self->get_and_check_output_file( 'stats', $component );
+          $self->get_and_check_output_file( 'stats_by_tag', $component );
         my $stats = LoadFile($stats_output_file);
         my @tags  = $self->analysis->list_all_tags_by_bam_file($bam_file);
         foreach my $tag (@tags) {
@@ -147,10 +147,10 @@ sub all_parameters_for_downsample {
     return @all_parameters;
 }
 
-=method run_downsample
+=method run_downsample_by_tag
 
-  Usage       : run_downsample();
-  Purpose     : Run function for downsample stage
+  Usage       : run_downsample_by_tag();
+  Purpose     : Run function for downsample_by_tag stage
   Returns     : undef
   Parameters  : DETCT::Pipeline::Job
   Throws      : No exceptions
@@ -158,13 +158,13 @@ sub all_parameters_for_downsample {
 
 =cut
 
-sub run_downsample {
+sub run_downsample_by_tag {
     my ( $self, $job ) = @_;
 
     my ( $source_bam_file, $tag, $source_read_count ) = @{ $job->parameters };
 
     # Downsample BAM file
-    my $read_count = downsample(
+    my $read_count = downsample_by_tag(
         {
             source_bam_file   => $source_bam_file,
             source_read_count => $source_read_count,
@@ -207,7 +207,7 @@ sub all_parameters_for_mark_duplicates {
         foreach my $tag (@tags) {
             $component++;
             my $input_bam_file =
-              File::Spec->catfile( $self->analysis_dir, 'downsample',
+              File::Spec->catfile( $self->analysis_dir, 'downsample_by_tag',
                 $component . '.bam' );
             push @all_parameters, [$input_bam_file];
         }
