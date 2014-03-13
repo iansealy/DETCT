@@ -39,7 +39,9 @@ our @EXPORT_OK = qw(
   count_reads
   merge_read_counts
   stats_by_tag
+  stats_all_reads
   downsample_by_tag
+  downsample_all_reads
 );
 
 =head1 SYNOPSIS
@@ -1297,12 +1299,121 @@ sub stats_by_tag {
     return \%stats;
 }
 
+=func stats_all_reads
+
+  Usage       : my $stats = DETCT::Misc::BAM::stats_all_reads( {
+                    bam_file => $bam_file,
+                } );
+  Purpose     : Generate stats for all reads in a BAM file
+  Returns     : Hashref {
+                    paired => Int (paired read count),
+                    mapped => Int (mapped paired read count),
+                    proper => Int (properly paired read count),
+                }
+  Parameters  : Hashref {
+                    bam_file => String (the BAM file)
+                }
+  Throws      : If BAM file is missing
+  Comments    : None
+
+=cut
+
+sub stats_all_reads {
+    my ($arg_ref) = @_;
+
+    confess 'No BAM file specified' if !defined $arg_ref->{bam_file};
+
+    my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
+
+    my %stats = ( paired => 0, mapped => 0, proper => 0, );
+
+    # Get all reads
+    my $alignments = $sam->features( -iterator => 1, );
+    while ( my $alignment = $alignments->next_seq ) {
+
+        # Counts
+        if ( is_paired($alignment) ) {
+            $stats{paired}++;
+        }
+        if ( is_mapped_pair($alignment) ) {
+            $stats{mapped}++;
+        }
+        if ( is_properly_paired($alignment) ) {
+            $stats{proper}++;
+        }
+    }
+
+    return \%stats;
+}
+
 =func downsample_by_tag
 
   Usage       : DETCT::Misc::BAM::downsample_by_tag( {
                     source_bam_file   => $bam_file,
                     source_read_count => 1_234_234,
                     tag               => 'NNNNBGAGGC',
+                    target_bam_file   => $new_bam_file,
+                    target_read_count => 1_000_000,
+                    read_count_type   => 'proper',
+                } );
+  Purpose     : Downsample one tag in a BAM file to a target read count of
+                chosen type
+  Returns     : +ve Int (the number of reads in the target BAM file)
+  Parameters  : Hashref {
+                    source_bam_file   => String (the original BAM file)
+                    source_read_count => Int (the original read count)
+                    tag               => String (the tag)
+                    target_bam_file   => String (the downsampled BAM file)
+                    target_read_count => Int (the target read count)
+                    read_count_type   => String ('paired', 'mapped' or 'proper')
+                }
+  Throws      : If tag is missing
+  Comments    : None
+
+=cut
+
+sub downsample_by_tag {
+    my ($arg_ref) = @_;
+
+    confess 'No tag specified' if !defined $arg_ref->{tag};
+
+    return downsample($arg_ref);
+}
+
+=func downsample_all_reads
+
+  Usage       : DETCT::Misc::BAM::downsample_all_reads( {
+                    source_bam_file   => $bam_file,
+                    source_read_count => 1_234_234,
+                    target_bam_file   => $new_bam_file,
+                    target_read_count => 1_000_000,
+                    read_count_type   => 'proper',
+                } );
+  Purpose     : Downsample all reads in a BAM file to a target read count of
+                chosen type
+  Returns     : +ve Int (the number of reads in the target BAM file)
+  Parameters  : Hashref {
+                    source_bam_file   => String (the original BAM file)
+                    source_read_count => Int (the original read count)
+                    target_bam_file   => String (the downsampled BAM file)
+                    target_read_count => Int (the target read count)
+                    read_count_type   => String ('paired', 'mapped' or 'proper')
+                }
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub downsample_all_reads {
+    my ($arg_ref) = @_;
+    return downsample($arg_ref);
+}
+
+=func downsample
+
+  Usage       : DETCT::Misc::BAM::downsample( {
+                    source_bam_file   => $bam_file,
+                    source_read_count => 1_234_234,
                     target_bam_file   => $new_bam_file,
                     target_read_count => 1_000_000,
                     read_count_type   => 'proper',
@@ -1319,7 +1430,6 @@ sub stats_by_tag {
                 }
   Throws      : If source BAM file is missing
                 If source read count is missing
-                If tag is missing
                 If target BAM file is missing
                 If target read count is missing
                 If read count type is missing or invalid
@@ -1327,14 +1437,13 @@ sub stats_by_tag {
 
 =cut
 
-sub downsample_by_tag {
+sub downsample {    ## no critic (ProhibitExcessComplexity)
     my ($arg_ref) = @_;
 
     confess 'No source BAM file specified'
       if !defined $arg_ref->{source_bam_file};
     confess 'No source read count specified'
       if !defined $arg_ref->{source_read_count};
-    confess 'No tag specified' if !defined $arg_ref->{tag};
     confess 'No target BAM file specified'
       if !defined $arg_ref->{target_bam_file};
     confess 'No target read count specified'
@@ -1347,8 +1456,10 @@ sub downsample_by_tag {
     }
 
     # Convert tag to regular expressions
-    my $tag    = $arg_ref->{tag};
-    my %re_for = DETCT::Misc::Tag::convert_tag_to_regexp($tag);
+    my %re_for =
+      exists $arg_ref->{tag}
+      ? DETCT::Misc::Tag::convert_tag_to_regexp( $arg_ref->{tag} )
+      : ();
 
     # Open source and target and write header to target
     my $bam_in  = Bio::DB::Bam->open( $arg_ref->{source_bam_file}, q{r} );
@@ -1392,8 +1503,8 @@ sub downsample_by_tag {
           if $arg_ref->{read_count_type} eq 'proper'
           && !is_properly_paired($alignment);
 
-        # Match tag
-        next if !matched_tag( $alignment, \%re_for );
+        # Match tag (if required)
+        next if exists $arg_ref->{tag} && !matched_tag( $alignment, \%re_for );
 
         if ( rand() < $keep_chance ) {
             $keep{ $alignment->qname } = 1;

@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 378;
+plan tests => 384;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -20,7 +20,9 @@ use DETCT::Misc::BAM qw(
   count_reads
   merge_read_counts
   stats_by_tag
+  stats_all_reads
   downsample_by_tag
+  downsample_all_reads
 );
 
 use File::Temp qw( tempdir );
@@ -1872,7 +1874,7 @@ is( scalar @{ $read_counts->{'1'}->[0]->[8] }, 2,  '2 samples' );
 is( $read_counts->{'1'}->[0]->[8]->[0],        10, '10 reads' );
 is( $read_counts->{'1'}->[0]->[8]->[1],        20, '20 reads' );
 
-# Stats
+# Stats by tag
 # Should be 2008 paired reads, 1616 mapped paired reads and 1616 properly paired
 # reads according to:
 
@@ -1881,7 +1883,7 @@ samtools view -h t/data/test1.bam | grep -E '^@SQ|#.....GAGGC' \
 | samtools view -bS - | samtools flagstat -
 =cut
 
-my $stats = stats_by_tag(
+$stats = stats_by_tag(
     {
         bam_file => 't/data/test1.bam',
         tags     => ['NNNNBGAGGC'],
@@ -1891,7 +1893,25 @@ is( $stats->{NNNNBGAGGC}->{paired}, 2008, 'Paired read count' );
 is( $stats->{NNNNBGAGGC}->{mapped}, 1616, 'Mapped paired read count' );
 is( $stats->{NNNNBGAGGC}->{proper}, 1616, 'Properly paired read count' );
 
-# Downsample
+# Stats for all reads
+# Should be 3504 paired reads, 3006 mapped paired reads and 3006 properly paired
+# reads according to:
+
+=for comment
+samtools view -h t/data/test1.bam \
+| samtools view -bS - | samtools flagstat -
+=cut
+
+my $stats = stats_all_reads(
+    {
+        bam_file => 't/data/test1.bam',
+    }
+);
+is( $stats->{paired}, 3504, 'Paired read count' );
+is( $stats->{mapped}, 3006, 'Mapped paired read count' );
+is( $stats->{proper}, 3006, 'Properly paired read count' );
+
+# Downsample by tag
 
 $count = downsample_by_tag(
     {
@@ -2014,3 +2034,39 @@ throws_ok {
     );
 }
 qr/Invalid read count type/ms, 'Invalid read count type';
+
+# Downsample all reads
+
+$count = downsample_all_reads(
+    {
+        source_bam_file   => 't/data/test1.bam',
+        source_read_count => 3504,
+        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+        target_read_count => 1000,
+        read_count_type   => 'paired',
+    }
+);
+ok( $count <= 1000, 'Downsample to 1000 paired reads' );
+
+$count = downsample_all_reads(
+    {
+        source_bam_file   => 't/data/test1.bam',
+        source_read_count => 3006,
+        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+        target_read_count => 1000,
+        read_count_type   => 'mapped',
+    }
+);
+ok( $count <= 1000, 'Downsample to 1000 mapped paired reads' );
+
+$count = downsample_all_reads(
+    {
+        source_bam_file   => 't/data/test1.bam',
+        source_read_count => 3006,
+        tag               => 'NNNNBGAGGC',
+        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+        target_read_count => 1000,
+        read_count_type   => 'proper',
+    }
+);
+ok( $count <= 1000, 'Downsample to 1000 properly paired reads' );
