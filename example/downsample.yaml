@@ -3,7 +3,7 @@
   default_memory: 100
 -
   name:           downsample_by_tag
-  default_memory: 250
+  default_memory: 200
   prerequisites:
     - stats_by_tag
 -
@@ -13,7 +13,7 @@
     - downsample_by_tag
 -
   name:           post_merge
-  default_memory: 4000
+  default_memory: 250
   prerequisites:
     - mark_duplicates
 -
