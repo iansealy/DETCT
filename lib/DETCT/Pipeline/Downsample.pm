@@ -253,10 +253,10 @@ sub run_mark_duplicates {
     return;
 }
 
-=method all_parameters_for_merge
+=method all_parameters_for_post_merge
 
-  Usage       : all_parameters_for_merge();
-  Purpose     : Get all parameters for merge stage
+  Usage       : all_parameters_for_post_merge();
+  Purpose     : Get all parameters for post_merge stage
   Returns     : Array of arrayrefs
   Parameters  : None
   Throws      : No exceptions
@@ -264,7 +264,7 @@ sub run_mark_duplicates {
 
 =cut
 
-sub all_parameters_for_merge {
+sub all_parameters_for_post_merge {
     my ($self) = @_;
 
     my @all_parameters;
@@ -286,10 +286,10 @@ sub all_parameters_for_merge {
     return @all_parameters;
 }
 
-=method run_merge
+=method run_post_merge
 
-  Usage       : run_merge();
-  Purpose     : Run function for merge stage
+  Usage       : run_post_merge();
+  Purpose     : Run function for post_merge stage
   Returns     : undef
   Parameters  : DETCT::Pipeline::Job
   Throws      : No exceptions
@@ -297,7 +297,7 @@ sub all_parameters_for_merge {
 
 =cut
 
-sub run_merge {
+sub run_post_merge {
     my ( $self, $job ) = @_;
 
     my $input_bam_files = $job->parameters;
