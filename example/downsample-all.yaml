@@ -1,0 +1,23 @@
+-
+  name:           pre_merge
+  default_memory: 4000
+-
+  name:           stats_all_reads
+  default_memory: 100
+  prerequisites:
+    - pre_merge
+-
+  name:           downsample_all_reads
+  default_memory: 2000
+  prerequisites:
+    - stats_all_reads
+-
+  name:           mark_duplicates_all
+  default_memory: 4000
+  prerequisites:
+    - downsample_all_reads
+-
+  name:           make_index
+  default_memory: 100
+  prerequisites:
+    - mark_duplicates_all

@@ -51,3 +51,20 @@ perl -Ilib script/run_pipeline.pl --pipeline downsample \
 --analysis_yaml example/downsample-analysis.yaml \
 --stages_yaml example/downsample.yaml \
 --sleep_time 60 --verbose
+
+To run the example alternative downsampling pipeline (which downsamples all
+reads, not by tag):
+
+perl -Ilib script/run_pipeline.pl --pipeline downsample \
+--scheduler local --dir tmp \
+--analysis_yaml example/downsample-analysis.yaml \
+--stages_yaml example/downsample-all.yaml \
+--sleep_time 1 --verbose
+
+Or (using LSF):
+
+perl -Ilib script/run_pipeline.pl --pipeline downsample \
+--dir tmp \
+--analysis_yaml example/downsample-analysis.yaml \
+--stages_yaml example/downsample-all.yaml \
+--sleep_time 60 --verbose
