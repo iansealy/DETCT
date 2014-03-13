@@ -21,3 +21,8 @@
   default_memory: 100
   prerequisites:
     - post_merge
+-
+  name:           flagstats
+  default_memory: 100
+  prerequisites:
+    - make_index

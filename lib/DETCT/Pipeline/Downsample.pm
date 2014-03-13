@@ -36,6 +36,7 @@ use DETCT::Misc::Picard qw(
 );
 use DETCT::Misc::SAMtools qw(
   make_index
+  flagstats
 );
 
 =head1 SYNOPSIS
@@ -362,6 +363,56 @@ sub run_make_index {
 
     # Index BAM file
     make_index(
+        {
+            dir             => $job->base_filename,
+            bam_file        => $bam_file,
+            samtools_binary => $self->analysis->samtools_binary,
+        }
+    );
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, 1 );
+
+    return;
+}
+
+=method all_parameters_for_flagstats
+
+  Usage       : all_parameters_for_flagstats();
+  Purpose     : Get all parameters for flagstats stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_flagstats {
+    my ($self) = @_;
+
+    return [];
+}
+
+=method run_flagstats
+
+  Usage       : run_flagstats();
+  Purpose     : Run function for flagstats stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_flagstats {
+    my ( $self, $job ) = @_;
+
+    my $bam_file = File::Spec->catfile( $self->analysis_dir,
+        $self->analysis->name . '.bam' );
+
+    # Index BAM file
+    flagstats(
         {
             dir             => $job->base_filename,
             bam_file        => $bam_file,

@@ -26,6 +26,7 @@ use File::Path qw( make_path );
 use base qw( Exporter );
 our @EXPORT_OK = qw(
   make_index
+  flagstats
 );
 
 =head1 SYNOPSIS
@@ -73,6 +74,53 @@ sub make_index {
     my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'index.e' );
 
     my $cmd = join q{ }, $arg_ref->{samtools_binary}, 'index',
+      $arg_ref->{bam_file};
+    $cmd .= ' 1>' . $stdout_file;
+    $cmd .= ' 2>' . $stderr_file;
+    WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
+
+    return;
+}
+
+=func flagstats
+
+  Usage       : DETCT::Misc::SAMtools::flagstats( {
+                    dir             => '.',
+                    bam_file        => $bam_file,
+                    samtools_binary => 'samtools',
+                } );
+  Purpose     : Run SAMtools flagstat
+  Returns     : undef
+  Parameters  : Hashref {
+                    dir             => String (the working directory),
+                    bam_file        => String (the BAM file),
+                    samtools_binary => String (the SAMtools binary),
+                }
+  Throws      : If directory is missing
+                If BAM file is missing
+                If SAMtools binary is missing
+                If command line can't be run
+  Comments    : None
+
+=cut
+
+sub flagstats {
+    my ($arg_ref) = @_;
+
+    confess 'No directory specified' if !defined $arg_ref->{dir};
+    confess 'No BAM file specified'  if !defined $arg_ref->{bam_file};
+    confess 'No SAMtools binary specified'
+      if !defined $arg_ref->{samtools_binary};
+
+    # Make sure working directory exists
+    if ( !-d $arg_ref->{dir} ) {
+        make_path( $arg_ref->{dir} );
+    }
+
+    my $stdout_file = File::Spec->catfile( $arg_ref->{dir}, 'flagstat.txt' );
+    my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'index.e' );
+
+    my $cmd = join q{ }, $arg_ref->{samtools_binary}, 'flagstat',
       $arg_ref->{bam_file};
     $cmd .= ' 1>' . $stdout_file;
     $cmd .= ' 2>' . $stderr_file;

@@ -21,3 +21,8 @@
   default_memory: 100
   prerequisites:
     - mark_duplicates_all
+-
+  name:           flagstats
+  default_memory: 100
+  prerequisites:
+    - make_index
