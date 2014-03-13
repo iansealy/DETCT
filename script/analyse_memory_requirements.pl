@@ -71,6 +71,7 @@ foreach my $stage_hash ( @{ $yaml->[0] } ) {
     # Show stats
     my $stat = Statistics::Descriptive::Full->new();
     $stat->add_data(@mem_usage);
+    next if !$stat->count;
     printf "  Job count:\t%d\n",          $stat->count;
     printf "  Min memory:\t%d\n",         $stat->min;
     printf "  Median memory:\t%d\n",      $stat->median;
