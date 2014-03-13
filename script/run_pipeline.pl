@@ -198,8 +198,10 @@ sub get_and_check_options {
     }
 
     # Check options
-    if ( $pipeline_type ne 'de' && $pipeline_type ne 'downsample' ) {
-        pod2usage("--scheduler must be 'de' or 'downsample'\n");
+    if ( !$pipeline_type
+        || ( $pipeline_type ne 'de' && $pipeline_type ne 'downsample' ) )
+    {
+        pod2usage("--pipeline must be 'de' or 'downsample'\n");
     }
     if ( $scheduler ne 'lsf' && $scheduler ne 'local' ) {
         pod2usage("--scheduler must be 'lsf' or 'local'\n");
