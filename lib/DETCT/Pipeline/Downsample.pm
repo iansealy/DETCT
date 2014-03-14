@@ -235,7 +235,14 @@ sub run_downsample_by_tag {
     # Will happen 50% of the time
     if ( $read_count == $self->analysis->target_read_count ) {
         my $output_file = $job->base_filename . '.out';
-        DumpFile( $output_file, 1 );
+        my %output      = (
+            source_bam_file   => $source_bam_file,
+            tag               => $tag,
+            read_count_type   => $self->analysis->read_count_type,
+            source_read_count => $source_read_count,
+            target_read_count => $self->analysis->target_read_count,
+        );
+        DumpFile( $output_file, \%output );
     }
 
     return;
@@ -334,7 +341,14 @@ sub run_downsample_all_reads {
     # Will happen 50% of the time
     if ( $read_count == $target_read_count ) {
         my $output_file = $job->base_filename . '.out';
-        DumpFile( $output_file, 1 );
+        my %output      = (
+            source_bam_file       => $source_bam_file,
+            read_count_type       => $self->analysis->read_count_type,
+            source_read_count     => $source_read_count,
+            sub_target_read_count => $target_read_count,
+            target_read_count     => $self->analysis->target_read_count,
+        );
+        DumpFile( $output_file, \%output );
     }
 
     return;
