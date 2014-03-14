@@ -129,4 +129,65 @@ sub flagstats {
     return;
 }
 
+=func sort
+
+  Usage       : DETCT::Misc::SAMtools::sort( {
+                    dir             => '.',
+                    input_bam_file  => $input_bam_file,
+                    output_bam_file => $output_bam_file,
+                    samtools_binary => 'samtools',
+                } );
+  Purpose     : Run SAMtools sort
+  Returns     : undef
+  Parameters  : Hashref {
+                    dir             => String (the working directory),
+                    input_bam_file  => String (the input BAM file),
+                    output_bam_file => String (the output BAM file),
+                    samtools_binary => String (the SAMtools binary),
+                    sort_order      => String (the sort order),
+                }
+  Throws      : If directory is missing
+                If input BAM file is missing
+                If output BAM file is missing
+                If SAMtools binary is missing
+                If command line can't be run
+                If sort order is invalid (not coordinate, queryname or undef)
+  Comments    : Defaults to coordinate sorting
+
+=cut
+
+sub sort {
+    my ($arg_ref) = @_;
+
+    confess 'No directory specified' if !defined $arg_ref->{dir};
+    confess 'No input BAM file specified'  if !defined $arg_ref->{input_bam_file};
+    confess 'No output BAM file specified'  if !defined $arg_ref->{output_bam_file};
+    confess 'No SAMtools binary specified'
+      if !defined $arg_ref->{samtools_binary};
+
+    my $sort_order = defined $arg_ref->{sort_order} ? $arg_ref->{sort_order} : 'coordinate';
+    confess 'Invalid sort order specified' if $sort_order ne 'coordinate' && $sort_order ne 'queryname';
+
+    # Make sure working directory exists
+    if ( !-d $arg_ref->{dir} ) {
+        make_path( $arg_ref->{dir} );
+    }
+
+    my $stdout_file = File::Spec->catfile( $arg_ref->{dir}, 'sort.o' );
+    my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'sort.e' );
+
+    my @options = ('-f');
+    if ($sort_order eq 'queryname') {
+        push @options, '-n';
+    }
+
+    my $cmd = join q{ }, $arg_ref->{samtools_binary}, 'sort', @options,
+      $arg_ref->{input_bam_file}, $arg_ref->{output_bam_file};
+    $cmd .= ' 1>' . $stdout_file;
+    $cmd .= ' 2>' . $stderr_file;
+    WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
+
+    return;
+}
+
 1;
