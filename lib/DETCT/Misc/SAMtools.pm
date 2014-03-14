@@ -160,13 +160,17 @@ sub sort {
     my ($arg_ref) = @_;
 
     confess 'No directory specified' if !defined $arg_ref->{dir};
-    confess 'No input BAM file specified'  if !defined $arg_ref->{input_bam_file};
-    confess 'No output BAM file specified'  if !defined $arg_ref->{output_bam_file};
+    confess 'No input BAM file specified'
+      if !defined $arg_ref->{input_bam_file};
+    confess 'No output BAM file specified'
+      if !defined $arg_ref->{output_bam_file};
     confess 'No SAMtools binary specified'
       if !defined $arg_ref->{samtools_binary};
 
-    my $sort_order = defined $arg_ref->{sort_order} ? $arg_ref->{sort_order} : 'coordinate';
-    confess 'Invalid sort order specified' if $sort_order ne 'coordinate' && $sort_order ne 'queryname';
+    my $sort_order =
+      defined $arg_ref->{sort_order} ? $arg_ref->{sort_order} : 'coordinate';
+    confess 'Invalid sort order specified'
+      if $sort_order ne 'coordinate' && $sort_order ne 'queryname';
 
     # Make sure working directory exists
     if ( !-d $arg_ref->{dir} ) {
@@ -177,7 +181,7 @@ sub sort {
     my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'sort.e' );
 
     my @options = ('-f');
-    if ($sort_order eq 'queryname') {
+    if ( $sort_order eq 'queryname' ) {
         push @options, '-n';
     }
 
