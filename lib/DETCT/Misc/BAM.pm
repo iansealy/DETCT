@@ -811,10 +811,13 @@ sub filter_three_prime_ends {
             $unfiltered_three_prime_ends )
           = @{$region};
 
-        # Identify polyA 3' ends
-        my %polya;
+        # Filter 3' ends
+        my @three_prime_ends;
         foreach my $three_prime_end ( @{$unfiltered_three_prime_ends} ) {
             my ( $seq_name, $pos, $strand, $read_count ) = @{$three_prime_end};
+
+            # Must be supported by more than 3 reads
+            next if $read_count <= 3;    ## no critic (ProhibitMagicNumbers)
 
             # Check 10 bp downstream of 3' end for polyA
             my $ten_bp_start;
@@ -833,27 +836,7 @@ sub filter_three_prime_ends {
                 $strand );
 
             # Check if 10 bp downstream is polyA
-            if ( is_polya($ten_bp_seq) ) {
-
-                # Flag positions near polyA 3' end
-                ## no critic (ProhibitMagicNumbers)
-                foreach my $flag_pos ( ( $pos - 9 ) .. ( $pos + 9 ) ) {
-                    $polya{$strand}{$flag_pos} = 1;
-                }
-                ## use critic
-            }
-        }
-
-        # Filter 3' ends
-        my @three_prime_ends;
-        foreach my $three_prime_end ( @{$unfiltered_three_prime_ends} ) {
-            my ( $seq_name, $pos, $strand, $read_count ) = @{$three_prime_end};
-
-            # Must be supported by more than 3 reads
-            next if $read_count <= 3;    ## no critic (ProhibitMagicNumbers)
-
-            # Must not be within 10 bp of a polyA 3' end
-            next if exists $polya{$strand}{$pos};
+            next if is_polya($ten_bp_seq);
 
             push @three_prime_ends, $three_prime_end;
         }
