@@ -44,15 +44,15 @@ use DETCT::Pipeline::Stage;
 =cut
 
 # Attributes:
-private scheduler     => my %scheduler;       # e.g. lsf
-private analysis_dir  => my %analysis_dir;    # e.g. .
-private analysis      => my %analysis;        # DETCT::Analysis object
-private cmd_line      => my %cmd_line;        # e.g. run_pipeline.pl
-private avoid_node    => my %avoid_node;      # arrayref of nodes to be avoided
-private max_jobs      => my %max_jobs;        # e.g. 1000
-private max_retries   => my %max_retries;     # e.g. 10
-private sleep_time    => my %sleep_time;      # e.g. 600
-private skip_clean_up => my %skip_clean_up;   # e.g. 1
+private scheduler     => my %scheduler;        # e.g. lsf
+private analysis_dir  => my %analysis_dir;     # e.g. .
+private analysis      => my %analysis;         # DETCT::Analysis object
+private cmd_line      => my %cmd_line;         # e.g. run_pipeline.pl
+private avoid_node    => my %avoid_node;       # arrayref of nodes to be avoided
+private max_jobs      => my %max_jobs;         # e.g. 1000
+private max_retries   => my %max_retries;      # e.g. 10
+private sleep_time    => my %sleep_time;       # e.g. 600
+private skip_clean_up => my %skip_clean_up;    # e.g. 1
 private memory_limit_multiplier => my %memory_limit_multiplier;    # e.g. 1000
 private stage_to_run => my %stage_to_run;    # DETCT::Pipeline::Stage object
 private component_to_run => my %component_to_run;    # e.g. 5
