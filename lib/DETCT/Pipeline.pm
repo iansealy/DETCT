@@ -44,14 +44,15 @@ use DETCT::Pipeline::Stage;
 =cut
 
 # Attributes:
-private scheduler    => my %scheduler;       # e.g. lsf
-private analysis_dir => my %analysis_dir;    # e.g. .
-private analysis     => my %analysis;        # DETCT::Analysis object
-private cmd_line     => my %cmd_line;        # e.g. run_pipeline.pl
-private avoid_node   => my %avoid_node;      # arrayref of nodes to be avoided
-private max_jobs     => my %max_jobs;        # e.g. 1000
-private max_retries  => my %max_retries;     # e.g. 10
-private sleep_time   => my %sleep_time;      # e.g. 600
+private scheduler     => my %scheduler;       # e.g. lsf
+private analysis_dir  => my %analysis_dir;    # e.g. .
+private analysis      => my %analysis;        # DETCT::Analysis object
+private cmd_line      => my %cmd_line;        # e.g. run_pipeline.pl
+private avoid_node    => my %avoid_node;      # arrayref of nodes to be avoided
+private max_jobs      => my %max_jobs;        # e.g. 1000
+private max_retries   => my %max_retries;     # e.g. 10
+private sleep_time    => my %sleep_time;      # e.g. 600
+private skip_clean_up => my %skip_clean_up;   # e.g. 1
 private memory_limit_multiplier => my %memory_limit_multiplier;    # e.g. 1000
 private stage_to_run => my %stage_to_run;    # DETCT::Pipeline::Stage object
 private component_to_run => my %component_to_run;    # e.g. 5
@@ -84,14 +85,15 @@ Readonly our %EXTENSION_TO_DELETE => map { $_ => 1 } qw(
   Purpose     : Constructor for pipeline objects
   Returns     : DETCT::Pipeline
   Parameters  : Hashref {
-                    scheduler    => String,
-                    analysis_dir => String,
-                    analysis     => DETCT::Analysis,
-                    cmd_line     => String,
-                    max_jobs     => Int,
-                    max_retries  => Int,
-                    sleep_time   => Int,
-                    verbose      => Boolean or undef
+                    scheduler     => String,
+                    analysis_dir  => String,
+                    analysis      => DETCT::Analysis,
+                    cmd_line      => String,
+                    max_jobs      => Int,
+                    max_retries   => Int,
+                    sleep_time    => Int,
+                    skip_clean_up => Boolean or undef,
+                    verbose       => Boolean or undef,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -108,6 +110,7 @@ sub new {
     $self->set_max_jobs( $arg_ref->{max_jobs} );
     $self->set_max_retries( $arg_ref->{max_retries} );
     $self->set_sleep_time( $arg_ref->{sleep_time} );
+    $self->set_skip_clean_up( $arg_ref->{skip_clean_up} );
     $self->set_verbose( $arg_ref->{verbose} );
     return $self;
 }
@@ -749,6 +752,39 @@ sub verbose {
 sub set_verbose {
     my ( $self, $arg ) = @_;
     $verbose{ id $self} = $arg ? 1 : 0;
+    return;
+}
+
+=method skip_clean_up
+
+  Usage       : my $skip_clean_up = $pipeline->skip_clean_up;
+  Purpose     : Getter for skip clean up flag
+  Returns     : Boolean
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub skip_clean_up {
+    my ($self) = @_;
+    return $skip_clean_up{ id $self} || 0;
+}
+
+=method set_skip_clean_up
+
+  Usage       : $pipeline->set_skip_clean_up(1);
+  Purpose     : Setter for skip clean up flag
+  Returns     : undef
+  Parameters  : Boolean
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_skip_clean_up {
+    my ( $self, $arg ) = @_;
+    $skip_clean_up{ id $self} = $arg ? 1 : 0;
     return;
 }
 
@@ -1526,6 +1562,8 @@ sub _delete_lock {
 
 sub clean_up {
     my ($self) = @_;
+
+    return if $self->skip_clean_up;
 
     # Already cleaned up?
     my $done_marker_file =

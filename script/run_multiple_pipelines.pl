@@ -49,6 +49,7 @@ my $max_jobs    = 1000;
 my $max_retries = 10;
 my $sleep_time  = 600;    # 10 minutes
 ## use critic
+my $skip_clean_up;
 my $stage_to_run;
 my $component_to_run;
 my $verbose;
@@ -103,14 +104,15 @@ foreach my $analysis_yaml (@analysis_yamls) {
     # Create pipeline
     my $pipeline = $pipeline_module->new(
         {
-            scheduler    => $scheduler,
-            analysis_dir => $analysis_dir,
-            analysis     => $analysis,
-            cmd_line     => $cmd_line,
-            max_jobs     => $max_jobs,
-            max_retries  => $max_retries,
-            sleep_time   => $sleep_time,
-            verbose      => $verbose,
+            scheduler     => $scheduler,
+            analysis_dir  => $analysis_dir,
+            analysis      => $analysis,
+            cmd_line      => $cmd_line,
+            max_jobs      => $max_jobs,
+            max_retries   => $max_retries,
+            sleep_time    => $sleep_time,
+            skip_clean_up => $skip_clean_up,
+            verbose       => $verbose,
         }
     );
 
@@ -211,6 +213,7 @@ sub get_and_check_options {
         'max_jobs=i'           => \$max_jobs,
         'max_retries=i'        => \$max_retries,
         'sleep_time=i'         => \$sleep_time,
+        'skip_clean_up'        => \$skip_clean_up,
         'stage=s'              => \$stage_to_run,
         'component=i'          => \$component_to_run,
         'verbose'              => \$verbose,
@@ -267,6 +270,7 @@ sub get_and_check_options {
         [--max_jobs int]
         [--max_retries int]
         [--sleep_time int]
+        [--skip_clean_up]
         [--stage stage]
         [--component int]
         [--verbose]
@@ -308,6 +312,10 @@ Maximum number of times to retry a failing job.
 =item B<--sleep_time INT>
 
 Time to sleep, in seconds, between each cycle of the pipeline.
+
+=item B<--skip_clean_up>
+
+Skip final clean up stage.
 
 =item B<--stage STAGE>
 
