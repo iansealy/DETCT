@@ -27,6 +27,7 @@ use base qw( Exporter );
 our @EXPORT_OK = qw(
   make_index
   flagstats
+  sort_bam
 );
 
 =head1 SYNOPSIS
@@ -129,9 +130,9 @@ sub flagstats {
     return;
 }
 
-=func sort
+=func sort_bam
 
-  Usage       : DETCT::Misc::SAMtools::sort( {
+  Usage       : DETCT::Misc::SAMtools::sort_bam( {
                     dir             => '.',
                     input_bam_file  => $input_bam_file,
                     output_bam_file => $output_bam_file,
@@ -156,7 +157,7 @@ sub flagstats {
 
 =cut
 
-sub sort {
+sub sort_bam {
     my ($arg_ref) = @_;
 
     confess 'No directory specified' if !defined $arg_ref->{dir};
