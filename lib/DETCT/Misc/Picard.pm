@@ -204,4 +204,85 @@ sub merge {
     return;
 }
 
+=func bam_to_fastq
+
+  Usage       : DETCT::Misc::Picard::bam_to_fastq( {
+                    dir              => '.',
+                    bam_file         => $bam_file,
+                    read1_fastq_file => $read1_fastq_file,
+                    read2_fastq_file => $read2_fastq_file,
+                    java_binary      => 'java',
+                    bam_to_fastq_jar => 'SamToFastq.jar',
+                    memory           => 2000,
+                } );
+  Purpose     : Run SamToFastq
+  Returns     : undef
+  Parameters  : Hashref {
+                    dir              => String (the working directory),
+                    bam_file         => String (the BAM file),
+                    read1_fastq_file => String (the read 1 FASTQ file)
+                    read2_fastq_file => String (the read 2 FASTQ file)
+                    java_binary      => String (the Java binary),
+                    bam_to_fastq_jar => String (the SamToFastq JAR),
+                    memory           => Int (the memory allocated),
+                }
+  Throws      : If directory is missing
+                If BAM file is missing
+                If read 1 FASTQ file is missing
+                If read 2 FASTQ file is missing
+                If Java binary is missing
+                If SamToFastq JAR is missing
+                If command line can't be run
+  Comments    : None
+
+=cut
+
+sub bam_to_fastq {
+    my ($arg_ref) = @_;
+
+    confess 'No directory specified' if !defined $arg_ref->{dir};
+    confess 'No BAM file specified'  if !defined $arg_ref->{bam_file};
+    confess 'No read 1 FASTQ file specified'
+      if !defined $arg_ref->{read1_fastq_file};
+    confess 'No read 2 FASTQ file specified'
+      if !defined $arg_ref->{read2_fastq_file};
+    confess 'No Java binary specified' if !defined $arg_ref->{java_binary};
+    confess 'No SamToFastq JAR specified'
+      if !defined $arg_ref->{bam_to_fastq_jar};
+
+    # Make sure working directory exists
+    if ( !-d $arg_ref->{dir} ) {
+        make_path( $arg_ref->{dir} );
+    }
+
+    # Options
+    my %option = (
+        INPUT                 => $arg_ref->{bam_file},
+        FASTQ                 => $arg_ref->{read1_fastq_file},
+        SECOND_END_FASTQ      => $arg_ref->{read2_fastq_file},
+        TMP_DIR               => $arg_ref->{dir},
+        VERBOSITY             => 'WARNING',
+        QUIET                 => 'true',
+        VALIDATION_STRINGENCY => 'SILENT',
+        CREATE_INDEX          => 'false',
+    );
+    my @options = map { $_ . q{=} . $option{$_} } sort keys %option;
+
+    my $stdout_file = File::Spec->catfile( $arg_ref->{dir}, 'bamtofastq.o' );
+    my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'bamtofastq.e' );
+
+    my $memory =
+      $arg_ref->{memory}
+      ? sprintf '-Xmx%dm', $arg_ref->{memory}
+      : q{};
+
+    my $cmd = join q{ }, $arg_ref->{java_binary}, '-XX:ParallelGCThreads=1',
+      $memory, '-jar', $arg_ref->{bam_to_fastq_jar}, @options;
+    $cmd .= ' 1>' . $stdout_file;
+    $cmd .= ' 2>' . $stderr_file;
+    WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
+
+    return;
+}
+
 1;
