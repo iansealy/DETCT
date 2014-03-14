@@ -118,7 +118,7 @@ sub flagstats {
     }
 
     my $stdout_file = File::Spec->catfile( $arg_ref->{dir}, 'flagstat.txt' );
-    my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'index.e' );
+    my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'flagstat.e' );
 
     my $cmd = join q{ }, $arg_ref->{samtools_binary}, 'flagstat',
       $arg_ref->{bam_file};
