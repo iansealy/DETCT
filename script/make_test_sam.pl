@@ -237,6 +237,10 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
                 )
             );
 
+            # New read name for duplicates
+            $read1_qname = get_qname( $qname_base, get_read_tag() );
+            $read2_qname = $read1_qname;    # Always the same
+
             if ( $read_pair_count == $num_real_duplicates + 1 ) {
 
                 # Mark rest of reads as duplicates
