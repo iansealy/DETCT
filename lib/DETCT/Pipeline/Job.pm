@@ -615,7 +615,7 @@ sub _set_state_from_filesystem_for_local {
     }
     elsif ( !-e $output_file || -z $output_file ) {
         $self->set_status_code('FAILED');
-        $self->set_status_text( 'Enpty output file: ' . $output_file );
+        $self->set_status_text( 'Empty output file: ' . $output_file );
     }
 
     return;
