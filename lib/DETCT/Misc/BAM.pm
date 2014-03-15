@@ -1457,17 +1457,20 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
     my %keep;
     my %discard;
 
-    my $total_kept = 0;
+    my $total_kept      = 0;
+    my $total_half_kept = 0;
 
     # Get all reads
     while ( my $alignment = $bam_in->read1 ) {
-        last if $total_kept >= $arg_ref->{target_read_count};
+        last
+          if $total_kept == $arg_ref->{target_read_count} && !$total_half_kept;
 
         # Write read if kept mate
         if ( exists $keep{ $alignment->qname } ) {
             delete $keep{ $alignment->qname };
             $bam_out->write1($alignment);
             $total_kept++;
+            $total_half_kept--;
             next;
         }
 
@@ -1476,6 +1479,11 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
             delete $discard{ $alignment->qname };
             next;
         }
+
+        # Check if more pairs not needed (i.e. just waiting for mates)
+        next
+          if ( $total_kept + $total_half_kept ) >=
+          $arg_ref->{target_read_count};
 
         # Skip reads of wrong type
         next if !is_paired($alignment);
@@ -1493,6 +1501,7 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
             $keep{ $alignment->qname } = 1;
             $bam_out->write1($alignment);
             $total_kept++;
+            $total_half_kept++;
         }
         else {
             $discard{ $alignment->qname } = 1;

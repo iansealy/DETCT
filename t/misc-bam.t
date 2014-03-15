@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 368;
+plan tests => 374;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -26,6 +26,7 @@ use DETCT::Misc::BAM qw(
 );
 
 use File::Temp qw( tempdir );
+use Bio::DB::Sam;
 
 =for comment
 
@@ -1852,52 +1853,99 @@ my $stats = stats_all_reads(
         bam_file => 't/data/test1.bam',
     }
 );
-is( $stats->{paired}, 3504, 'Paired read count' );
-is( $stats->{mapped}, 3006, 'Mapped paired read count' );
-is( $stats->{proper}, 3006, 'Properly paired read count' );
+is( $stats->{paired}, 3258, 'Paired read count' );
+is( $stats->{mapped}, 2958, 'Mapped paired read count' );
+is( $stats->{proper}, 2958, 'Properly paired read count' );
 
 # Downsample by tag
+
+my ( $sam, $alignments, $read1_count, $read2_count );
 
 $count = downsample_by_tag(
     {
         source_bam_file   => 't/data/test1.bam',
-        source_read_count => 2008,
+        source_read_count => 1672,
         tag               => 'NNNNBGAGGC',
-        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.paired.bam',
         target_read_count => 500,
         read_count_type   => 'paired',
     }
 );
 ok( $count <= 500, 'Downsample to 500 paired reads' );
 
+# Count reads 1 and 2
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.NNNNBGAGGC.paired.bam' );
+$alignments  = $sam->features( -iterator => 1, );
+$read1_count = 0;
+$read2_count = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
+        $read1_count++;
+    }
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
+        $read2_count++;
+    }
+}
+ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
+
 $count = downsample_by_tag(
     {
         source_bam_file   => 't/data/test1.bam',
-        source_read_count => 1616,
+        source_read_count => 1514,
         tag               => 'NNNNBGAGGC',
-        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.mapped.bam',
         target_read_count => 500,
         read_count_type   => 'mapped',
     }
 );
 ok( $count <= 500, 'Downsample to 500 mapped paired reads' );
 
+# Count reads 1 and 2
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.NNNNBGAGGC.mapped.bam' );
+$alignments  = $sam->features( -iterator => 1, );
+$read1_count = 0;
+$read2_count = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
+        $read1_count++;
+    }
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
+        $read2_count++;
+    }
+}
+ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
+
 $count = downsample_by_tag(
     {
         source_bam_file   => 't/data/test1.bam',
-        source_read_count => 1616,
+        source_read_count => 1514,
         tag               => 'NNNNBGAGGC',
-        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.proper.bam',
         target_read_count => 500,
         read_count_type   => 'proper',
     }
 );
 ok( $count <= 500, 'Downsample to 500 properly paired reads' );
 
+# Count reads 1 and 2
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.NNNNBGAGGC.proper.bam' );
+$alignments  = $sam->features( -iterator => 1, );
+$read1_count = 0;
+$read2_count = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
+        $read1_count++;
+    }
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
+        $read2_count++;
+    }
+}
+ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
+
 throws_ok {
     $count = downsample_by_tag(
         {
-            source_read_count => 1616,
+            source_read_count => 1514,
             tag               => 'NNNNBGAGGC',
             target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
             target_read_count => 500,
@@ -1922,7 +1970,7 @@ throws_ok {
     $count = downsample_by_tag(
         {
             source_bam_file   => 't/data/test1.bam',
-            source_read_count => 1616,
+            source_read_count => 1514,
             target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
             target_read_count => 500,
             read_count_type   => 'proper',
@@ -1934,7 +1982,7 @@ throws_ok {
     $count = downsample_by_tag(
         {
             source_bam_file   => 't/data/test1.bam',
-            source_read_count => 1616,
+            source_read_count => 1514,
             tag               => 'NNNNBGAGGC',
             target_read_count => 500,
             read_count_type   => 'proper',
@@ -1946,7 +1994,7 @@ throws_ok {
     $count = downsample_by_tag(
         {
             source_bam_file   => 't/data/test1.bam',
-            source_read_count => 1616,
+            source_read_count => 1514,
             tag               => 'NNNNBGAGGC',
             target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
             read_count_type   => 'proper',
@@ -1958,7 +2006,7 @@ throws_ok {
     $count = downsample_by_tag(
         {
             source_bam_file   => 't/data/test1.bam',
-            source_read_count => 1616,
+            source_read_count => 1514,
             tag               => 'NNNNBGAGGC',
             target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
             target_read_count => 500,
@@ -1970,7 +2018,7 @@ throws_ok {
     $count = downsample_by_tag(
         {
             source_bam_file   => 't/data/test1.bam',
-            source_read_count => 1616,
+            source_read_count => 1514,
             tag               => 'NNNNBGAGGC',
             target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
             target_read_count => 500,
@@ -1985,33 +2033,77 @@ qr/Invalid read count type/ms, 'Invalid read count type';
 $count = downsample_all_reads(
     {
         source_bam_file   => 't/data/test1.bam',
-        source_read_count => 3504,
-        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+        source_read_count => 3258,
+        target_bam_file   => $tmp_dir . 'test1.paired.bam',
         target_read_count => 1000,
         read_count_type   => 'paired',
     }
 );
 ok( $count <= 1000, 'Downsample to 1000 paired reads' );
 
+# Count reads 1 and 2
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.paired.bam' );
+$alignments  = $sam->features( -iterator => 1, );
+$read1_count = 0;
+$read2_count = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
+        $read1_count++;
+    }
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
+        $read2_count++;
+    }
+}
+ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
+
 $count = downsample_all_reads(
     {
         source_bam_file   => 't/data/test1.bam',
-        source_read_count => 3006,
-        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+        source_read_count => 2958,
+        target_bam_file   => $tmp_dir . 'test1.mapped.bam',
         target_read_count => 1000,
         read_count_type   => 'mapped',
     }
 );
 ok( $count <= 1000, 'Downsample to 1000 mapped paired reads' );
 
+# Count reads 1 and 2
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.mapped.bam' );
+$alignments  = $sam->features( -iterator => 1, );
+$read1_count = 0;
+$read2_count = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
+        $read1_count++;
+    }
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
+        $read2_count++;
+    }
+}
+ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
+
 $count = downsample_all_reads(
     {
         source_bam_file   => 't/data/test1.bam',
-        source_read_count => 3006,
-        tag               => 'NNNNBGAGGC',
-        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+        source_read_count => 2958,
+        target_bam_file   => $tmp_dir . 'test1.proper.bam',
         target_read_count => 1000,
         read_count_type   => 'proper',
     }
 );
 ok( $count <= 1000, 'Downsample to 1000 properly paired reads' );
+
+# Count reads 1 and 2
+my $sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.proper.bam' );
+$alignments  = $sam->features( -iterator => 1, );
+$read1_count = 0;
+$read2_count = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
+        $read1_count++;
+    }
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
+        $read2_count++;
+    }
+}
+ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
