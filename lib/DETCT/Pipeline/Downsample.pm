@@ -244,6 +244,9 @@ sub run_downsample_by_tag {
         );
         DumpFile( $output_file, \%output );
     }
+    else {
+        exit 1;
+    }
 
     return;
 }
