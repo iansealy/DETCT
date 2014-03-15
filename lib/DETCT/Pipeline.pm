@@ -1255,7 +1255,7 @@ sub process_job {
         $job->stage->set_all_jobs_run(0);
         $self->set_jobs_running(1);
         $self->say_if_verbose(
-            sprintf '  Component %d of %s is still running%s',
+            sprintf '  Component %d of %s is still running or pending%s',
             $job->component, $job->stage->name, $job->print_lsf_job_id );
     }
     elsif ( $job->status_code eq 'FAILED' ) {
