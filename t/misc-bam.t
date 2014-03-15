@@ -2094,7 +2094,7 @@ $count = downsample_all_reads(
 ok( $count <= 1000, 'Downsample to 1000 properly paired reads' );
 
 # Count reads 1 and 2
-my $sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.proper.bam' );
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.proper.bam' );
 $alignments  = $sam->features( -iterator => 1, );
 $read1_count = 0;
 $read2_count = 0;
