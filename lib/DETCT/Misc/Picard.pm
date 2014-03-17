@@ -28,6 +28,7 @@ our @EXPORT_OK = qw(
   mark_duplicates
   merge
   bam_to_fastq
+  fix_mate_info
 );
 
 =head1 SYNOPSIS
@@ -279,6 +280,82 @@ sub bam_to_fastq {
 
     my $cmd = join q{ }, $arg_ref->{java_binary}, '-XX:ParallelGCThreads=1',
       $memory, '-jar', $arg_ref->{bam_to_fastq_jar}, @options;
+    $cmd .= ' 1>' . $stdout_file;
+    $cmd .= ' 2>' . $stderr_file;
+    WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
+
+    return;
+}
+
+=func fix_mate_info
+
+  Usage       : DETCT::Misc::Picard::fix_mate_info( {
+                    dir               => '.',
+                    input_bam_file    => $input_bam_file,
+                    output_bam_file   => $output_bam_file,
+                    java_binary       => 'java',
+                    fix_mate_info_jar => 'FixMateInformation.jar',
+                    memory            => 4000,
+                } );
+  Purpose     : Run FixMateInformation
+  Returns     : undef
+  Parameters  : Hashref {
+                    dir               => String (the working directory),
+                    input_bam_file    => String (the input BAM file),
+                    output_bam_file   => String (the output BAM file),
+                    java_binary       => String (the Java binary),
+                    fix_mate_info_jar => String (the FixMateInformation JAR),
+                    memory            => Int (the memory allocated),
+                }
+  Throws      : If directory is missing
+                If input BAM file is missing
+                If output BAM file is missing
+                If Java binary is missing
+                If FixMateInformation JAR is missing
+                If command line can't be run
+  Comments    : None
+
+=cut
+
+sub fix_mate_info {
+    my ($arg_ref) = @_;
+
+    confess 'No directory specified' if !defined $arg_ref->{dir};
+    confess 'No input BAM file specified'
+      if !defined $arg_ref->{input_bam_file};
+    confess 'No output BAM file specified'
+      if !defined $arg_ref->{output_bam_file};
+    confess 'No Java binary specified' if !defined $arg_ref->{java_binary};
+    confess 'No FixMateInformation JAR specified'
+      if !defined $arg_ref->{fix_mate_info_jar};
+
+    # Make sure working directory exists
+    if ( !-d $arg_ref->{dir} ) {
+        make_path( $arg_ref->{dir} );
+    }
+
+    # Options
+    my %option = (
+        INPUT                 => $arg_ref->{input_bam_file},
+        OUTPUT                => $arg_ref->{output_bam_file},
+        TMP_DIR               => $arg_ref->{dir},
+        VERBOSITY             => 'WARNING',
+        QUIET                 => 'true',
+        VALIDATION_STRINGENCY => 'SILENT',
+        CREATE_INDEX          => 'false',
+    );
+    my @options = map { $_ . q{=} . $option{$_} } sort keys %option;
+
+    my $stdout_file = File::Spec->catfile( $arg_ref->{dir}, 'fixmateinfo.o' );
+    my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'fixmateinfo.e' );
+
+    my $memory =
+      $arg_ref->{memory}
+      ? sprintf '-Xmx%dm', $arg_ref->{memory}
+      : q{};
+
+    my $cmd = join q{ }, $arg_ref->{java_binary}, '-XX:ParallelGCThreads=1',
+      $memory, '-jar', $arg_ref->{fix_mate_info_jar}, @options;
     $cmd .= ' 1>' . $stdout_file;
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
