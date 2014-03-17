@@ -27,6 +27,7 @@ use base qw( Exporter );
 our @EXPORT_OK = qw(
   mark_duplicates
   merge
+  bam_to_fastq
 );
 
 =head1 SYNOPSIS
