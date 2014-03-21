@@ -20,7 +20,6 @@ use Try::Tiny;
 
 use Readonly;
 use Class::InsideOut qw( private register id );
-use Scalar::Util qw( weaken );
 
 =head1 SYNOPSIS
 
