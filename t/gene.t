@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 55;
+plan tests => 61;
 
 use DETCT::Gene;
 
@@ -119,3 +119,10 @@ throws_ok { $gene->add_transcript() } qr/No transcript specified/ms,
 throws_ok { $gene->add_transcript('invalid') } qr/Class of transcript/ms,
   'Invalid transcript';
 
+# Test p value attribute
+is( $gene->p_value,              undef,   'Get p value' );
+is( $gene->set_p_value(0.00012), undef,   'Set p value' );
+is( $gene->p_value,              0.00012, 'Get new p value' );
+throws_ok { $gene->set_p_value('NA') } qr/Invalid p value/ms, 'Invalid p value';
+is( $gene->set_p_value(0),                    undef, 'Set integer p value' );
+is( $gene->set_p_value(5.00237534792148e-09), undef, 'Set e notation p value' );

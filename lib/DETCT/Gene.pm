@@ -39,6 +39,7 @@ private start             => my %start;               # e.g. 40352744
 private end               => my %end;                 # e.g. 40354399
 private strand            => my %strand;              # e.g. 1
 private transcript        => my %transcript;          # DETCT::Transcript
+private p_value           => my %p_value;             # e.g. 0.00012
 
 # Constants
 Readonly our $MAX_NAME_LENGTH => 128;
@@ -66,6 +67,7 @@ Readonly our $MAX_NAME_LENGTH => 128;
                     start             => +ve Int,
                     end               => +ve Int,
                     strand            => Int (1 or -1),
+                    p_value           => Float,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -84,6 +86,7 @@ sub new {
     $self->set_start( $arg_ref->{start} );
     $self->set_end( $arg_ref->{end} );
     $self->set_strand( $arg_ref->{strand} );
+    $self->set_p_value( $arg_ref->{p_value} );
     return $self;
 }
 
@@ -569,6 +572,52 @@ sub get_all_transcripts {
     my ($self) = @_;
 
     return $transcript{ id $self} || [];
+}
+
+=method p_value
+
+  Usage       : my $p_value = $gene->p_value;
+  Purpose     : Getter for p value attribute
+  Returns     : Float
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub p_value {
+    my ($self) = @_;
+    return $p_value{ id $self};
+}
+
+=method set_p_value
+
+  Usage       : $gene->set_p_value(0.00012);
+  Purpose     : Setter for p value attribute
+  Returns     : undef
+  Parameters  : Int (the p value)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_p_value {
+    my ( $self, $arg ) = @_;
+    $p_value{ id $self} = _check_p_value($arg);
+    return;
+}
+
+# Usage       : $p_value = _check_p_value($p_value);
+# Purpose     : Check for valid p value
+# Returns     : Float (the valid p value)
+# Parameters  : Float (the p value)
+# Throws      : If p value is not a positive float
+# Comments    : None
+sub _check_p_value {
+    my ($p_value) = @_;
+    return $p_value
+      if !defined $p_value || $p_value =~ m/\A \d* [.]? \d+ (e-\d+)? \z/xms;
+    confess "Invalid p value ($p_value) specified";
 }
 
 1;
