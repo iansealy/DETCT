@@ -20,7 +20,8 @@ use Try::Tiny;
 
 use Readonly;
 use Class::InsideOut qw( private register id );
-use Scalar::Util qw( weaken );
+use Scalar::Util qw( weaken blessed );
+use DETCT::GeneOntologyEvidenceCode;
 
 =head1 SYNOPSIS
 
@@ -29,17 +30,19 @@ use Scalar::Util qw( weaken );
 =cut
 
 # Attributes:
-private genebuild_version => my %genebuild_version;   # e.g. e69
-private stable_id         => my %stable_id;           # e.g. ENSDARG00000095747
-private name              => my %name;                # e.g. cxc64
-private description       => my %description;         # e.g. CXC chemokine 64...
-private biotype           => my %biotype;             # e.g. protein_coding
-private seq_name          => my %seq_name;            # e.g. 5
-private start             => my %start;               # e.g. 40352744
-private end               => my %end;                 # e.g. 40354399
-private strand            => my %strand;              # e.g. 1
-private transcript        => my %transcript;          # DETCT::Transcript
-private p_value           => my %p_value;             # e.g. 0.00012
+private genebuild_version  => my %genebuild_version;  # e.g. e69
+private stable_id          => my %stable_id;          # e.g. ENSDARG00000095747
+private name               => my %name;               # e.g. cxc64
+private description        => my %description;        # e.g. CXC chemokine 64...
+private biotype            => my %biotype;            # e.g. protein_coding
+private seq_name           => my %seq_name;           # e.g. 5
+private start              => my %start;              # e.g. 40352744
+private end                => my %end;                # e.g. 40354399
+private strand             => my %strand;             # e.g. 1
+private transcript         => my %transcript;         # DETCT::Transcript
+private p_value            => my %p_value;            # e.g. 0.00012
+private gene_ontology_term => my %gene_ontology_term; # DETCT::GeneOntologyTerm
+private evidence_code      => my %evidence_code;      # e.g. IEA
 
 # Constants
 Readonly our $MAX_NAME_LENGTH => 128;
@@ -618,6 +621,128 @@ sub _check_p_value {
     return $p_value
       if !defined $p_value || $p_value =~ m/\A \d* [.]? \d+ (e-\d+)? \z/xms;
     confess "Invalid p value ($p_value) specified";
+}
+
+=method add_gene_ontology_term
+
+  Usage       : $gene->add_gene_ontology_term($gene_ontology_term);
+  Purpose     : Add a Gene Ontology term to a gene
+  Returns     : undef
+  Parameters  : DETCT::GeneOntologyTerm
+  Throws      : If Gene Ontology term is missing or invalid (i.e. not a
+                DETCT::GeneOntologyTerm object)
+  Comments    : None
+
+=cut
+
+sub add_gene_ontology_term {
+    my ( $self, $gene_ontology_term ) = @_;
+
+    confess 'No Gene Ontology term specified' if !defined $gene_ontology_term;
+    confess 'Class of Gene Ontology term (', ref $gene_ontology_term,
+      ') not DETCT::GeneOntologyTerm'
+      if !$gene_ontology_term->isa('DETCT::GeneOntologyTerm');
+
+    weaken($gene_ontology_term);    # Avoid circular references
+
+    if ( !exists $gene_ontology_term{ id $self} ) {
+        $gene_ontology_term{ id $self} = [$gene_ontology_term];
+    }
+    else {
+        push @{ $gene_ontology_term{ id $self} }, $gene_ontology_term;
+    }
+
+    return;
+}
+
+=method get_all_gene_ontology_terms
+
+  Usage       : $gene_ontology_terms = $gene->get_all_gene_ontology_terms();
+  Purpose     : Get all Gene Ontology terms of a gene
+  Returns     : Arrayref of DETCT::GeneOntologyTerm objects
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_all_gene_ontology_terms {
+    my ($self) = @_;
+
+    return $gene_ontology_term{ id $self} || [];
+}
+
+=method add_evidence_code
+
+  Usage       : $gene->add_evidence_code('IEA', $gene_ontology_term);
+  Purpose     : Add evidence code for a Gene Ontology term to a gene
+  Returns     : undef
+  Parameters  : String (the evidence code)
+                DETCT::GeneOntologyTerm or String (the accession)
+  Throws      : If evidence code is missing or invalid
+  Comments    : None
+
+=cut
+
+sub add_evidence_code {
+    my ( $self, $evidence_code, $term_or_accession ) = @_;
+
+    confess "Invalid evidence code ($evidence_code) specified"
+      if !
+      exists $DETCT::GeneOntologyEvidenceCode::DESCRIPTION_FOR_EVIDENCE_CODE{
+        $evidence_code};
+
+    my $accession = _check_gene_ontology_term_or_accession($term_or_accession);
+
+    $evidence_code{ id $self}{$accession} = $evidence_code;
+
+    return;
+}
+
+=method get_evidence_code
+
+  Usage       : $evidence_code = $gene->get_evidence_code($gene_ontology_term);
+  Purpose     : Get evidence code for a particular Gene Ontology term
+  Returns     : String
+  Parameters  : DETCT::GeneOntologyTerm or String (the accession)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_evidence_code {
+    my ( $self, $term_or_accession ) = @_;
+
+    my $accession = _check_gene_ontology_term_or_accession($term_or_accession);
+
+    return $evidence_code{ id $self}{$accession};
+}
+
+# Usage       : my $accession = _check_gene_ontology_term_or_accession($term);
+# Purpose     : Check for valid Gene Ontology term or accession
+# Returns     : String (the valid accession)
+# Parameters  : DETCT::GeneOntologyTerm or String (the accession)
+# Throws      : If Gene Ontology term is missing or invalid (i.e. not a
+#               DETCT::GeneOntologyTerm object or not an accession)
+# Comments    : None
+sub _check_gene_ontology_term_or_accession {
+    my ($term_or_accession) = @_;
+
+    # Transform to accession?
+    if ( blessed($term_or_accession)
+        && $term_or_accession->isa('DETCT::GeneOntologyTerm') )
+    {
+        $term_or_accession = $term_or_accession->accession;
+    }
+
+    confess 'No Gene Ontology term specified' if !defined $term_or_accession;
+    confess 'Class of Gene Ontology term (', ref $term_or_accession,
+      ') not DETCT::GeneOntologyTerm'
+      if ref $term_or_accession;
+    confess "Invalid accession ($term_or_accession) specified"
+      if $term_or_accession !~ m/\A GO: \d{7} \z/xms;
+
+    return $term_or_accession;
 }
 
 1;

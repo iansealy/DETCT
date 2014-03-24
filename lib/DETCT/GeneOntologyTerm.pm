@@ -20,6 +20,8 @@ use Try::Tiny;
 
 use Readonly;
 use Class::InsideOut qw( private register id );
+use Scalar::Util qw( blessed );
+use DETCT::GeneOntologyEvidenceCode;
 
 =head1 SYNOPSIS
 
@@ -28,10 +30,12 @@ use Class::InsideOut qw( private register id );
 =cut
 
 # Attributes:
-private accession  => my %accession;     # e.g. GO:0005622
-private namespace  => my %namespace;     # e.g. cellular_component
-private name       => my %name;          # e.g. intracellular
-private definition => my %definition;    # e.g. The living contents of a cell
+private accession     => my %accession;     # e.g. GO:0005622
+private namespace     => my %namespace;     # e.g. cellular_component
+private name          => my %name;          # e.g. intracellular
+private definition    => my %definition;    # e.g. The living contents of a cell
+private gene          => my %gene;          # DETCT::Gene
+private evidence_code => my %evidence_code; # e.g. IEA
 
 =method new
 
@@ -217,8 +221,8 @@ sub set_name {
 
 sub check_name {
     my ($name) = @_;
-    return $name if defined $name;
     confess 'No name specified' if !defined $name;
+    return $name;
 }
 
 =method definition
@@ -267,8 +271,124 @@ sub set_definition {
 
 sub check_definition {
     my ($definition) = @_;
-    return $definition if defined $definition;
     confess 'No definition specified' if !defined $definition;
+    return $definition;
+}
+
+=method add_gene
+
+  Usage       : $term->add_gene($gene);
+  Purpose     : Add a gene to a Gene Ontology term
+  Returns     : undef
+  Parameters  : DETCT::Gene
+  Throws      : If gene is missing or invalid (i.e. not a DETCT::Gene object)
+  Comments    : None
+
+=cut
+
+sub add_gene {
+    my ( $self, $gene ) = @_;
+
+    confess 'No gene specified' if !defined $gene;
+    confess 'Class of gene (', ref $gene, ') not DETCT::Gene'
+      if !$gene->isa('DETCT::Gene');
+
+    if ( !exists $gene{ id $self} ) {
+        $gene{ id $self} = [$gene];
+    }
+    else {
+        push @{ $gene{ id $self} }, $gene;
+    }
+
+    return;
+}
+
+=method get_all_genes
+
+  Usage       : $genes = $term->get_all_genes();
+  Purpose     : Get all genes for a Gene Ontology term
+  Returns     : Arrayref of DETCT::Gene objects
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_all_genes {
+    my ($self) = @_;
+
+    return $gene{ id $self} || [];
+}
+
+=method add_evidence_code
+
+  Usage       : $term->add_evidence_code('IEA', $gene);
+  Purpose     : Add evidence code for a gene to a Gene Ontology term
+  Returns     : undef
+  Parameters  : String (the evidence code)
+                DETCT::Gene or String (the stable id)
+  Throws      : If evidence code is missing or invalid
+  Comments    : None
+
+=cut
+
+sub add_evidence_code {
+    my ( $self, $evidence_code, $gene_or_stable_id ) = @_;
+
+    confess "Invalid evidence code ($evidence_code) specified"
+      if !
+      exists $DETCT::GeneOntologyEvidenceCode::DESCRIPTION_FOR_EVIDENCE_CODE{
+        $evidence_code};
+
+    my $stable_id = _check_gene_or_stable_id($gene_or_stable_id);
+
+    $evidence_code{ id $self}{$stable_id} = $evidence_code;
+
+    return;
+}
+
+=method get_evidence_code
+
+  Usage       : $evidence_code = $term->get_evidence_code($gene);
+  Purpose     : Get evidence code for a particular gene
+  Returns     : String
+  Parameters  : DETCT::Gene or String (the stable id)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_evidence_code {
+    my ( $self, $gene_or_stable_id ) = @_;
+
+    my $stable_id = _check_gene_or_stable_id($gene_or_stable_id);
+
+    return $evidence_code{ id $self}{$stable_id};
+}
+
+# Usage       : my $stable_id = _check_gene_or_stable_id($gene);
+# Purpose     : Check for valid gene or stable id
+# Returns     : String (the valid stable id)
+# Parameters  : DETCT::Gene or String (the stable id)
+# Throws      : If gene is missing or invalid (i.e. not a DETCT::Gene object or
+#               not a stable id)
+# Comments    : None
+sub _check_gene_or_stable_id {
+    my ($gene_or_stable_id) = @_;
+
+    # Transform to stable id?
+    if ( blessed($gene_or_stable_id) && $gene_or_stable_id->isa('DETCT::Gene') )
+    {
+        $gene_or_stable_id = $gene_or_stable_id->stable_id;
+    }
+
+    confess 'No gene specified' if !defined $gene_or_stable_id;
+    confess 'Class of gene (', ref $gene_or_stable_id, ') not DETCT::Gene'
+      if ref $gene_or_stable_id;
+    confess "Invalid stable id ($gene_or_stable_id) specified"
+      if $gene_or_stable_id !~ m/\A [[:upper:]]+ \d{11} \z/xms;
+
+    return $gene_or_stable_id;
 }
 
 1;

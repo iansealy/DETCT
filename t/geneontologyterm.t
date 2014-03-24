@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 19;
+plan tests => 33;
 
 use DETCT::GeneOntologyTerm;
 
@@ -55,3 +55,37 @@ is(
 );
 throws_ok { $term->set_definition() } qr/No definition specified/ms,
   'No definition';
+
+# Mock gene objects
+my $gene1 = Test::MockObject->new();
+$gene1->set_isa('DETCT::Gene');
+$gene1->set_always( 'stable_id', 'ENSDARG00000095747' );
+my $gene2 = Test::MockObject->new();
+$gene2->set_isa('DETCT::Gene');
+$gene2->set_always( 'stable_id', 'ENSDARG00000024771' );
+
+# Test adding and retrieving genes
+my $genes;
+$genes = $term->get_all_genes();
+is( scalar @{$genes},        0,     'No genes' );
+is( $term->add_gene($gene1), undef, 'Add gene' );
+$genes = $term->get_all_genes();
+is( scalar @{$genes}, 1, 'Get one gene' );
+$term->add_gene($gene2);
+is( scalar @{$genes}, 2, 'Get two genes' );
+throws_ok { $term->add_gene() } qr/No gene specified/ms, 'No gene specified';
+throws_ok { $term->add_gene('invalid') } qr/Class of gene/ms, 'Invalid gene';
+
+# Test adding and retrieving evidence codes
+is( $term->get_evidence_code($gene1), undef, 'Get evidence code' );
+is( $term->add_evidence_code( 'EXP', $gene1 ), undef, 'Set evidence code' );
+is( $term->get_evidence_code($gene1), 'EXP', 'Get new evidence code by term' );
+is( $term->get_evidence_code( $gene1->stable_id ),
+    'EXP', 'Get new evidence code by stable_id' );
+throws_ok { $term->add_evidence_code( 'XXX', $gene1 ) }
+qr/Invalid evidence code/ms, 'Invalid evidence code';
+throws_ok { $term->get_evidence_code() } qr/No gene specified/ms, 'No gene';
+throws_ok { $term->get_evidence_code( [] ) } qr/Class of gene/ms,
+  'Invalid gene';
+throws_ok { $term->get_evidence_code('invalid') } qr/Invalid stable id/ms,
+  'Invalid stable id';

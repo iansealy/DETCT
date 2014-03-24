@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 61;
+plan tests => 75;
 
 use DETCT::Gene;
 
@@ -126,3 +126,40 @@ is( $gene->p_value,              0.00012, 'Get new p value' );
 throws_ok { $gene->set_p_value('NA') } qr/Invalid p value/ms, 'Invalid p value';
 is( $gene->set_p_value(0),                    undef, 'Set integer p value' );
 is( $gene->set_p_value(5.00237534792148e-09), undef, 'Set e notation p value' );
+
+# Mock Gene Ontology term objects
+my $term1 = Test::MockObject->new();
+$term1->set_isa('DETCT::GeneOntologyTerm');
+$term1->set_always( 'accession', 'GO:0005622' );
+my $term2 = Test::MockObject->new();
+$term2->set_isa('DETCT::GeneOntologyTerm');
+$term2->set_always( 'accession', 'GO:0016874' );
+
+# Test adding and retrieving Gene Ontology terms
+my $terms;
+$terms = $gene->get_all_gene_ontology_terms();
+is( scalar @{$terms},                      0,     'No Gene Ontology terms' );
+is( $gene->add_gene_ontology_term($term1), undef, 'Add Gene Ontology term' );
+$terms = $gene->get_all_gene_ontology_terms();
+is( scalar @{$terms}, 1, 'Get one Gene Ontology term' );
+$gene->add_gene_ontology_term($term2);
+is( scalar @{$terms}, 2, 'Get two Gene Ontology terms' );
+throws_ok { $gene->add_gene_ontology_term() }
+qr/No Gene Ontology term specified/ms, 'No Gene Ontology term specified';
+throws_ok { $gene->add_gene_ontology_term('invalid') }
+qr/Class of Gene Ontology term/ms, 'Invalid Gene Ontology term';
+
+# Test adding and retrieving evidence codes
+is( $gene->get_evidence_code($term1), undef, 'Get evidence code' );
+is( $gene->add_evidence_code( 'EXP', $term1 ), undef, 'Set evidence code' );
+is( $gene->get_evidence_code($term1), 'EXP', 'Get new evidence code by term' );
+is( $gene->get_evidence_code( $term1->accession ),
+    'EXP', 'Get new evidence code by accession' );
+throws_ok { $gene->add_evidence_code( 'XXX', $term1 ) }
+qr/Invalid evidence code/ms, 'Invalid evidence code';
+throws_ok { $gene->get_evidence_code() } qr/No Gene Ontology term specified/ms,
+  'No Gene Ontology term';
+throws_ok { $gene->get_evidence_code( [] ) } qr/Class of Gene Ontology term/ms,
+  'Invalid Gene Ontology term';
+throws_ok { $gene->get_evidence_code('invalid') } qr/Invalid accession/ms,
+  'Invalid accession';
