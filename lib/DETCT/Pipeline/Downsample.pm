@@ -487,6 +487,140 @@ sub run_mark_duplicates {
     return;
 }
 
+=method all_parameters_for_sample_flagstats_by_tag
+
+  Usage       : all_parameters_for_sample_flagstats_by_tag();
+  Purpose     : Get all parameters for sample_flagstats_by_tag stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_sample_flagstats_by_tag {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my $component = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        my @tags = $self->analysis->list_all_tags_by_bam_file($bam_file);
+        foreach my $tag (@tags) {
+            $component++;
+            my $input_bam_file =
+              File::Spec->catfile( $self->analysis_dir,
+                'mark_duplicates_by_tag', $component . '.bam' );
+            my $prefix =
+              $self->analysis->get_sample_name_by_bam_file_and_tag( $bam_file,
+                $tag );
+            push @all_parameters, [ $input_bam_file, $prefix ];
+        }
+    }
+
+    return @all_parameters;
+}
+
+=method run_sample_flagstats_by_tag
+
+  Usage       : run_sample_flagstats_by_tag();
+  Purpose     : Run function for sample_flagstats_by_tag stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_sample_flagstats_by_tag {
+    my ( $self, $job ) = @_;
+
+    return $self->run_sample_flagstats($job);
+}
+
+=method all_parameters_for_sample_flagstats_all_reads
+
+  Usage       : all_parameters_for_sample_flagstats_all_reads();
+  Purpose     : Get all parameters for sample_flagstats_all_reads stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_sample_flagstats_all_reads {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my $component = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        $component++;
+        my $input_bam_file =
+          File::Spec->catfile( $self->analysis_dir, 'mark_duplicates_all_reads',
+            $component . '.bam' );
+        my $prefix = join q{_},
+          $self->analysis->get_sample_names_by_bam_file($bam_file);
+        push @all_parameters, [ $input_bam_file, $prefix ];
+    }
+
+    return @all_parameters;
+}
+
+=method run_sample_flagstats_all_reads
+
+  Usage       : run_sample_flagstats_all_reads();
+  Purpose     : Run function for sample_flagstats_all_reads stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_sample_flagstats_all_reads {
+    my ( $self, $job ) = @_;
+
+    return $self->run_sample_flagstats($job);
+}
+
+=method run_sample_flagstats
+
+  Usage       : run_sample_flagstats();
+  Purpose     : Run function for sample_flagstats stages
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_sample_flagstats {
+    my ( $self, $job ) = @_;
+
+    my ( $bam_file, $prefix ) = @{ $job->parameters };
+
+    my $flagstat_output_file =
+      File::Spec->catfile( $job->base_filename, $prefix . '.flagstat.txt' );
+
+    # Get stats
+    flagstats(
+        {
+            dir             => $job->base_filename,
+            bam_file        => $bam_file,
+            samtools_binary => $self->analysis->samtools_binary,
+            output_file     => $flagstat_output_file,
+        }
+    );
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, 1 );
+
+    return;
+}
+
 =method all_parameters_for_merge_by_tag
 
   Usage       : all_parameters_for_merge_by_tag();

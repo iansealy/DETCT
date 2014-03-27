@@ -12,6 +12,11 @@
   prerequisites:
     - downsample_by_tag
 -
+  name:           sample_flagstats_by_tag
+  default_memory: 100
+  prerequisites:
+    - mark_duplicates_by_tag
+-
   name:           merge_by_tag
   default_memory: 250
   prerequisites:

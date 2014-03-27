@@ -970,6 +970,51 @@ sub list_all_tags_by_bam_file {
     return uniq( sort @tags );
 }
 
+=method get_sample_name_by_bam_file_and_tag
+
+  Usage       : $name = $analysis->get_sample_name_by_bam_file_and_tag(
+                    $bam_file, $tag);
+  Purpose     : Get sample name corresponding to a particular BAM file and tag
+  Returns     : String (sample name)
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_sample_name_by_bam_file_and_tag {
+    my ( $self, $bam_file, $tag ) = @_;
+
+    my $samples = $self->get_all_samples();
+
+    my ($name) =
+      map { $_->name }
+      grep { $_->bam_file eq $bam_file && $_->tag eq $tag } @{$samples};
+
+    return $name;
+}
+
+=method get_sample_names_by_bam_file
+
+  Usage       : @names = $analysis->get_sample_names_by_bam_file( $bam_file);
+  Purpose     : Get sample names corresponding to a particular BAM file
+  Returns     : Arrayref of strings
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_sample_names_by_bam_file {
+    my ( $self, $bam_file, $tag ) = @_;
+
+    my $samples = $self->get_all_samples();
+
+    my @names = map { $_->name } grep { $_->bam_file eq $bam_file } @{$samples};
+
+    return uniq( sort @names );
+}
+
 =method get_subsequence
 
   Usage       : $seq = $analysis->get_subsequence('1', 1, 10);
