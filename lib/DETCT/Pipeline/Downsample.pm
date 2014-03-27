@@ -760,7 +760,7 @@ sub run_mark_duplicates_metrics {
         'Optical duplicate mapped read pairs',
         'Duplicate reads',
         'Duplication rate',
-        'Estimated library size'
+        'Estimated library size',
       ) . "\n";
 
     # Get metrics
@@ -781,7 +781,7 @@ sub run_mark_duplicates_metrics {
             $output->{optical_duplicate_mapped_read_pairs},
             $output->{duplicate_reads},
             $output->{duplication_rate},
-            $output->{estimated_library_size}
+            $output->{estimated_library_size},
         ) . "\n";
     }
 
