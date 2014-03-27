@@ -17,6 +17,11 @@
   prerequisites:
     - mark_duplicates_all_reads
 -
+  name:           mark_duplicates_metrics_all_reads
+  default_memory: 100
+  prerequisites:
+    - mark_duplicates_all_reads
+-
   name:           merge_all_reads
   default_memory: 250
   prerequisites:

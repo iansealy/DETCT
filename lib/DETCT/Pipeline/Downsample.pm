@@ -24,6 +24,7 @@ use Class::InsideOut qw( private register id );
 use List::Util qw( min sum );
 use YAML qw( DumpFile LoadFile );
 use File::Spec;
+use File::Slurp;
 use DETCT::Misc::BAM qw(
   stats_by_tag
   stats_all_reads
@@ -32,6 +33,7 @@ use DETCT::Misc::BAM qw(
 );
 use DETCT::Misc::Picard qw(
   mark_duplicates
+  extract_mark_duplicates_metrics
   merge
 );
 use DETCT::Misc::SAMtools qw(
@@ -613,6 +615,177 @@ sub run_sample_flagstats {
             output_file     => $flagstat_output_file,
         }
     );
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, 1 );
+
+    return;
+}
+
+=method all_parameters_for_mark_duplicates_metrics_by_tag
+
+  Usage       : all_parameters_for_mark_duplicates_metrics_by_tag();
+  Purpose     : Get all parameters for mark_duplicates_metrics_by_tag stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_mark_duplicates_metrics_by_tag {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my $metrics_output_file =
+      File::Spec->catfile( $self->analysis_dir,
+        'mark_duplicates_metrics_by_tag',
+        'markduplicates.tsv' );
+
+    my @metrics_files = ($metrics_output_file);
+    my $component     = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        my @tags = $self->analysis->list_all_tags_by_bam_file($bam_file);
+        foreach my $tag (@tags) {
+            $component++;
+            my $metrics_file =
+              File::Spec->catfile( $self->analysis_dir,
+                'mark_duplicates_by_tag', $component . '.metrics' );
+            push @metrics_files, $metrics_file;
+        }
+    }
+    push @all_parameters, \@metrics_files;
+
+    return @all_parameters;
+}
+
+=method run_mark_duplicates_metrics_by_tag
+
+  Usage       : run_mark_duplicates_metrics_by_tag();
+  Purpose     : Run function for mark_duplicates_metrics_by_tag stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_mark_duplicates_metrics_by_tag {
+    my ( $self, $job ) = @_;
+
+    return $self->run_mark_duplicates_metrics($job);
+}
+
+=method all_parameters_for_mark_duplicates_metrics_all_reads
+
+  Usage       : all_parameters_for_mark_duplicates_metrics_all_reads();
+  Purpose     : Get all parameters for mark_duplicates_metrics_all_reads stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_mark_duplicates_metrics_all_reads {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my $metrics_output_file =
+      File::Spec->catfile( $self->analysis_dir,
+        'mark_duplicates_metrics_all_reads',
+        'markduplicates.tsv' );
+
+    my @metrics_files = ($metrics_output_file);
+    my $component     = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        $component++;
+        my $metrics_file = File::Spec->catfile( $self->analysis_dir,
+            'mark_duplicates_all_reads', $component . '.metrics' );
+        push @metrics_files, $metrics_file;
+    }
+    push @all_parameters, \@metrics_files;
+
+    return @all_parameters;
+}
+
+=method run_mark_duplicates_metrics_all_reads
+
+  Usage       : run_mark_duplicates_metrics_all_reads();
+  Purpose     : Run function for mark_duplicates_metrics_all_reads stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_mark_duplicates_metrics_all_reads {
+    my ( $self, $job ) = @_;
+
+    return $self->run_mark_duplicates_metrics($job);
+}
+
+=method run_mark_duplicates_metrics
+
+  Usage       : run_mark_duplicates_metrics();
+  Purpose     : Run function for mark_duplicates_metrics stages
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_mark_duplicates_metrics {
+    my ( $self, $job ) = @_;
+
+    my (@metrics_files) = @{ $job->parameters };
+
+    my $metrics_output_file = shift @metrics_files;
+
+    # Header
+    my $metrics = q{#}
+      . (
+        join "\t",
+        'Mapped reads without mapped mate',
+        'Mapped read pairs',
+        'Mapped reads',
+        'Unmapped reads',
+        'Duplicate mapped reads without mapped mate',
+        'Duplicate mapped read pairs',
+        'Optical duplicate mapped read pairs',
+        'Duplicate reads',
+        'Duplication rate',
+        'Estimated library size'
+      ) . "\n";
+
+    # Get metrics
+    foreach my $metrics_file (@metrics_files) {
+        my $output = extract_mark_duplicates_metrics(
+            {
+                metrics_file => $metrics_file,
+            }
+        );
+        $metrics .= (
+            join "\t",
+            $output->{mapped_reads_without_mapped_mate},
+            $output->{mapped_read_pairs},
+            $output->{mapped_reads},
+            $output->{unmapped_reads},
+            $output->{duplicate_mapped_reads_without_mapped_mate},
+            $output->{duplicate_mapped_read_pairs},
+            $output->{optical_duplicate_mapped_read_pairs},
+            $output->{duplicate_reads},
+            $output->{duplication_rate},
+            $output->{estimated_library_size}
+        ) . "\n";
+    }
+
+    write_file( $metrics_output_file, $metrics );
 
     my $output_file = $job->base_filename . '.out';
 

@@ -22,10 +22,12 @@ use English qw( -no_match_vars );
 use POSIX qw( WIFEXITED);
 use File::Spec;
 use File::Path qw( make_path );
+use File::Slurp;
 
 use base qw( Exporter );
 our @EXPORT_OK = qw(
   mark_duplicates
+  extract_mark_duplicates_metrics
   merge
   bam_to_fastq
   fix_mate_info
@@ -124,6 +126,85 @@ sub mark_duplicates {
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
     return;
+}
+
+=func extract_mark_duplicates_metrics
+
+  Usage       : my $metrics = extract_mark_duplicates_metrics( {
+                    metrics_file => $metrics_file,
+                } );
+  Purpose     : Extract MarkDuplicates metrics
+  Returns     : Hashref {
+                    mapped_reads_without_mapped_mate           => Int,
+                    mapped_read_pairs                          => Int,
+                    mapped_reads                               => Int,
+                    unmapped_reads                             => Int,
+                    duplicate_mapped_reads_without_mapped_mate => Int,
+                    duplicate_mapped_read_pairs                => Int,
+                    optical_duplicate_mapped_read_pairs        => Int,
+                    duplicate_reads                            => Int,
+                    duplication_rate                           => Float,
+                    estimated_library_size                     => Int,
+                }
+  Parameters  : Hashref {
+                    metrics_file => String (the metrics file),
+                }
+  Throws      : If metrics file is missing or not readable
+  Comments    : None
+
+=cut
+
+sub extract_mark_duplicates_metrics {
+    my ($arg_ref) = @_;
+
+    confess 'No metrics file specified'
+      if !defined $arg_ref->{metrics_file} || !-r $arg_ref->{metrics_file};
+
+    my @metrics = read_file( $arg_ref->{metrics_file} );
+
+    my %output;
+
+    my $get_data = 0;
+    foreach my $line (@metrics) {
+        if ($get_data) {
+            chomp $line;
+            my (
+                undef,
+                $mapped_reads_without_mapped_mate,
+                $mapped_read_pairs,
+                $unmapped_reads,
+                $duplicate_mapped_reads_without_mapped_mate,
+                $duplicate_mapped_read_pairs,
+                $optical_duplicate_mapped_read_pairs,
+                $duplication_rate,
+                $estimated_library_size
+            ) = split /\t/xms, $line;
+            %output = (
+                mapped_reads_without_mapped_mate =>
+                  $mapped_reads_without_mapped_mate,
+                mapped_read_pairs => $mapped_read_pairs,
+                mapped_reads      => $mapped_reads_without_mapped_mate +
+                  $mapped_read_pairs * 2,
+                unmapped_reads => $unmapped_reads,
+                duplicate_mapped_reads_without_mapped_mate =>
+                  $duplicate_mapped_reads_without_mapped_mate,
+                duplicate_mapped_read_pairs => $duplicate_mapped_read_pairs,
+                optical_duplicate_mapped_read_pairs =>
+                  $optical_duplicate_mapped_read_pairs,
+                duplicate_reads => $duplicate_mapped_reads_without_mapped_mate +
+                  $duplicate_mapped_read_pairs * 2 +
+                  $optical_duplicate_mapped_read_pairs * 2,
+                duplication_rate       => $duplication_rate,
+                estimated_library_size => $estimated_library_size,
+            );
+            last;
+        }
+        if ( $line =~ m/\A LIBRARY/xms ) {
+            $get_data = 1;    # Parse next line
+        }
+    }
+
+    return \%output;
 }
 
 =func merge
