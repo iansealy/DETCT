@@ -22,7 +22,7 @@
   prerequisites:
     - merge_all_reads
 -
-  name:           flagstats
+  name:           merged_flagstats
   default_memory: 100
   prerequisites:
     - make_index

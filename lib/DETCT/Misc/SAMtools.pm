@@ -89,6 +89,7 @@ sub make_index {
                     dir             => '.',
                     bam_file        => $bam_file,
                     samtools_binary => 'samtools',
+                    output_file     => 'flagstat.txt',
                 } );
   Purpose     : Run SAMtools flagstat
   Returns     : undef
@@ -96,10 +97,12 @@ sub make_index {
                     dir             => String (the working directory),
                     bam_file        => String (the BAM file),
                     samtools_binary => String (the SAMtools binary),
+                    output_file     => String (the output file),
                 }
   Throws      : If directory is missing
                 If BAM file is missing
                 If SAMtools binary is missing
+                If output file is missing
                 If command line can't be run
   Comments    : None
 
@@ -112,13 +115,14 @@ sub flagstats {
     confess 'No BAM file specified'  if !defined $arg_ref->{bam_file};
     confess 'No SAMtools binary specified'
       if !defined $arg_ref->{samtools_binary};
+    confess 'No output file specified' if !defined $arg_ref->{output_file};
 
     # Make sure working directory exists
     if ( !-d $arg_ref->{dir} ) {
         make_path( $arg_ref->{dir} );
     }
 
-    my $stdout_file = File::Spec->catfile( $arg_ref->{dir}, 'flagstat.txt' );
+    my $stdout_file = $arg_ref->{output_file};
     my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'flagstat.e' );
 
     my $cmd = join q{ }, $arg_ref->{samtools_binary}, 'flagstat',

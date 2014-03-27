@@ -670,10 +670,10 @@ sub run_make_index {
     return;
 }
 
-=method all_parameters_for_flagstats
+=method all_parameters_for_merged_flagstats
 
-  Usage       : all_parameters_for_flagstats();
-  Purpose     : Get all parameters for flagstats stage
+  Usage       : all_parameters_for_merged_flagstats();
+  Purpose     : Get all parameters for merged_flagstats stage
   Returns     : Array of arrayrefs
   Parameters  : None
   Throws      : No exceptions
@@ -681,16 +681,16 @@ sub run_make_index {
 
 =cut
 
-sub all_parameters_for_flagstats {
+sub all_parameters_for_merged_flagstats {
     my ($self) = @_;
 
     return [];
 }
 
-=method run_flagstats
+=method run_merged_flagstats
 
-  Usage       : run_flagstats();
-  Purpose     : Run function for flagstats stage
+  Usage       : run_merged_flagstats();
+  Purpose     : Run function for merged_flagstats stage
   Returns     : undef
   Parameters  : DETCT::Pipeline::Job
   Throws      : No exceptions
@@ -698,11 +698,14 @@ sub all_parameters_for_flagstats {
 
 =cut
 
-sub run_flagstats {
+sub run_merged_flagstats {
     my ( $self, $job ) = @_;
 
     my $bam_file = File::Spec->catfile( $self->analysis_dir,
         $self->analysis->name . '.bam' );
+
+    my $flagstat_output_file = File::Spec->catfile( $job->base_filename,
+        $self->analysis->name . '.flagstat.txt' );
 
     # Index BAM file
     flagstats(
@@ -710,6 +713,7 @@ sub run_flagstats {
             dir             => $job->base_filename,
             bam_file        => $bam_file,
             samtools_binary => $self->analysis->samtools_binary,
+            output_file     => $flagstat_output_file,
         }
     );
 
