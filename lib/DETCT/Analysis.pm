@@ -954,7 +954,7 @@ sub list_all_bam_files {
   Usage       : @tags = $analysis->list_all_tags_by_bam_file($bam_file);
   Purpose     : Get all tags used in an analysis in a particular BAM file
   Returns     : Arrayref of strings
-  Parameters  : None
+  Parameters  : String (the BAM file)
   Throws      : No exceptions
   Comments    : None
 
