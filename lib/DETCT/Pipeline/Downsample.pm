@@ -707,7 +707,7 @@ sub run_merged_flagstats {
     my $flagstat_output_file = File::Spec->catfile( $job->base_filename,
         $self->analysis->name . '.flagstat.txt' );
 
-    # Index BAM file
+    # Get stats
     flagstats(
         {
             dir             => $job->base_filename,
