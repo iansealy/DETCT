@@ -644,8 +644,8 @@ sub all_parameters_for_mark_duplicates_metrics_by_tag {
         'mark_duplicates_metrics_by_tag',
         'markduplicates.tsv' );
 
-    my @metrics_files = ($metrics_output_file);
-    my $component     = 0;
+    my @parameters = ($metrics_output_file);
+    my $component  = 0;
     foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
         my @tags = $self->analysis->list_all_tags_by_bam_file($bam_file);
         foreach my $tag (@tags) {
@@ -653,10 +653,13 @@ sub all_parameters_for_mark_duplicates_metrics_by_tag {
             my $metrics_file =
               File::Spec->catfile( $self->analysis_dir,
                 'mark_duplicates_by_tag', $component . '.metrics' );
-            push @metrics_files, $metrics_file;
+            my $sample_name =
+              $self->analysis->get_sample_name_by_bam_file_and_tag( $bam_file,
+                $tag );
+            push @parameters, [ $sample_name, $metrics_file ];
         }
     }
-    push @all_parameters, \@metrics_files;
+    push @all_parameters, \@parameters;
 
     return @all_parameters;
 }
@@ -699,15 +702,17 @@ sub all_parameters_for_mark_duplicates_metrics_all_reads {
         'mark_duplicates_metrics_all_reads',
         'markduplicates.tsv' );
 
-    my @metrics_files = ($metrics_output_file);
-    my $component     = 0;
+    my @parameters = ($metrics_output_file);
+    my $component  = 0;
     foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
         $component++;
+        my $sample_names = join q{ },
+          $self->analysis->get_sample_names_by_bam_file($bam_file);
         my $metrics_file = File::Spec->catfile( $self->analysis_dir,
             'mark_duplicates_all_reads', $component . '.metrics' );
-        push @metrics_files, $metrics_file;
+        push @parameters, [ $sample_names, $metrics_file ];
     }
-    push @all_parameters, \@metrics_files;
+    push @all_parameters, \@parameters;
 
     return @all_parameters;
 }
@@ -743,14 +748,15 @@ sub run_mark_duplicates_metrics_all_reads {
 sub run_mark_duplicates_metrics {
     my ( $self, $job ) = @_;
 
-    my (@metrics_files) = @{ $job->parameters };
+    my (@parameters) = @{ $job->parameters };
 
-    my $metrics_output_file = shift @metrics_files;
+    my $metrics_output_file = shift @parameters;
 
     # Header
     my $metrics = q{#}
       . (
         join "\t",
+        'Sample',
         'Mapped reads without mapped mate',
         'Mapped read pairs',
         'Mapped reads',
@@ -764,7 +770,8 @@ sub run_mark_duplicates_metrics {
       ) . "\n";
 
     # Get metrics
-    foreach my $metrics_file (@metrics_files) {
+    foreach my $parameter (@parameters) {
+        my ( $sample_name, $metrics_file ) = @{$parameter};
         my $output = extract_mark_duplicates_metrics(
             {
                 metrics_file => $metrics_file,
@@ -772,6 +779,7 @@ sub run_mark_duplicates_metrics {
         );
         $metrics .= (
             join "\t",
+            $sample_name,
             $output->{mapped_reads_without_mapped_mate},
             $output->{mapped_read_pairs},
             $output->{mapped_reads},
