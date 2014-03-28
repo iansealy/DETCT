@@ -94,15 +94,16 @@ sub mark_duplicates {
 
     # Options
     my %option = (
-        INPUT                 => $arg_ref->{input_bam_file},
-        OUTPUT                => $arg_ref->{output_bam_file},
-        METRICS_FILE          => $arg_ref->{metrics_file},
-        REMOVE_DUPLICATES     => 'false',
-        TMP_DIR               => $arg_ref->{dir},
-        VERBOSITY             => 'WARNING',
-        QUIET                 => 'true',
-        VALIDATION_STRINGENCY => 'SILENT',
-        CREATE_INDEX          => 'false',
+        INPUT                              => $arg_ref->{input_bam_file},
+        OUTPUT                             => $arg_ref->{output_bam_file},
+        METRICS_FILE                       => $arg_ref->{metrics_file},
+        REMOVE_DUPLICATES                  => 'false',
+        MAX_FILE_HANDLES_FOR_READ_ENDS_MAP => 1000,
+        TMP_DIR                            => $arg_ref->{dir},
+        VERBOSITY                          => 'WARNING',
+        QUIET                              => 'true',
+        VALIDATION_STRINGENCY              => 'SILENT',
+        CREATE_INDEX                       => 'false',
     );
     if ( $arg_ref->{consider_tags} ) {
         $option{CONSIDER_TAGS} = 'true';
