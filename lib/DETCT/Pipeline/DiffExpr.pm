@@ -1093,7 +1093,7 @@ sub run_merge_read_counts {
 
   Usage       : all_parameters_for_run_deseq();
   Purpose     : Get all parameters for run_deseq stage
-  Returns     : Arrayref
+  Returns     : Array of arrayrefs
   Parameters  : None
   Throws      : No exceptions
   Comments    : None
@@ -1163,7 +1163,7 @@ sub run_run_deseq {
 
   Usage       : all_parameters_for_add_gene_annotation();
   Purpose     : Get all parameters for add_gene_annotation stage
-  Returns     : Arrayref
+  Returns     : Array of arrayrefs
   Parameters  : None
   Throws      : No exceptions
   Comments    : None
@@ -1178,7 +1178,10 @@ sub all_parameters_for_add_gene_annotation {
     my $run_deseq_output_file =
       $self->get_and_check_output_file( 'run_deseq', 1 );
 
-    push @all_parameters, [$run_deseq_output_file];
+    my $chunks = $self->analysis->get_all_chunks();
+    foreach my $chunk ( @{$chunks} ) {
+        push @all_parameters, [ $chunk, $run_deseq_output_file ];
+    }
 
     return @all_parameters;
 }
@@ -1197,13 +1200,16 @@ sub all_parameters_for_add_gene_annotation {
 sub run_add_gene_annotation {
     my ( $self, $job ) = @_;
 
-    my ($run_deseq_output_file) = @{ $job->parameters };
+    my ( $chunk, $run_deseq_output_file ) = @{ $job->parameters };
 
     # Get regions
     my $regions = LoadFile($run_deseq_output_file);
 
+    # Filter regions by sequences in chunk
+    my %chosen_seq = map { $_->name => 1 } @{$chunk};
+    @{$regions} = grep { $chosen_seq{ $_->[0] } } @{$regions};
+
     # Annotate 3' ends with genes
-    # Could split regions by chunk if slow
     my $gene_finder = DETCT::GeneFinder->new(
         { slice_adaptor => $self->analysis->slice_adaptor, } );
     my $annotated_regions_ref = $gene_finder->add_gene_annotation($regions);
@@ -1219,7 +1225,7 @@ sub run_add_gene_annotation {
 
   Usage       : all_parameters_for_dump_as_table();
   Purpose     : Get all parameters for dump_as_table stage
-  Returns     : Arrayref
+  Returns     : Array of arrayrefs
   Parameters  : None
   Throws      : No exceptions
   Comments    : None
@@ -1231,10 +1237,16 @@ sub all_parameters_for_dump_as_table {
 
     my @all_parameters;
 
-    my $add_gene_annotation_output_file =
-      $self->get_and_check_output_file( 'add_gene_annotation', 1 );
+    my $chunks = $self->analysis->get_all_chunks();
 
-    push @all_parameters, [$add_gene_annotation_output_file];
+    my @add_gene_annotation_output_files;
+    my $component = 0;
+    foreach my $chunk ( @{$chunks} ) {
+        $component++;
+        push @add_gene_annotation_output_files,
+          $self->get_and_check_output_file( 'add_gene_annotation', $component );
+    }
+    push @all_parameters, \@add_gene_annotation_output_files;
 
     return @all_parameters;
 }
@@ -1253,16 +1265,19 @@ sub all_parameters_for_dump_as_table {
 sub run_dump_as_table {
     my ( $self, $job ) = @_;
 
-    my ($add_gene_annotation_output_file) = @{ $job->parameters };
+    my (@add_gene_annotation_output_files) = @{ $job->parameters };
 
-    # Get regions
-    my $regions = LoadFile($add_gene_annotation_output_file);
+    # Join regions
+    my @regions;
+    foreach my $output_file (@add_gene_annotation_output_files) {
+        push @regions, @{ LoadFile($output_file) };
+    }
 
     DETCT::Misc::Output::dump_as_table(
         {
             analysis => $self->analysis,
             dir      => $job->base_filename,
-            regions  => $regions,
+            regions  => \@regions,
         }
     );
 
