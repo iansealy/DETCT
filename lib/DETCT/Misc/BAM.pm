@@ -24,6 +24,7 @@ use List::Util qw( min );
 use List::MoreUtils qw( all );
 use Data::Compare;
 use DETCT::Misc::Tag;
+use DETCT::Misc::BAM::Flag;
 
 use base qw( Exporter );
 our @EXPORT_OK = qw(
@@ -42,6 +43,7 @@ our @EXPORT_OK = qw(
   stats_all_reads
   downsample_by_tag
   downsample_all_reads
+  mark_duplicates
 );
 
 =head1 SYNOPSIS
@@ -1509,6 +1511,134 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
     }
 
     return $total_kept;
+}
+
+=func mark_duplicates
+
+  Usage       : DETCT::Misc::BAM::mark_duplicates( {
+                    input_bam_file  => $bam_file,
+                    output_bam_file => $new_bam_file,
+                    consider_tags   => 1,
+                } );
+  Purpose     : Mark duplicates in a BAM file
+  Returns     : undef
+  Parameters  : Hashref {
+                    input_bam_file  => String (the original BAM file),
+                    output_bam_file => String (the output BAM file),
+                    consider_tags   => Boolean (whether to consider tags),
+                }
+  Throws      : If input BAM file is missing
+                If output BAM file is missing
+                If input BAM file is not paired end, sorted by queryname
+  Comments    : Input BAM file must be sorted by queryname
+
+=cut
+
+sub mark_duplicates {
+    my ($arg_ref) = @_;
+
+    confess 'No input BAM file specified'
+      if !defined $arg_ref->{input_bam_file};
+    confess 'No output BAM file specified'
+      if !defined $arg_ref->{output_bam_file};
+
+    # Make bitmask for marking non-duplicate reads
+    my $not_dupe_mask =
+      $DETCT::Misc::BAM::Flag::READ_PAIRED +
+      $DETCT::Misc::BAM::Flag::PROPER_PAIR +
+      $DETCT::Misc::BAM::Flag::READ_UNMAPPED +
+      $DETCT::Misc::BAM::Flag::MATE_UNMAPPED +
+      $DETCT::Misc::BAM::Flag::READ_REVERSE_STRAND +
+      $DETCT::Misc::BAM::Flag::MATE_REVERSE_STRAND +
+      $DETCT::Misc::BAM::Flag::FIRST_IN_PAIR +
+      $DETCT::Misc::BAM::Flag::SECOND_IN_PAIR +
+      $DETCT::Misc::BAM::Flag::SECONDARY +
+      $DETCT::Misc::BAM::Flag::QC_FAILED +
+      $DETCT::Misc::BAM::Flag::SUPPLEMENTARY;
+
+    # Open input and output and write header to output
+    my $bam_in  = Bio::DB::Bam->open( $arg_ref->{input_bam_file},  q{r} );
+    my $bam_out = Bio::DB::Bam->open( $arg_ref->{output_bam_file}, q{w} );
+    $bam_out->header_write( $bam_in->header );
+
+    # Track signature of each read pair
+    my %is_dupe;
+
+    # Get all reads in pairs
+    while ( my $alignment1 = $bam_in->read1 ) {
+        my $alignment2 = $bam_in->read1;
+
+        # Ensure paired end reads, sorted by read name
+        confess sprintf 'Read names do not match (%s and %s) in %s',
+          $alignment1->qname, $alignment2->qname, $arg_ref->{input_bam_file}
+          if $alignment1->qname ne $alignment2->qname;
+
+        my $is_dupe;
+
+        # Check if both unmapped, in which case can't be a duplicate
+        my $both_unmapped = $alignment1->unmapped && $alignment2->unmapped;
+        if ($both_unmapped) {
+            $is_dupe = 0;
+        }
+
+        if ( !$both_unmapped ) {
+
+            # Get reference sequence, 5' end position and strand for each read
+            my @signature_components;
+            foreach my $read ( $alignment1, $alignment2 ) {
+                if ( !$read->unmapped ) {
+                    my $pos = $read->strand == 1 ? $read->start : $read->end;
+                    push @signature_components,
+                      [ $read->tid, $pos, $read->strand ];
+                }
+            }
+
+            # Sort signature components, so order is consistent
+            # (i.e. pair can be duplicates even if read 1 and read 2 are in
+            # opposite orientations, so long as positions are same)
+            @signature_components = sort {
+                     $a->[0] cmp $b->[0]
+                  || $a->[1] cmp $b->[1]
+                  || $a->[2] cmp $b->[2]
+            } @signature_components;
+
+            # Add tag to signature
+            if ( $arg_ref->{consider_tags} ) {
+                my ($tag) = $alignment1->qname =~ m/[#] ([AGCT]+) \z/xmsg;
+                push @signature_components, [$tag];
+            }
+
+            # Make signature
+            my @signature;
+            foreach my $signature_component (@signature_components) {
+                push @signature, @{$signature_component};
+            }
+            my $signature = join q{:}, @signature;
+
+            # Check if duplicate
+            $is_dupe = exists $is_dupe{$signature};
+
+            $is_dupe{$signature}++;
+        }
+
+        # Change flags
+        if ($is_dupe) {
+            $alignment1->flag(
+                $alignment1->flag | $DETCT::Misc::BAM::Flag::DUPLICATE );
+            $alignment2->flag(
+                $alignment2->flag | $DETCT::Misc::BAM::Flag::DUPLICATE );
+        }
+        else {
+            $alignment1->flag( $alignment1->flag & $not_dupe_mask );
+            $alignment2->flag( $alignment2->flag & $not_dupe_mask );
+        }
+
+        # Write reads
+        $bam_out->write1($alignment1);
+        $bam_out->write1($alignment2);
+    }
+
+    return;
 }
 
 =func matched_tag

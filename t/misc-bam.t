@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 374;
+plan tests => 380;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -23,6 +23,7 @@ use DETCT::Misc::BAM qw(
   stats_all_reads
   downsample_by_tag
   downsample_all_reads
+  mark_duplicates
 );
 
 use File::Temp qw( tempdir );
@@ -42,6 +43,7 @@ perl -Ilib script/make_test_sam.pl --seed 20 --seq_region_count 5 \
 --seq_region_max_length 10_000 --read_pair_count 100 \
 --read_tags NNNNBCGCAA NNNNBCAAGA | samtools view -bS - | samtools sort - test3
 ls *.bam | xargs -n1 samtools index
+samtools sort -n -f test1.bam test1.sorted.bam
 mv test* t/data/
 
 Some numbers in tests below will then need updating. Code to generate numbers
@@ -54,6 +56,17 @@ perl -Ilib script/make_test_fasta.pl --seed 10 --seq_region_count 5 \
 perl -Ilib script/make_test_fasta.pl --seed 20 --seq_region_count 5 \
 --seq_region_max_length 10_000 > test3.fa
 ls *.fa | xargs -n1 samtools faidx
+mv test* t/data/
+
+Test BAM files for marking duplicates can be generated using:
+
+perl -e 'print "\@HD\tVN:1.4\tSO:queryname
+\@SQ\tSN:1\tLN:1000
+HS1_1:1:1:1:1#AAAAA\t99\t1\t1\t255\t8M\t=\t20\t20\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:1:1:1#AAAAA\t147\t1\t20\t255\t8M\t=\t1\t-20\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:2:2:2#TTTTT\t99\t1\t1\t255\t8M\t=\t20\t20\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:2:2:2#TTTTT\t147\t1\t20\t255\t8M\t=\t1\t-20\tAGCTAGCT\t~~~~~~~~
+"' | samtools view -bS - > test1markdup.bam
 mv test* t/data/
 
 =cut
@@ -2107,3 +2120,107 @@ while ( my $alignment = $alignments->next_seq ) {
     }
 }
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
+
+# Mark duplicates
+
+mark_duplicates(
+    {
+        input_bam_file  => 't/data/test1.sorted.bam',
+        output_bam_file => $tmp_dir . 'test1.markdup.bam',
+    }
+);
+
+# Count duplicates
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.markdup.bam' );
+$alignments = $sam->features( -iterator => 1, );
+my $dupe_count_no_tag = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
+        $dupe_count_no_tag++;
+    }
+}
+
+mark_duplicates(
+    {
+        input_bam_file  => 't/data/test1.sorted.bam',
+        output_bam_file => $tmp_dir . 'test1.markduptag.bam',
+        consider_tags   => 1,
+    }
+);
+
+# Count duplicates
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.markduptag.bam' );
+$alignments = $sam->features( -iterator => 1, );
+my $dupe_count_tag = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
+        $dupe_count_tag++;
+    }
+}
+
+ok( $dupe_count_no_tag > $dupe_count_tag, 'Fewer duplicates if consider tags' );
+
+my $dupe_count;
+
+mark_duplicates(
+    {
+        input_bam_file  => 't/data/test1markdup.bam',
+        output_bam_file => $tmp_dir . 'test1markdup.notag.bam',
+    }
+);
+
+# Count duplicates
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1markdup.notag.bam' );
+$alignments = $sam->features( -iterator => 1, );
+$dupe_count = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
+        $dupe_count++;
+    }
+}
+is( $dupe_count, 2, '2 duplicates if tags not considered' );
+
+mark_duplicates(
+    {
+        input_bam_file  => 't/data/test1markdup.bam',
+        output_bam_file => $tmp_dir . 'test1markdup.tag.bam',
+        consider_tags   => 1,
+    }
+);
+
+# Count duplicates
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1markdup.tag.bam' );
+$alignments = $sam->features( -iterator => 1, );
+$dupe_count = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
+        $dupe_count++;
+    }
+}
+is( $dupe_count, 0, '0 duplicates if tags considered' );
+
+throws_ok {
+    $count = mark_duplicates(
+        {
+            output_bam_file => $tmp_dir . 'test1.markdup.bam',
+        }
+    );
+}
+qr/No input BAM file specified/ms, 'No input BAM file';
+throws_ok {
+    $count = mark_duplicates(
+        {
+            input_bam_file => 't/data/test1.sorted.bam',
+        }
+    );
+}
+qr/No output BAM file specified/ms, 'No output BAM file';
+throws_ok {
+    $count = mark_duplicates(
+        {
+            input_bam_file  => 't/data/test1.bam',
+            output_bam_file => $tmp_dir . 'test1.markdup.bam',
+        }
+    );
+}
+qr/Read names do not match/ms, 'BAM file not sorted by read name';
