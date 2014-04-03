@@ -60,8 +60,12 @@ my $markduplicates_bam_file = File::Spec->catfile( $dir, 'markduplicates.bam' );
 if ( $method eq 'native' ) {
 
     # Delete intermediate files if necessary
-    unlink $sorted_bam_file         if -e $sorted_bam_file;
-    unlink $markduplicates_bam_file if -e $markduplicates_bam_file;
+    if ( -e $sorted_bam_file ) {
+        unlink $sorted_bam_file;
+    }
+    if ( -e $markduplicates_bam_file ) {
+        unlink $markduplicates_bam_file;
+    }
 
     # Sort BAM file by read name
     DETCT::Misc::SAMtools::sort_bam(

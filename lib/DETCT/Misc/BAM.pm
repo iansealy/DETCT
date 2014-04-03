@@ -1586,11 +1586,29 @@ sub mark_duplicates {
             # Get reference sequence, 5' end position and strand for each read
             my @signature_components;
             foreach my $read ( $alignment1, $alignment2 ) {
-                if ( !$read->unmapped ) {
-                    my $pos = $read->strand == 1 ? $read->start : $read->end;
-                    push @signature_components,
-                      [ $read->tid, $pos, $read->strand ];
+                next if $read->unmapped;
+
+                # Get 5' end position adjusted for soft clipped bases
+                my $pos;
+                my $cigar_ref = $read->cigar_array;
+                if ( $read->strand == 1 ) {
+                    $pos = $read->start;
+                    my $pair_ref = shift @{$cigar_ref};
+                    my ( $op, $count ) = @{$pair_ref};
+                    if ( $op eq q{S} ) {
+                        $pos -= $count;
+                    }
                 }
+                else {
+                    $pos = $read->end;
+                    my $pair_ref = pop @{$cigar_ref};
+                    my ( $op, $count ) = @{$pair_ref};
+                    if ( $op eq q{S} ) {
+                        $pos += $count;
+                    }
+                }
+
+                push @signature_components, [ $read->tid, $pos, $read->strand ];
             }
 
             # Sort signature components, so order is consistent

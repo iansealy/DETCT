@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 380;
+plan tests => 382;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -62,11 +62,18 @@ Test BAM files for marking duplicates can be generated using:
 
 perl -e 'print "\@HD\tVN:1.4\tSO:queryname
 \@SQ\tSN:1\tLN:1000
-HS1_1:1:1:1:1#AAAAA\t99\t1\t1\t255\t8M\t=\t20\t20\tAGCTAGCT\t~~~~~~~~
-HS1_1:1:1:1:1#AAAAA\t147\t1\t20\t255\t8M\t=\t1\t-20\tAGCTAGCT\t~~~~~~~~
-HS1_1:1:2:2:2#TTTTT\t99\t1\t1\t255\t8M\t=\t20\t20\tAGCTAGCT\t~~~~~~~~
-HS1_1:1:2:2:2#TTTTT\t147\t1\t20\t255\t8M\t=\t1\t-20\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:1:1:1#AAAAA\t99\t1\t1\t255\t8M\t=\t20\t27\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:1:1:1#AAAAA\t147\t1\t20\t255\t8M\t=\t1\t-27\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:2:2:2#TTTTT\t99\t1\t1\t255\t8M\t=\t20\t27\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:2:2:2#TTTTT\t147\t1\t20\t255\t8M\t=\t1\t-27\tAGCTAGCT\t~~~~~~~~
 "' | samtools view -bS - > test1markdup.bam
+perl -e 'print "\@HD\tVN:1.4\tSO:queryname
+\@SQ\tSN:1\tLN:1000
+HS1_1:1:1:1:1#AAAAA\t99\t1\t3\t255\t2S6M\t=\t20\t25\tCTAGCTAG\t~~~~~~~~
+HS1_1:1:1:1:1#AAAAA\t147\t1\t20\t255\t8M\t=\t3\t-25\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:2:2:2#TTTTT\t99\t1\t1\t255\t8M\t=\t20\t25\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:2:2:2#TTTTT\t147\t1\t20\t255\t6M2S\t=\t1\t-25\tAGCTAGTC\t~~~~~~~~
+"' | samtools view -bS - > test2markdup.bam
 mv test* t/data/
 
 =cut
@@ -2198,6 +2205,43 @@ while ( my $alignment = $alignments->next_seq ) {
     }
 }
 is( $dupe_count, 0, '0 duplicates if tags considered' );
+
+mark_duplicates(
+    {
+        input_bam_file  => 't/data/test2markdup.bam',
+        output_bam_file => $tmp_dir . 'test2markdup.notag.bam',
+    }
+);
+
+# Count duplicates
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test2markdup.notag.bam' );
+$alignments = $sam->features( -iterator => 1, );
+$dupe_count = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
+        $dupe_count++;
+    }
+}
+is( $dupe_count, 2, '2 soft-clipped duplicates if tags not considered' );
+
+mark_duplicates(
+    {
+        input_bam_file  => 't/data/test2markdup.bam',
+        output_bam_file => $tmp_dir . 'test2markdup.tag.bam',
+        consider_tags   => 1,
+    }
+);
+
+# Count duplicates
+$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test2markdup.tag.bam' );
+$alignments = $sam->features( -iterator => 1, );
+$dupe_count = 0;
+while ( my $alignment = $alignments->next_seq ) {
+    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
+        $dupe_count++;
+    }
+}
+is( $dupe_count, 0, '0 soft-clipped duplicates if tags considered' );
 
 throws_ok {
     $count = mark_duplicates(
