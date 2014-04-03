@@ -29,6 +29,9 @@ Readonly our $READ_REVERSE_STRAND => 16;
 Readonly our $MATE_REVERSE_STRAND => 32;
 Readonly our $FIRST_IN_PAIR       => 64;
 Readonly our $SECOND_IN_PAIR      => 128;
+Readonly our $SECONDARY           => 256;
+Readonly our $QC_FAILED           => 512;
 Readonly our $DUPLICATE           => 1024;
+Readonly our $SUPPLEMENTARY       => 2048;
 
 1;
