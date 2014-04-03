@@ -172,6 +172,9 @@ sub sort_bam {
     confess 'No SAMtools binary specified'
       if !defined $arg_ref->{samtools_binary};
 
+    # Remove .bam extension (samtools sort adds it automatically)
+    $arg_ref->{output_bam_file} =~ s/[.]bam\z//xms;
+
     my $sort_order =
       defined $arg_ref->{sort_order} ? $arg_ref->{sort_order} : 'coordinate';
     confess 'Invalid sort order specified'
@@ -185,7 +188,7 @@ sub sort_bam {
     my $stdout_file = File::Spec->catfile( $arg_ref->{dir}, 'sort.o' );
     my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'sort.e' );
 
-    my @options = ('-f');
+    my @options = ();
     if ( $sort_order eq 'queryname' ) {
         push @options, '-n';
     }
