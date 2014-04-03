@@ -21,6 +21,7 @@ use Getopt::Long;
 use Pod::Usage;
 use Readonly;
 use DETCT::Misc qw( print_or_die );
+use DETCT::Misc::BAM::Flag;
 
 =head1 DESCRIPTION
 
@@ -79,17 +80,6 @@ Readonly our %ALIGNMENT_REGEXP_OPTIONAL => (
     H => qr/\A [\dA-F]+ \z/xms,
     B => qr/\A [cCsSiIf](,[-+]?\d*[.]?\d+([eE][-+]?\d+)?)+ \z/xms,
 );
-
-# Bits of flag field
-Readonly our $FLAG_READ_PAIRED         => 1;
-Readonly our $FLAG_PROPER_PAIR         => 2;
-Readonly our $FLAG_READ_UNMAPPED       => 4;
-Readonly our $FLAG_MATE_UNMAPPED       => 8;
-Readonly our $FLAG_READ_REVERSE_STRAND => 16;
-Readonly our $FLAG_MATE_REVERSE_STRAND => 32;
-Readonly our $FLAG_FIRST_IN_PAIR       => 64;
-Readonly our $FLAG_SECOND_IN_PAIR      => 128;
-Readonly our $FLAG_DUPLICATE           => 1024;
 
 # Chance one read of a pair is unmapped
 Readonly our $CHANCE_UNMAPPED => 0.1;
@@ -244,8 +234,8 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
             if ( $read_pair_count == $num_real_duplicates + 1 ) {
 
                 # Mark rest of reads as duplicates
-                $read1_flag = $read1_flag | $FLAG_DUPLICATE;
-                $read2_flag = $read2_flag | $FLAG_DUPLICATE;
+                $read1_flag = $read1_flag | $DETCT::Misc::BAM::Flag::DUPLICATE;
+                $read2_flag = $read2_flag | $DETCT::Misc::BAM::Flag::DUPLICATE;
             }
         }
     }
@@ -414,20 +404,28 @@ sub get_pos {
 sub get_flag {
     my ( $read1_pos, $read2_pos ) = @_;
 
-    my $read1_flag = $FLAG_READ_PAIRED | $FLAG_PROPER_PAIR;
-    my $read2_flag = $FLAG_READ_PAIRED | $FLAG_PROPER_PAIR;
+    my $read1_flag =
+      $DETCT::Misc::BAM::Flag::READ_PAIRED |
+      $DETCT::Misc::BAM::Flag::PROPER_PAIR;
+    my $read2_flag =
+      $DETCT::Misc::BAM::Flag::READ_PAIRED |
+      $DETCT::Misc::BAM::Flag::PROPER_PAIR;
 
     if ( $read1_pos < $read2_pos ) {
-        $read1_flag = $read1_flag | $FLAG_MATE_REVERSE_STRAND;
-        $read2_flag = $read2_flag | $FLAG_READ_REVERSE_STRAND;
+        $read1_flag =
+          $read1_flag | $DETCT::Misc::BAM::Flag::MATE_REVERSE_STRAND;
+        $read2_flag =
+          $read2_flag | $DETCT::Misc::BAM::Flag::READ_REVERSE_STRAND;
     }
     else {
-        $read1_flag = $read1_flag | $FLAG_READ_REVERSE_STRAND;
-        $read2_flag = $read2_flag | $FLAG_MATE_REVERSE_STRAND;
+        $read1_flag =
+          $read1_flag | $DETCT::Misc::BAM::Flag::READ_REVERSE_STRAND;
+        $read2_flag =
+          $read2_flag | $DETCT::Misc::BAM::Flag::MATE_REVERSE_STRAND;
     }
 
-    $read1_flag = $read1_flag | $FLAG_FIRST_IN_PAIR;
-    $read2_flag = $read2_flag | $FLAG_SECOND_IN_PAIR;
+    $read1_flag = $read1_flag | $DETCT::Misc::BAM::Flag::FIRST_IN_PAIR;
+    $read2_flag = $read2_flag | $DETCT::Misc::BAM::Flag::SECOND_IN_PAIR;
 
     return $read1_flag, $read2_flag;
 }
@@ -455,18 +453,18 @@ sub get_unmapped {
     my ( $read1_flag, $read2_flag, $read1_pos, $read2_pos ) = @_;
 
     if ( rand() < $CHANCE_UNMAPPED ) {
-        $read1_flag = $read1_flag ^ $FLAG_PROPER_PAIR;
-        $read2_flag = $read2_flag ^ $FLAG_PROPER_PAIR;
+        $read1_flag = $read1_flag ^ $DETCT::Misc::BAM::Flag::PROPER_PAIR;
+        $read2_flag = $read2_flag ^ $DETCT::Misc::BAM::Flag::PROPER_PAIR;
         if ( rand() < 0.5 ) {    ## no critic (ProhibitMagicNumbers)
                                  # Read 1 unmapped
-            $read1_flag = $read1_flag | $FLAG_READ_UNMAPPED;
-            $read2_flag = $read2_flag | $FLAG_MATE_UNMAPPED;
+            $read1_flag = $read1_flag | $DETCT::Misc::BAM::Flag::READ_UNMAPPED;
+            $read2_flag = $read2_flag | $DETCT::Misc::BAM::Flag::MATE_UNMAPPED;
             $read1_pos  = $read2_pos;
         }
         else {
             # Read 2 unmapped
-            $read2_flag = $read2_flag | $FLAG_READ_UNMAPPED;
-            $read1_flag = $read1_flag | $FLAG_MATE_UNMAPPED;
+            $read2_flag = $read2_flag | $DETCT::Misc::BAM::Flag::READ_UNMAPPED;
+            $read1_flag = $read1_flag | $DETCT::Misc::BAM::Flag::MATE_UNMAPPED;
             $read2_pos  = $read1_pos;
         }
     }
