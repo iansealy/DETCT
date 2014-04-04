@@ -223,7 +223,7 @@ sub count_tags {
             $arg_ref->{mismatch_threshold} );
 
         # Match tag
-        my ($tag_in_read) = $alignment->query->name =~ m/[#] ([AGCT]+) \z/xmsg;
+        my ($tag_in_read) = $alignment->query->name =~ m/[#] ([NAGCT]+) \z/xmsg;
         return if !$tag_in_read;
       TAG: foreach my $tag ( sort keys %re_for ) {
             my $regexps = $re_for{$tag};
@@ -1622,7 +1622,7 @@ sub mark_duplicates {
 
             # Add tag to signature
             if ( $arg_ref->{consider_tags} ) {
-                my ($tag) = $alignment1->qname =~ m/[#] ([AGCT]+) \z/xmsg;
+                my ($tag) = $alignment1->qname =~ m/[#] ([NAGCT]+) \z/xmsg;
                 push @signature_components, [$tag];
             }
 
@@ -1675,7 +1675,7 @@ sub matched_tag {
     my ( $alignment, $re_for ) = @_;
 
     # Match tag
-    my ($tag_in_read) = $alignment->query->name =~ m/[#] ([AGCT]+) \z/xmsg;
+    my ($tag_in_read) = $alignment->query->name =~ m/[#] ([NAGCT]+) \z/xmsg;
     if ($tag_in_read) {
         foreach my $tag ( sort keys %{$re_for} ) {
             my $regexps = $re_for->{$tag};
