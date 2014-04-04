@@ -57,6 +57,8 @@ make_path($dir);
 my $sorted_bam_file         = File::Spec->catfile( $dir, 'sorted.bam' );
 my $markduplicates_bam_file = File::Spec->catfile( $dir, 'markduplicates.bam' );
 
+my $metrics;
+
 if ( $method eq 'native' ) {
 
     # Delete intermediate files if necessary
@@ -79,7 +81,7 @@ if ( $method eq 'native' ) {
     );
 
     # Mark duplicates
-    DETCT::Misc::BAM::mark_duplicates(
+    $metrics = DETCT::Misc::BAM::mark_duplicates(
         {
             input_bam_file  => $sorted_bam_file,
             output_bam_file => $markduplicates_bam_file,
@@ -111,6 +113,12 @@ elsif ( $method eq 'picard' ) {
             java_binary         => $java_binary,
             mark_duplicates_jar => $mark_duplicates_jar,
             consider_tags       => $consider_tags,
+        }
+    );
+
+    $metrics = DETCT::Misc::Picard::extract_mark_duplicates_metrics(
+        {
+            metrics_file => $output_bam_file . '.metrics',
         }
     );
 }
