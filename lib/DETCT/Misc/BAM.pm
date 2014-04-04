@@ -1766,9 +1766,14 @@ sub estimate_library_size {
     # c = number of unique read pairs
     my $c = $arg_ref->{num_read_pairs} - $arg_ref->{num_duplicate_read_pairs};
 
-    if ( $n < 1 || $c < 1 || $c >= $n ) {
+    if ( $n < 1 || $c < 1 || $c > $n ) {
         confess sprintf 'Invalid read pairs (%d) or unique read pairs (%d)',
           $n, $c;
+    }
+
+    # Can't estimate library size if all unique
+    if ($c == $n) {
+        return;
     }
 
     my $lo = 1;
