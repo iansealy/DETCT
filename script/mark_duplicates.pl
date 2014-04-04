@@ -44,7 +44,7 @@ my $output_bam_file;
 my $consider_tags;
 my $samtools_binary     = 'samtools';
 my $java_binary         = 'java';
-my $mark_duplicates_jar = 'picard-tools-1.79-detct/MarkDuplicates.jar';
+my $mark_duplicates_jar = 'picard-tools-1.110-detct/MarkDuplicates.jar';
 my ( $debug, $help, $man );
 
 # Get and check command line options

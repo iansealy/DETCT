@@ -14,7 +14,7 @@ use File::Slurp;
 use IO::Socket::INET;
 
 # If Picard JAR files don't exist then create text files (which won't be run)
-my $picard_dir = 'picard-tools-1.79-detct';
+my $picard_dir = 'picard-tools-1.110-detct';
 make_path($picard_dir);
 my $mark_duplicates_jar = $picard_dir . '/MarkDuplicates.jar';
 if ( !-e $mark_duplicates_jar ) {

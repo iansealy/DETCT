@@ -4,8 +4,8 @@ read_count_type: proper
 round_down_to: 500
 samtools_binary: samtools
 java_binary: java
-mark_duplicates_jar: picard-tools-1.79-detct/MarkDuplicates.jar
-merge_sam_files_jar: picard-tools-1.79-detct/MergeSamFiles.jar
+mark_duplicates_jar: picard-tools-1.110-detct/MarkDuplicates.jar
+merge_sam_files_jar: picard-tools-1.110-detct/MergeSamFiles.jar
 ref_fasta: example/example.fa
 ensembl_species: danio_rerio
 samples:
