@@ -1524,7 +1524,20 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
                     consider_tags   => 1,
                 } );
   Purpose     : Mark duplicates in a BAM file
-  Returns     : undef
+  Returns     : Hashref {
+                    String (tag or pseudo-tag) => Hashref {
+                        mapped_reads_without_mapped_mate           => Int,
+                        mapped_read_pairs                          => Int,
+                        mapped_reads                               => Int,
+                        unmapped_reads                             => Int,
+                        duplicate_mapped_reads_without_mapped_mate => Int,
+                        duplicate_mapped_read_pairs                => Int,
+                        optical_duplicate_mapped_read_pairs        => Int,
+                        duplicate_reads                            => Int,
+                        duplication_rate                           => Float,
+                        estimated_library_size                     => Int,
+                    }
+                }
   Parameters  : Hashref {
                     input_bam_file  => String (the original BAM file),
                     output_bam_file => String (the output BAM file),
@@ -1564,6 +1577,14 @@ sub mark_duplicates {
     my $bam_out = Bio::DB::Bam->open( $arg_ref->{output_bam_file}, q{w} );
     $bam_out->header_write( $bam_in->header );
 
+    # Track metrics
+    my %metrics;
+    $metrics{_all}{mapped_reads_without_mapped_mate}           = 0;
+    $metrics{_all}{mapped_read_pairs}                          = 0;
+    $metrics{_all}{unmapped_reads}                             = 0;
+    $metrics{_all}{duplicate_mapped_reads_without_mapped_mate} = 0;
+    $metrics{_all}{duplicate_mapped_read_pairs}                = 0;
+
     # Track signature of each read pair
     my %is_dupe;
 
@@ -1583,6 +1604,10 @@ sub mark_duplicates {
         if ($both_unmapped) {
             $is_dupe = 0;
         }
+
+        # Check if just one read unmapped
+        my $one_unmapped =
+          !$both_unmapped && ( $alignment1->unmapped || $alignment2->unmapped );
 
         if ( !$both_unmapped ) {
 
@@ -1663,12 +1688,110 @@ sub mark_duplicates {
             $alignment2->flag( $alignment2->flag & $not_dupe_mask );
         }
 
+        # Update metrics
+        if ($both_unmapped) {
+            $metrics{_all}{unmapped_reads} += 2;
+        }
+        elsif ($one_unmapped) {
+            $metrics{_all}{mapped_reads_without_mapped_mate}++;
+            $metrics{_all}{unmapped_reads}++;
+            if ($is_dupe) {
+                $metrics{_all}{duplicate_mapped_reads_without_mapped_mate}++;
+            }
+        }
+        else {
+            $metrics{_all}{mapped_read_pairs}++;
+            if ($is_dupe) {
+                $metrics{_all}{duplicate_mapped_read_pairs}++;
+            }
+        }
+
         # Write reads
         $bam_out->write1($alignment1);
         $bam_out->write1($alignment2);
     }
 
-    return;
+    # Calculate derived metrics
+    $metrics{_all}{mapped_reads} =
+      $metrics{_all}{mapped_reads_without_mapped_mate} +
+      $metrics{_all}{mapped_read_pairs} * 2;
+    $metrics{_all}{optical_duplicate_mapped_read_pairs} = 0;
+    $metrics{_all}{duplicate_reads} =
+      $metrics{_all}{duplicate_mapped_reads_without_mapped_mate} +
+      $metrics{_all}{duplicate_mapped_read_pairs} * 2;
+    $metrics{_all}{duplication_rate} =
+      $metrics{_all}{duplicate_reads} / $metrics{_all}{mapped_reads};
+    $metrics{_all}{estimated_library_size} = estimate_library_size(
+        {
+            num_read_pairs => $metrics{_all}{mapped_read_pairs},
+            num_duplicate_read_pairs =>
+              $metrics{_all}{duplicate_mapped_read_pairs},
+        }
+    );
+
+    return \%metrics;
+}
+
+=func estimate_library_size
+
+  Usage       : my $size = DETCT::Misc::BAM::estimate_library_size( {
+                    num_read_pairs           => 100000,
+                    num_duplicate_read_pairs => 1000,
+                } );
+  Purpose     : Estimate the size of a library
+  Returns     : Int (the estimated library size) or undef
+  Parameters  : Hashref {
+                    num_read_pairs           => Int (read pair count),
+                    num_duplicate_read_pairs => Int (duplicate read pair count),
+                }
+  Throws      : If read pair count or duplicate read pair count are not positive
+                integers or duplicate read pair count is higher than read pair
+                count
+  Comments    : Based on code from Picard's DuplicationMetrics.java
+                Uses the Lander-Waterman equation:
+                    C/X = 1 - exp( -N/X )
+                Where:
+                    X = number of distinct molecules in library
+                    N = number of read pairs
+                    C = number of unique read pairs
+
+=cut
+
+sub estimate_library_size {
+    my ($arg_ref) = @_;
+
+    # n = number of read pairs
+    my $n = $arg_ref->{num_read_pairs};
+
+    # c = number of unique read pairs
+    my $c = $arg_ref->{num_read_pairs} - $arg_ref->{num_duplicate_read_pairs};
+
+    if ( $n < 1 || $c < 1 || $c >= $n ) {
+        confess sprintf 'Invalid read pairs (%d) or unique read pairs (%d)',
+          $n, $c;
+    }
+
+    my $lo = 1;
+    my $hi = 10;
+
+    # Make upper limit high enough
+    while ( ( 1 / $hi - 1 + exp( -$n / $hi / $c ) ) >= 0 ) {
+        $hi *= 10;
+    }
+
+    # Converge on estimate of library size
+    foreach ( 1 .. 40 ) {
+        my $avg  = ( $lo + $hi ) / 2;
+        my $diff = 1 / $avg - 1 + exp( -$n / $avg / $c );
+        if ( $diff > 0 ) {
+            $lo = $avg;
+        }
+        elsif ( $diff < 0 ) {
+            $hi = $avg;
+        }
+    }
+
+    return int( $c * ( $lo + $hi ) / 2 );
 }
 
 =func matched_tag
