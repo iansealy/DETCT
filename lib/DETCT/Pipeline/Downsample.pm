@@ -780,16 +780,16 @@ sub run_mark_duplicates_metrics {
         $metrics .= (
             join "\t",
             $sample_name,
-            $output->{mapped_reads_without_mapped_mate},
-            $output->{mapped_read_pairs},
-            $output->{mapped_reads},
-            $output->{unmapped_reads},
-            $output->{duplicate_mapped_reads_without_mapped_mate},
-            $output->{duplicate_mapped_read_pairs},
-            $output->{optical_duplicate_mapped_read_pairs},
-            $output->{duplicate_reads},
-            $output->{duplication_rate},
-            $output->{estimated_library_size},
+            $output->{_all}->{mapped_reads_without_mapped_mate},
+            $output->{_all}->{mapped_read_pairs},
+            $output->{_all}->{mapped_reads},
+            $output->{_all}->{unmapped_reads},
+            $output->{_all}->{duplicate_mapped_reads_without_mapped_mate},
+            $output->{_all}->{duplicate_mapped_read_pairs},
+            $output->{_all}->{optical_duplicate_mapped_read_pairs},
+            $output->{_all}->{duplicate_reads},
+            $output->{_all}->{duplication_rate},
+            $output->{_all}->{estimated_library_size},
         ) . "\n";
     }
 
