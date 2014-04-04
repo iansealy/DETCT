@@ -70,6 +70,9 @@ Readonly our @POLYA_REGEXP => (
     qr/\A AA.AA.AA.. \z/xms,
 );
 
+# Digits for base 62 number
+Readonly our @BASE_62_DIGITS => ( 0 .. 9, 'a' .. 'z', 'A' .. 'Z' );
+
 =func get_reference_sequence_lengths
 
   Usage       : my %length_of
@@ -1622,8 +1625,17 @@ sub mark_duplicates {
 
             # Add tag to signature
             if ( $arg_ref->{consider_tags} ) {
-                my ($tag) = $alignment1->qname =~ m/[#] ([NAGCT]+) \z/xmsg;
-                push @signature_components, [$tag];
+                my ($tag) = $alignment1->qname =~ m/[#] ([NAGCTX]+) \z/xmsg;
+
+                # Convert tag to integer in base 62 to save space
+                $tag =~ tr/NAGCTX/012345/;
+                my $int = q{};
+                while ( $tag > 0 ) {
+                    $int = $BASE_62_DIGITS[ $tag % 62 ] . $int;
+                    $tag = int( $tag / 62 );
+                }
+
+                push @signature_components, [$int];
             }
 
             # Make signature
