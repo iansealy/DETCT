@@ -1656,8 +1656,10 @@ sub mark_duplicates {
                 $tag =~ tr/NAGCTX/012345/;
                 my $int = q{};
                 while ( $tag > 0 ) {
+                    ## no critic (ProhibitMagicNumbers)
                     $int = $BASE_62_DIGITS[ $tag % 62 ] . $int;
                     $tag = int( $tag / 62 );
+                    ## use critic
                 }
 
                 push @signature_components, [$int];
@@ -1772,20 +1774,20 @@ sub estimate_library_size {
     }
 
     # Can't estimate library size if all unique
-    if ($c == $n) {
+    if ( $c == $n ) {
         return;
     }
 
     my $lo = 1;
-    my $hi = 10;
+    my $hi = 10;    ## no critic (ProhibitMagicNumbers)
 
     # Make upper limit high enough
     while ( ( 1 / $hi - 1 + exp( -$n / $hi / $c ) ) >= 0 ) {
-        $hi *= 10;
+        $hi *= 10;    ## no critic (ProhibitMagicNumbers)
     }
 
     # Converge on estimate of library size
-    foreach ( 1 .. 40 ) {
+    foreach ( 1 .. 40 ) {    ## no critic (ProhibitMagicNumbers)
         my $avg  = ( $lo + $hi ) / 2;
         my $diff = 1 / $avg - 1 + exp( -$n / $avg / $c );
         if ( $diff > 0 ) {
