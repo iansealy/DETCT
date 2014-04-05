@@ -1679,15 +1679,12 @@ sub mark_duplicates {
         }
 
         # Change flags
-        if ($is_dupe) {
-            $alignment1->flag(
-                $alignment1->flag | $DETCT::Misc::BAM::Flag::DUPLICATE );
-            $alignment2->flag(
-                $alignment2->flag | $DETCT::Misc::BAM::Flag::DUPLICATE );
-        }
-        else {
-            $alignment1->flag( $alignment1->flag & $not_dupe_mask );
-            $alignment2->flag( $alignment2->flag & $not_dupe_mask );
+        foreach my $read ( $alignment1, $alignment2 ) {
+            if ($is_dupe && !$read->unmapped) {
+                $read->flag( $read->flag | $DETCT::Misc::BAM::Flag::DUPLICATE );
+            } else {
+                $read->flag( $read->flag & $not_dupe_mask );
+            }
         }
 
         # Update metrics
