@@ -19,6 +19,7 @@ use Carp;
 use Try::Tiny;
 
 use Readonly;
+use File::Slurp;
 use File::Spec;
 use File::Path qw( make_path );
 use Sort::Naturally;
@@ -28,6 +29,7 @@ use DETCT::Misc qw( write_or_die );
 use base qw( Exporter );
 our @EXPORT_OK = qw(
   dump_as_table
+  dump_duplication_metrics
 );
 
 =head1 SYNOPSIS
@@ -732,6 +734,68 @@ sub dump_html {
     }
 
     write_or_die( $fh, '</tr>', "\n" );
+
+    return;
+}
+
+=func dump_duplication_metrics
+
+  Usage       : DETCT::Misc::Output::dump_duplication_metrics( {
+                    output_file => 'markdup.tsv',
+                    metrics     => \@metrics,
+                } );
+  Purpose     : Dump duplication metrics in tsv format
+  Returns     : undef
+  Parameters  : Hashref {
+                    output_file => String (the output file),
+                    metrics     => Arrayref (of metrics Hashrefs),
+                }
+  Throws      : If output file is missing
+  Comments    : None
+
+=cut
+
+sub dump_duplication_metrics {
+    my ($arg_ref) = @_;
+
+    confess 'No output file specified' if !defined $arg_ref->{output_file};
+
+    # Header
+    my $metrics_output = q{#}
+      . (
+        join "\t",
+        'Sample',
+        'Mapped reads without mapped mate',
+        'Mapped read pairs',
+        'Mapped reads',
+        'Unmapped reads',
+        'Duplicate mapped reads without mapped mate',
+        'Duplicate mapped read pairs',
+        'Optical duplicate mapped read pairs',
+        'Duplicate reads',
+        'Duplication rate',
+        'Estimated library size',
+      ) . "\n";
+
+    # Get metrics
+    foreach my $output ( @{ $arg_ref->{metrics} } ) {
+        $metrics_output .= (
+            join "\t",
+            $output->{sample_name},
+            $output->{mapped_reads_without_mapped_mate},
+            $output->{mapped_read_pairs},
+            $output->{mapped_reads},
+            $output->{unmapped_reads},
+            $output->{duplicate_mapped_reads_without_mapped_mate},
+            $output->{duplicate_mapped_read_pairs},
+            $output->{optical_duplicate_mapped_read_pairs},
+            $output->{duplicate_reads},
+            $output->{duplication_rate},
+            $output->{estimated_library_size},
+        ) . "\n";
+    }
+
+    write_file( $arg_ref->{output_file}, $metrics_output );
 
     return;
 }
