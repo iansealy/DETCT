@@ -136,18 +136,16 @@ sub mark_duplicates {
                 } );
   Purpose     : Extract MarkDuplicates metrics
   Returns     : Hashref {
-                    '_all' => Hashref {
-                        mapped_reads_without_mapped_mate           => Int,
-                        mapped_read_pairs                          => Int,
-                        mapped_reads                               => Int,
-                        unmapped_reads                             => Int,
-                        duplicate_mapped_reads_without_mapped_mate => Int,
-                        duplicate_mapped_read_pairs                => Int,
-                        optical_duplicate_mapped_read_pairs        => Int,
-                        duplicate_reads                            => Int,
-                        duplication_rate                           => Float,
-                        estimated_library_size                     => Int,
-                    }
+                    mapped_reads_without_mapped_mate           => Int,
+                    mapped_read_pairs                          => Int,
+                    mapped_reads                               => Int,
+                    unmapped_reads                             => Int,
+                    duplicate_mapped_reads_without_mapped_mate => Int,
+                    duplicate_mapped_read_pairs                => Int,
+                    optical_duplicate_mapped_read_pairs        => Int,
+                    duplicate_reads                            => Int,
+                    duplication_rate                           => Float,
+                    estimated_library_size                     => Int,
                 }
   Parameters  : Hashref {
                     metrics_file => String (the metrics file),
@@ -183,24 +181,22 @@ sub extract_mark_duplicates_metrics {
                 $estimated_library_size
             ) = split /\t/xms, $line;
             $output = {
-                '_all' => {
-                    mapped_reads_without_mapped_mate =>
-                      $mapped_reads_without_mapped_mate,
-                    mapped_read_pairs => $mapped_read_pairs,
-                    mapped_reads      => $mapped_reads_without_mapped_mate +
-                      $mapped_read_pairs * 2,
-                    unmapped_reads => $unmapped_reads,
-                    duplicate_mapped_reads_without_mapped_mate =>
-                      $duplicate_mapped_reads_without_mapped_mate,
-                    duplicate_mapped_read_pairs => $duplicate_mapped_read_pairs,
-                    optical_duplicate_mapped_read_pairs =>
-                      $optical_duplicate_mapped_read_pairs,
-                    duplicate_reads =>
-                      $duplicate_mapped_reads_without_mapped_mate +
-                      $duplicate_mapped_read_pairs * 2,
-                    duplication_rate       => $duplication_rate,
-                    estimated_library_size => $estimated_library_size,
-                }
+                mapped_reads_without_mapped_mate =>
+                  $mapped_reads_without_mapped_mate,
+                mapped_read_pairs => $mapped_read_pairs,
+                mapped_reads      => $mapped_reads_without_mapped_mate +
+                  $mapped_read_pairs * 2,
+                unmapped_reads => $unmapped_reads,
+                duplicate_mapped_reads_without_mapped_mate =>
+                  $duplicate_mapped_reads_without_mapped_mate,
+                duplicate_mapped_read_pairs => $duplicate_mapped_read_pairs,
+                optical_duplicate_mapped_read_pairs =>
+                  $optical_duplicate_mapped_read_pairs,
+                duplicate_reads =>
+                  $duplicate_mapped_reads_without_mapped_mate +
+                  $duplicate_mapped_read_pairs * 2,
+                duplication_rate       => $duplication_rate,
+                estimated_library_size => $estimated_library_size,
             };
             last;
         }
