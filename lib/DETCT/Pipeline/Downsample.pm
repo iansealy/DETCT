@@ -40,6 +40,9 @@ use DETCT::Misc::SAMtools qw(
   make_index
   flagstats
 );
+use DETCT::Misc::Output qw(
+  dump_duplication_metrics
+);
 
 =head1 SYNOPSIS
 
@@ -752,24 +755,8 @@ sub run_mark_duplicates_metrics {
 
     my $metrics_output_file = shift @parameters;
 
-    # Header
-    my $metrics = q{#}
-      . (
-        join "\t",
-        'Sample',
-        'Mapped reads without mapped mate',
-        'Mapped read pairs',
-        'Mapped reads',
-        'Unmapped reads',
-        'Duplicate mapped reads without mapped mate',
-        'Duplicate mapped read pairs',
-        'Optical duplicate mapped read pairs',
-        'Duplicate reads',
-        'Duplication rate',
-        'Estimated library size',
-      ) . "\n";
-
     # Get metrics
+    my @metrics;
     foreach my $parameter (@parameters) {
         my ( $sample_name, $metrics_file ) = @{$parameter};
         my $output = extract_mark_duplicates_metrics(
@@ -777,23 +764,17 @@ sub run_mark_duplicates_metrics {
                 metrics_file => $metrics_file,
             }
         );
-        $metrics .= (
-            join "\t",
-            $sample_name,
-            $output->{mapped_reads_without_mapped_mate},
-            $output->{mapped_read_pairs},
-            $output->{mapped_reads},
-            $output->{unmapped_reads},
-            $output->{duplicate_mapped_reads_without_mapped_mate},
-            $output->{duplicate_mapped_read_pairs},
-            $output->{optical_duplicate_mapped_read_pairs},
-            $output->{duplicate_reads},
-            $output->{duplication_rate},
-            $output->{estimated_library_size},
-        ) . "\n";
+        $output->{sample_name} = $sample_name;
+        push @metrics, $output;
     }
 
-    write_file( $metrics_output_file, $metrics );
+    # Output metrics
+    dump_duplication_metrics(
+        {
+            output_file => $metrics_output_file,
+            metrics     => \@metrics,
+        }
+    );
 
     my $output_file = $job->base_filename . '.out';
 
