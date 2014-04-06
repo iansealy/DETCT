@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 382;
+plan tests => 390;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -2130,7 +2130,9 @@ ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 # Mark duplicates
 
-mark_duplicates(
+my $metrics;
+
+$metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test1.sorted.bam',
         output_bam_file => $tmp_dir . 'test1.markdup.bam',
@@ -2147,7 +2149,10 @@ while ( my $alignment = $alignments->next_seq ) {
     }
 }
 
-mark_duplicates(
+is( $metrics->{_all}->{duplicate_reads},
+    $dupe_count_no_tag, 'Duplicate reads if tags not considered' );
+
+$metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test1.sorted.bam',
         output_bam_file => $tmp_dir . 'test1.markduptag.bam',
@@ -2165,11 +2170,33 @@ while ( my $alignment = $alignments->next_seq ) {
     }
 }
 
+is( $metrics->{_all}->{duplicate_reads},
+    $dupe_count_tag, 'Duplicate reads if tags considered' );
+
 ok( $dupe_count_no_tag > $dupe_count_tag, 'Fewer duplicates if consider tags' );
+
+$metrics = mark_duplicates(
+    {
+        input_bam_file  => 't/data/test1.sorted.bam',
+        output_bam_file => $tmp_dir . 'test1.markduptag.bam',
+        consider_tags   => 1,
+        tags            => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
+    }
+);
+
+is( $metrics->{_all}->{duplicate_reads},
+    $dupe_count_tag, 'Duplicate reads if tags considered with tags' );
+
+is(
+    $metrics->{NNNNBGAGGC}->{duplicate_reads} +
+      $metrics->{NNNNBAGAAG}->{duplicate_reads},
+    $dupe_count_tag,
+    'Duplicates reads is sum of tags'
+);
 
 my $dupe_count;
 
-mark_duplicates(
+$metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test1markdup.bam',
         output_bam_file => $tmp_dir . 'test1markdup.notag.bam',
@@ -2186,8 +2213,9 @@ while ( my $alignment = $alignments->next_seq ) {
     }
 }
 is( $dupe_count, 2, '2 duplicates if tags not considered' );
+is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
-mark_duplicates(
+$metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test1markdup.bam',
         output_bam_file => $tmp_dir . 'test1markdup.tag.bam',
@@ -2205,8 +2233,9 @@ while ( my $alignment = $alignments->next_seq ) {
     }
 }
 is( $dupe_count, 0, '0 duplicates if tags considered' );
+is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
-mark_duplicates(
+$metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test2markdup.bam',
         output_bam_file => $tmp_dir . 'test2markdup.notag.bam',
@@ -2223,8 +2252,9 @@ while ( my $alignment = $alignments->next_seq ) {
     }
 }
 is( $dupe_count, 2, '2 soft-clipped duplicates if tags not considered' );
+is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
-mark_duplicates(
+$metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test2markdup.bam',
         output_bam_file => $tmp_dir . 'test2markdup.tag.bam',
@@ -2242,6 +2272,7 @@ while ( my $alignment = $alignments->next_seq ) {
     }
 }
 is( $dupe_count, 0, '0 soft-clipped duplicates if tags considered' );
+is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
 throws_ok {
     $count = mark_duplicates(

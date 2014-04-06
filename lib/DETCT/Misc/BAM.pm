@@ -1522,8 +1522,9 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
                     input_bam_file  => $bam_file,
                     output_bam_file => $new_bam_file,
                     consider_tags   => 1,
+                    tags            => ['NNNNBGAGGC', 'NNNNBAGAAG'],
                 } );
-  Purpose     : Mark duplicates in a BAM file
+  Purpose     : Mark duplicates in a name-sorted BAM file
   Returns     : Hashref {
                     String (tag or pseudo-tag) => Hashref {
                         mapped_reads_without_mapped_mate           => Int,
@@ -1542,6 +1543,7 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
                     input_bam_file  => String (the original BAM file),
                     output_bam_file => String (the output BAM file),
                     consider_tags   => Boolean (whether to consider tags),
+                    tags            => Arrayref of strings (the tags),
                 }
   Throws      : If input BAM file is missing
                 If output BAM file is missing
@@ -1557,6 +1559,13 @@ sub mark_duplicates {
       if !defined $arg_ref->{input_bam_file};
     confess 'No output BAM file specified'
       if !defined $arg_ref->{output_bam_file};
+
+    # Ignore any specified tags if not considering tags
+    my @tags = $arg_ref->{consider_tags}
+      && $arg_ref->{tags} ? @{ $arg_ref->{tags} } : ();
+
+    # Convert tag to regular expressions
+    my %re_for = @tags ? DETCT::Misc::Tag::convert_tag_to_regexp(@tags) : ();
 
     # Make bitmask for marking non-duplicate reads
     my $not_dupe_mask =
@@ -1579,11 +1588,17 @@ sub mark_duplicates {
 
     # Track metrics
     my %metrics;
-    $metrics{_all}{mapped_reads_without_mapped_mate}           = 0;
-    $metrics{_all}{mapped_read_pairs}                          = 0;
-    $metrics{_all}{unmapped_reads}                             = 0;
-    $metrics{_all}{duplicate_mapped_reads_without_mapped_mate} = 0;
-    $metrics{_all}{duplicate_mapped_read_pairs}                = 0;
+    my @all_pseudotags = ('_all');
+    if (@tags) {
+        push @all_pseudotags, @tags, '_other';
+    }
+    foreach my $pseudotag (@all_pseudotags) {
+        $metrics{$pseudotag}{mapped_reads_without_mapped_mate}           = 0;
+        $metrics{$pseudotag}{mapped_read_pairs}                          = 0;
+        $metrics{$pseudotag}{unmapped_reads}                             = 0;
+        $metrics{$pseudotag}{duplicate_mapped_reads_without_mapped_mate} = 0;
+        $metrics{$pseudotag}{duplicate_mapped_read_pairs}                = 0;
+    }
 
     # Track signature of each read pair
     my %is_dupe;
@@ -1598,6 +1613,8 @@ sub mark_duplicates {
           if $alignment1->qname ne $alignment2->qname;
 
         my $is_dupe;
+
+        my $tag;
 
         # Check if both unmapped, in which case can't be a duplicate
         my $both_unmapped = $alignment1->unmapped && $alignment2->unmapped;
@@ -1648,21 +1665,24 @@ sub mark_duplicates {
                   || $a->[2] cmp $b->[2]
             } @signature_components;
 
-            # Add tag to signature
+            # Add tag to signature if necessary
             if ( $arg_ref->{consider_tags} ) {
-                my ($tag) = $alignment1->qname =~ m/[#] ([NAGCTX]+) \z/xmsg;
+                my ($tag_in_read) =
+                  $alignment1->qname =~ m/[#] ([NAGCTX]+) \z/xmsg;
 
                 # Convert tag to integer in base 62 to save space
-                $tag =~ tr/NAGCTX/012345/;
+                $tag_in_read =~ tr/NAGCTX/012345/;
                 my $int = q{};
-                while ( $tag > 0 ) {
+                while ( $tag_in_read > 0 ) {
                     ## no critic (ProhibitMagicNumbers)
-                    $int = $BASE_62_DIGITS[ $tag % 62 ] . $int;
-                    $tag = int( $tag / 62 );
+                    $int         = $BASE_62_DIGITS[ $tag_in_read % 62 ] . $int;
+                    $tag_in_read = int( $tag_in_read / 62 );
                     ## use critic
                 }
 
                 push @signature_components, [$int];
+
+                $tag = matched_tag( $alignment1, \%re_for );
             }
 
             # Make signature
@@ -1680,28 +1700,39 @@ sub mark_duplicates {
 
         # Change flags
         foreach my $read ( $alignment1, $alignment2 ) {
-            if ($is_dupe && !$read->unmapped) {
+            if ( $is_dupe && !$read->unmapped ) {
                 $read->flag( $read->flag | $DETCT::Misc::BAM::Flag::DUPLICATE );
-            } else {
+            }
+            else {
                 $read->flag( $read->flag & $not_dupe_mask );
             }
         }
 
         # Update metrics
-        if ($both_unmapped) {
-            $metrics{_all}{unmapped_reads} += 2;
+        my @pseudotags = ('_all');
+        if ( @tags && $tag ) {
+            push @pseudotags, $tag;
         }
-        elsif ($one_unmapped) {
-            $metrics{_all}{mapped_reads_without_mapped_mate}++;
-            $metrics{_all}{unmapped_reads}++;
-            if ($is_dupe) {
-                $metrics{_all}{duplicate_mapped_reads_without_mapped_mate}++;
+        elsif (@tags) {
+            push @pseudotags, '_other';
+        }
+        foreach my $pseudotag (@pseudotags) {
+            if ($both_unmapped) {
+                $metrics{$pseudotag}{unmapped_reads} += 2;
             }
-        }
-        else {
-            $metrics{_all}{mapped_read_pairs}++;
-            if ($is_dupe) {
-                $metrics{_all}{duplicate_mapped_read_pairs}++;
+            elsif ($one_unmapped) {
+                $metrics{$pseudotag}{mapped_reads_without_mapped_mate}++;
+                $metrics{$pseudotag}{unmapped_reads}++;
+                if ($is_dupe) {
+                    $metrics{$pseudotag}
+                      {duplicate_mapped_reads_without_mapped_mate}++;
+                }
+            }
+            else {
+                $metrics{$pseudotag}{mapped_read_pairs}++;
+                if ($is_dupe) {
+                    $metrics{$pseudotag}{duplicate_mapped_read_pairs}++;
+                }
             }
         }
 
@@ -1711,22 +1742,30 @@ sub mark_duplicates {
     }
 
     # Calculate derived metrics
-    $metrics{_all}{mapped_reads} =
-      $metrics{_all}{mapped_reads_without_mapped_mate} +
-      $metrics{_all}{mapped_read_pairs} * 2;
-    $metrics{_all}{optical_duplicate_mapped_read_pairs} = 0;
-    $metrics{_all}{duplicate_reads} =
-      $metrics{_all}{duplicate_mapped_reads_without_mapped_mate} +
-      $metrics{_all}{duplicate_mapped_read_pairs} * 2;
-    $metrics{_all}{duplication_rate} =
-      $metrics{_all}{duplicate_reads} / $metrics{_all}{mapped_reads};
-    $metrics{_all}{estimated_library_size} = estimate_library_size(
-        {
-            num_read_pairs => $metrics{_all}{mapped_read_pairs},
-            num_duplicate_read_pairs =>
-              $metrics{_all}{duplicate_mapped_read_pairs},
-        }
-    );
+    foreach my $pseudotag ( keys %metrics ) {
+        $metrics{$pseudotag}{mapped_reads} =
+          $metrics{$pseudotag}{mapped_reads_without_mapped_mate} +
+          $metrics{$pseudotag}{mapped_read_pairs} * 2;
+        $metrics{$pseudotag}{optical_duplicate_mapped_read_pairs} = 0;
+        $metrics{$pseudotag}{duplicate_reads} =
+          $metrics{$pseudotag}{duplicate_mapped_reads_without_mapped_mate} +
+          $metrics{$pseudotag}{duplicate_mapped_read_pairs} * 2;
+        $metrics{$pseudotag}{duplication_rate} =
+            $metrics{$pseudotag}{mapped_reads}
+          ? $metrics{$pseudotag}{duplicate_reads} /
+          $metrics{$pseudotag}{mapped_reads}
+          : 0;
+        $metrics{$pseudotag}{estimated_library_size} =
+          $metrics{$pseudotag}{mapped_read_pairs}
+          ? estimate_library_size(
+            {
+                num_read_pairs => $metrics{$pseudotag}{mapped_read_pairs},
+                num_duplicate_read_pairs =>
+                  $metrics{$pseudotag}{duplicate_mapped_read_pairs},
+            }
+          )
+          : 0;
+    }
 
     return \%metrics;
 }
