@@ -20,7 +20,7 @@ use Try::Tiny;
 
 use Readonly;
 use Bio::DB::Sam;
-use List::Util qw( min );
+use List::Util qw( min sum );
 use List::MoreUtils qw( all );
 use Data::Compare;
 use DETCT::Misc::Tag;
@@ -1567,6 +1567,110 @@ sub mark_duplicates {
     # Convert tag to regular expressions
     my %re_for = @tags ? DETCT::Misc::Tag::convert_tag_to_regexp(@tags) : ();
 
+    # Open input (for first pass)
+    my $sam_in = Bio::DB::Sam->new( $arg_ref->{input_bam_file} );
+
+    # Track signatures of each read pair and separately of each read
+    # Value is best total base quality or, in the case of reads from mapped
+    # pairs, undef
+    my %is_pe_dupe;
+    my %is_se_dupe;
+
+    # Get all reads in pairs where both reads are mapped
+    my $alignments_pe = $sam_in->features(
+        ## no critic (RequireInterpolationOfMetachars)
+        -filter => 'return if $a->unmapped || $a->munmapped',
+        ## use critic
+        -iterator => 1,
+    );
+    while ( my $alignment1 = $alignments_pe->next_seq ) {
+        my $alignment2 = $alignments_pe->next_seq;
+
+        # Ensure paired end reads, sorted by read name
+        confess sprintf 'Read names do not match (%s and %s) in %s',
+          $alignment1->qname, $alignment2->qname, $arg_ref->{input_bam_file}
+          if $alignment1->qname ne $alignment2->qname;
+
+        # Get reference sequence, 5' end position and strand for each read
+        my @signature_components;
+        foreach my $alignment ( $alignment1, $alignment2 ) {
+            my $pos = get_five_prime_pos_plus_soft_clip($alignment);
+            push @signature_components,
+              [ $alignment->tid, $pos, $alignment->strand ];
+        }
+
+        # Sort signature components, so order is consistent
+        # (i.e. pair can be duplicates even if read 1 and read 2 are in
+        # opposite orientations, so long as positions are same)
+        @signature_components = sort {
+                 $a->[0] cmp $b->[0]
+              || $a->[1] cmp $b->[1]
+              || $a->[2] cmp $b->[2]
+        } @signature_components;
+
+        # Make signatures
+        my $signature_pe = join q{:},
+          ( @{ $signature_components[0] }, @{ $signature_components[1] } );
+        my $signature_se1 = join q{:}, @{ $signature_components[0] };
+        my $signature_se2 = join q{:}, @{ $signature_components[1] };
+
+        # Add tag to signatures if necessary
+        if ( $arg_ref->{consider_tags} ) {
+            my $tag_as_int = get_tag_for_signature($alignment1);
+            $signature_pe  .= q{:} . $tag_as_int;
+            $signature_se1 .= q{:} . $tag_as_int;
+            $signature_se2 .= q{:} . $tag_as_int;
+        }
+
+        # Store total base quality score for read pair if best score
+        my $score =
+          get_base_qual_sum($alignment1) + get_base_qual_sum($alignment2);
+        if ( !exists $is_pe_dupe{$signature_pe}
+            || $score > $is_pe_dupe{$signature_pe} )
+        {
+            $is_pe_dupe{$signature_pe} = $score;
+        }
+
+        # Mark each read as coming from a read pair where both reads are mapped
+        $is_se_dupe{$signature_se1} = undef;
+        $is_se_dupe{$signature_se2} = undef;
+    }
+
+    # Get all reads where at least one of pair isn't mapped
+    my $alignments_se = $sam_in->features(
+        ## no critic (RequireInterpolationOfMetachars)
+        -filter => 'return if !$a->unmapped && !$a->munmapped',
+        ## use critic
+        -iterator => 1,
+    );
+    while ( my $alignment = $alignments_se->next_seq ) {
+        next if $alignment->unmapped;
+
+        # Get 5' end position
+        my $pos = get_five_prime_pos_plus_soft_clip($alignment);
+
+        # Make signature
+        my $signature_se = join q{:}, $alignment->tid, $pos, $alignment->strand;
+
+        # Add tag to signature if necessary
+        if ( $arg_ref->{consider_tags} ) {
+            my $tag_as_int = get_tag_for_signature($alignment);
+            $signature_se .= q{:} . $tag_as_int;
+        }
+
+        # Store total base quality score for read pair if best score and not
+        # seen as part of mapped pair
+        my $score = get_base_qual_sum($alignment);
+        if (
+            !exists $is_se_dupe{$signature_se}
+            || ( defined $is_se_dupe{$signature_se}
+                && $score > $is_se_dupe{$signature_se} )
+          )
+        {
+            $is_se_dupe{$signature_se} = $score;
+        }
+    }
+
     # Make bitmask for marking non-duplicate reads
     my $not_dupe_mask =
       $DETCT::Misc::BAM::Flag::READ_PAIRED +
@@ -1580,11 +1684,6 @@ sub mark_duplicates {
       $DETCT::Misc::BAM::Flag::SECONDARY +
       $DETCT::Misc::BAM::Flag::QC_FAILED +
       $DETCT::Misc::BAM::Flag::SUPPLEMENTARY;
-
-    # Open input and output and write header to output
-    my $bam_in  = Bio::DB::Bam->open( $arg_ref->{input_bam_file},  q{r} );
-    my $bam_out = Bio::DB::Bam->open( $arg_ref->{output_bam_file}, q{w} );
-    $bam_out->header_write( $bam_in->header );
 
     # Track metrics
     my %metrics;
@@ -1600,60 +1699,31 @@ sub mark_duplicates {
         $metrics{$pseudotag}{duplicate_mapped_read_pairs}                = 0;
     }
 
-    # Track signature of each read pair
-    my %is_dupe;
+    # Open input (for second pass) and output and write header to output
+    $sam_in = undef;
+    my $bam_in  = Bio::DB::Bam->open( $arg_ref->{input_bam_file},  q{r} );
+    my $bam_out = Bio::DB::Bam->open( $arg_ref->{output_bam_file}, q{w} );
+    $bam_out->header_write( $bam_in->header );
 
     # Get all reads in pairs
     while ( my $alignment1 = $bam_in->read1 ) {
         my $alignment2 = $bam_in->read1;
 
-        # Ensure paired end reads, sorted by read name
-        confess sprintf 'Read names do not match (%s and %s) in %s',
-          $alignment1->qname, $alignment2->qname, $arg_ref->{input_bam_file}
-          if $alignment1->qname ne $alignment2->qname;
-
-        my $is_dupe;
-
+        my $is_dupe          = 0;
+        my $num_reads_mapped = 0;
         my $tag;
 
-        # Check if both unmapped, in which case can't be a duplicate
-        my $both_unmapped = $alignment1->unmapped && $alignment2->unmapped;
-        if ($both_unmapped) {
-            $is_dupe = 0;
-        }
+        if ( !$alignment1->unmapped && !$alignment2->unmapped ) {
 
-        # Check if just one read unmapped
-        my $one_unmapped =
-          !$both_unmapped && ( $alignment1->unmapped || $alignment2->unmapped );
-
-        if ( !$both_unmapped ) {
+            # Both reads mapped
+            $num_reads_mapped = 2;
 
             # Get reference sequence, 5' end position and strand for each read
             my @signature_components;
-            foreach my $read ( $alignment1, $alignment2 ) {
-                next if $read->unmapped;
-
-                # Get 5' end position adjusted for soft clipped bases
-                my $pos;
-                my $cigar_ref = $read->cigar_array;
-                if ( $read->strand == 1 ) {
-                    $pos = $read->start;
-                    my $pair_ref = shift @{$cigar_ref};
-                    my ( $op, $count ) = @{$pair_ref};
-                    if ( $op eq q{S} ) {
-                        $pos -= $count;
-                    }
-                }
-                else {
-                    $pos = $read->end;
-                    my $pair_ref = pop @{$cigar_ref};
-                    my ( $op, $count ) = @{$pair_ref};
-                    if ( $op eq q{S} ) {
-                        $pos += $count;
-                    }
-                }
-
-                push @signature_components, [ $read->tid, $pos, $read->strand ];
+            foreach my $alignment ( $alignment1, $alignment2 ) {
+                my $pos = get_five_prime_pos_plus_soft_clip($alignment);
+                push @signature_components,
+                  [ $alignment->tid, $pos, $alignment->strand ];
             }
 
             # Sort signature components, so order is consistent
@@ -1665,47 +1735,89 @@ sub mark_duplicates {
                   || $a->[2] cmp $b->[2]
             } @signature_components;
 
+            # Make signature
+            my $signature_pe = join q{:},
+              ( @{ $signature_components[0] }, @{ $signature_components[1] } );
+
             # Add tag to signature if necessary
             if ( $arg_ref->{consider_tags} ) {
-                my ($tag_in_read) =
-                  $alignment1->qname =~ m/[#] ([NAGCTX]+) \z/xmsg;
-
-                # Convert tag to integer in base 62 to save space
-                $tag_in_read =~ tr/NAGCTX/012345/;
-                my $int = q{};
-                while ( $tag_in_read > 0 ) {
-                    ## no critic (ProhibitMagicNumbers)
-                    $int         = $BASE_62_DIGITS[ $tag_in_read % 62 ] . $int;
-                    $tag_in_read = int( $tag_in_read / 62 );
-                    ## use critic
-                }
-
-                push @signature_components, [$int];
-
+                my $tag_as_int = get_tag_for_signature($alignment1);
+                $signature_pe .= q{:} . $tag_as_int;
                 $tag = matched_tag( $alignment1, \%re_for );
             }
 
-            # Make signature
-            my @signature;
-            foreach my $signature_component (@signature_components) {
-                push @signature, @{$signature_component};
-            }
-            my $signature = join q{:}, @signature;
+            # Not a duplicate if best score
+            my $score =
+              get_base_qual_sum($alignment1) + get_base_qual_sum($alignment2);
+            if ( defined $is_pe_dupe{$signature_pe}
+                && $is_pe_dupe{$signature_pe} == $score )
+            {
+                # Not a duplicate, so change flags
+                $alignment1->flag( $alignment1->flag & $not_dupe_mask );
+                $alignment2->flag( $alignment2->flag & $not_dupe_mask );
 
-            # Check if duplicate
-            $is_dupe = exists $is_dupe{$signature};
-
-            $is_dupe{$signature}++;
-        }
-
-        # Change flags
-        foreach my $read ( $alignment1, $alignment2 ) {
-            if ( $is_dupe && !$read->unmapped ) {
-                $read->flag( $read->flag | $DETCT::Misc::BAM::Flag::DUPLICATE );
+                # All others will be dupes
+                $is_pe_dupe{$signature_pe} = undef;
             }
             else {
-                $read->flag( $read->flag & $not_dupe_mask );
+                # Is a duplicate, so change flags
+                $is_dupe = 1;
+                $alignment1->flag(
+                    $alignment1->flag | $DETCT::Misc::BAM::Flag::DUPLICATE );
+                $alignment2->flag(
+                    $alignment2->flag | $DETCT::Misc::BAM::Flag::DUPLICATE );
             }
+        }
+        elsif ( !( $alignment1->unmapped && $alignment2->unmapped ) ) {
+
+            # One read mapped
+            $num_reads_mapped = 1;
+
+            foreach my $alignment ( $alignment1, $alignment2 ) {
+
+                # If unmapped then not a duplicate
+                if ( $alignment->unmapped ) {
+                    $alignment->flag( $alignment->flag & $not_dupe_mask );
+                    next;
+                }
+
+                # Get 5' end position
+                my $pos = get_five_prime_pos_plus_soft_clip($alignment);
+
+                # Make signature
+                my $signature_se = join q{:}, $alignment->tid, $pos,
+                  $alignment->strand;
+
+                # Add tag to signature if necessary
+                if ( $arg_ref->{consider_tags} ) {
+                    my $tag_as_int = get_tag_for_signature($alignment);
+                    $signature_se .= q{:} . $tag_as_int;
+                    $tag = matched_tag( $alignment, \%re_for );
+                }
+
+                # Not a duplicate if best score
+                my $score = get_base_qual_sum($alignment);
+                if ( defined $is_se_dupe{$signature_se}
+                    && $is_se_dupe{$signature_se} == $score )
+                {
+                    # Not a duplicate, so change flags
+                    $alignment->flag( $alignment->flag & $not_dupe_mask );
+
+                    # All others will be dupes
+                    $is_se_dupe{$signature_se} = undef;
+                }
+                else {
+                    # Is a duplicate, so change flags
+                    $is_dupe = 1;
+                    $alignment->flag(
+                        $alignment->flag | $DETCT::Misc::BAM::Flag::DUPLICATE );
+                }
+            }
+        }
+        else {
+            # Neither read mapped
+            $alignment1->flag( $alignment1->flag & $not_dupe_mask );
+            $alignment2->flag( $alignment2->flag & $not_dupe_mask );
         }
 
         # Update metrics
@@ -1717,10 +1829,10 @@ sub mark_duplicates {
             push @pseudotags, '_other';
         }
         foreach my $pseudotag (@pseudotags) {
-            if ($both_unmapped) {
+            if ( $num_reads_mapped == 0 ) {
                 $metrics{$pseudotag}{unmapped_reads} += 2;
             }
-            elsif ($one_unmapped) {
+            elsif ( $num_reads_mapped == 1 ) {
                 $metrics{$pseudotag}{mapped_reads_without_mapped_mate}++;
                 $metrics{$pseudotag}{unmapped_reads}++;
                 if ($is_dupe) {
@@ -1768,6 +1880,91 @@ sub mark_duplicates {
     }
 
     return \%metrics;
+}
+
+=func get_five_prime_pos_plus_soft_clip
+
+  Usage       : my $pos = get_five_prime_pos_plus_soft_clip( $alignment );
+  Purpose     : Get 5' end position adjusted for soft-clipped bases
+  Returns     : Int (the adjusted 5' position)
+  Parameters  : Bio::DB::Bam::Alignment or Bio::DB::Bam::AlignWrapper
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_five_prime_pos_plus_soft_clip {
+    my ($alignment) = @_;
+
+    my $pos;
+
+    my $cigar_ref = $alignment->cigar_array;
+    if ( $alignment->strand == 1 ) {
+        $pos = $alignment->start;
+        my $pair_ref = shift @{$cigar_ref};
+        my ( $op, $count ) = @{$pair_ref};
+        if ( $op eq q{S} ) {
+            $pos -= $count;
+        }
+    }
+    else {
+        $pos = $alignment->end;
+        my $pair_ref = pop @{$cigar_ref};
+        my ( $op, $count ) = @{$pair_ref};
+        if ( $op eq q{S} ) {
+            $pos += $count;
+        }
+    }
+
+    return $pos;
+}
+
+=func get_base_qual_sum
+
+  Usage       : my $score = get_base_qual_sum( $alignment );
+  Purpose     : Get total base quality (15+) for a read
+  Returns     : Int (the total base quality)
+  Parameters  : Bio::DB::Bam::Alignment or Bio::DB::Bam::AlignWrapper
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_base_qual_sum {
+    my ($alignment) = @_;
+
+    ## no critic (ProhibitMagicNumbers)
+    return sum( grep { $_ >= 15 } $alignment->qscore )
+      ## use critic
+}
+
+=func get_tag_for_signature
+
+  Usage       : my $int = get_tag_for_signature( $alignment );
+  Purpose     : Get tag as an integer encoded in base 62
+  Returns     : String (the tag as an integer encoded in base 62)
+  Parameters  : Bio::DB::Bam::Alignment or Bio::DB::Bam::AlignWrapper
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_tag_for_signature {
+    my ($alignment) = @_;
+
+    my ($tag) = $alignment->qname =~ m/[#] ([NAGCTX]+) \z/xmsg;
+
+    # Convert tag to integer in base 62 to save space
+    $tag =~ tr/NAGCTX/012345/;
+    my $int = q{};
+    while ( $tag > 0 ) {
+        ## no critic (ProhibitMagicNumbers)
+        $int = $BASE_62_DIGITS[ $tag % 62 ] . $int;
+        $tag = int( $tag / 62 );
+        ## use critic
+    }
+
+    return $int;
 }
 
 =func estimate_library_size

@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 390;
+plan tests => 394;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -74,6 +74,13 @@ HS1_1:1:1:1:1#AAAAA\t147\t1\t20\t255\t8M\t=\t3\t-25\tAGCTAGCT\t~~~~~~~~
 HS1_1:1:2:2:2#TTTTT\t99\t1\t1\t255\t8M\t=\t20\t25\tAGCTAGCT\t~~~~~~~~
 HS1_1:1:2:2:2#TTTTT\t147\t1\t20\t255\t6M2S\t=\t1\t-25\tAGCTAGTC\t~~~~~~~~
 "' | samtools view -bS - > test2markdup.bam
+perl -e 'print "\@HD\tVN:1.4\tSO:queryname
+\@SQ\tSN:1\tLN:1000
+HS1_1:1:1:1:1#AAAAA\t99\t1\t1\t255\t8M\t=\t20\t27\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:1:1:1#AAAAA\t147\t1\t20\t255\t8M\t=\t1\t-27\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:2:2:2#TTTTT\t107\t1\t1\t255\t8M\t=\t20\t27\tAGCTAGCT\t~~~~~~~~
+HS1_1:1:2:2:2#TTTTT\t151\t1\t20\t255\t8M\t=\t1\t-27\tAGCTAGCT\t~~~~~~~~
+"' | samtools view -bS - > test3markdup.bam
 mv test* t/data/
 
 =cut
@@ -1893,7 +1900,8 @@ $count = downsample_by_tag(
 );
 ok( $count <= 500, 'Downsample to 500 paired reads' );
 
-($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.NNNNBGAGGC.paired.bam');
+( $read1_count, $read2_count ) =
+  count_reads_1_and_2( $tmp_dir . '/test1.NNNNBGAGGC.paired.bam' );
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 $count = downsample_by_tag(
@@ -1908,7 +1916,8 @@ $count = downsample_by_tag(
 );
 ok( $count <= 500, 'Downsample to 500 mapped paired reads' );
 
-($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.NNNNBGAGGC.mapped.bam');
+( $read1_count, $read2_count ) =
+  count_reads_1_and_2( $tmp_dir . '/test1.NNNNBGAGGC.mapped.bam' );
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 $count = downsample_by_tag(
@@ -1923,7 +1932,8 @@ $count = downsample_by_tag(
 );
 ok( $count <= 500, 'Downsample to 500 properly paired reads' );
 
-($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.NNNNBGAGGC.proper.bam');
+( $read1_count, $read2_count ) =
+  count_reads_1_and_2( $tmp_dir . '/test1.NNNNBGAGGC.proper.bam' );
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 throws_ok {
@@ -2025,7 +2035,8 @@ $count = downsample_all_reads(
 );
 ok( $count <= 1000, 'Downsample to 1000 paired reads' );
 
-($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.paired.bam');
+( $read1_count, $read2_count ) =
+  count_reads_1_and_2( $tmp_dir . '/test1.paired.bam' );
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 $count = downsample_all_reads(
@@ -2039,7 +2050,8 @@ $count = downsample_all_reads(
 );
 ok( $count <= 1000, 'Downsample to 1000 mapped paired reads' );
 
-($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.mapped.bam');
+( $read1_count, $read2_count ) =
+  count_reads_1_and_2( $tmp_dir . '/test1.mapped.bam' );
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 $count = downsample_all_reads(
@@ -2053,7 +2065,8 @@ $count = downsample_all_reads(
 );
 ok( $count <= 1000, 'Downsample to 1000 properly paired reads' );
 
-($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.proper.bam');
+( $read1_count, $read2_count ) =
+  count_reads_1_and_2( $tmp_dir . '/test1.proper.bam' );
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 # Mark duplicates
@@ -2067,7 +2080,7 @@ $metrics = mark_duplicates(
     }
 );
 
-my $dupe_count_no_tag = count_duplicates($tmp_dir . '/test1.markdup.bam');
+my $dupe_count_no_tag = count_duplicates( $tmp_dir . '/test1.markdup.bam' );
 is( $metrics->{_all}->{duplicate_reads},
     $dupe_count_no_tag, 'Duplicate reads if tags not considered' );
 
@@ -2079,7 +2092,7 @@ $metrics = mark_duplicates(
     }
 );
 
-my $dupe_count_tag = count_duplicates($tmp_dir . '/test1.markduptag.bam');
+my $dupe_count_tag = count_duplicates( $tmp_dir . '/test1.markduptag.bam' );
 is( $metrics->{_all}->{duplicate_reads},
     $dupe_count_tag, 'Duplicate reads if tags considered' );
 
@@ -2113,7 +2126,7 @@ $metrics = mark_duplicates(
     }
 );
 
-$dupe_count = count_duplicates($tmp_dir . '/test1markdup.notag.bam');
+$dupe_count = count_duplicates( $tmp_dir . '/test1markdup.notag.bam' );
 is( $dupe_count, 2, '2 duplicates if tags not considered' );
 is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
@@ -2125,7 +2138,7 @@ $metrics = mark_duplicates(
     }
 );
 
-$dupe_count = count_duplicates($tmp_dir . '/test1markdup.tag.bam');
+$dupe_count = count_duplicates( $tmp_dir . '/test1markdup.tag.bam' );
 is( $dupe_count, 0, '0 duplicates if tags considered' );
 is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
@@ -2136,7 +2149,7 @@ $metrics = mark_duplicates(
     }
 );
 
-$dupe_count = count_duplicates($tmp_dir . '/test2markdup.notag.bam');
+$dupe_count = count_duplicates( $tmp_dir . '/test2markdup.notag.bam' );
 is( $dupe_count, 2, '2 soft-clipped duplicates if tags not considered' );
 is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
@@ -2148,8 +2161,31 @@ $metrics = mark_duplicates(
     }
 );
 
-$dupe_count = count_duplicates($tmp_dir . '/test2markdup.tag.bam');
+$dupe_count = count_duplicates( $tmp_dir . '/test2markdup.tag.bam' );
 is( $dupe_count, 0, '0 soft-clipped duplicates if tags considered' );
+is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
+
+$metrics = mark_duplicates(
+    {
+        input_bam_file  => 't/data/test3markdup.bam',
+        output_bam_file => $tmp_dir . '/test3markdup.notag.bam',
+    }
+);
+
+$dupe_count = count_duplicates( $tmp_dir . '/test3markdup.notag.bam' );
+is( $dupe_count, 1, '1 single end duplicate if tags not considered' );
+is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
+
+$metrics = mark_duplicates(
+    {
+        input_bam_file  => 't/data/test3markdup.bam',
+        output_bam_file => $tmp_dir . '/test3markdup.tag.bam',
+        consider_tags   => 1,
+    }
+);
+
+$dupe_count = count_duplicates( $tmp_dir . '/test3markdup.tag.bam' );
+is( $dupe_count, 0, '0 single end duplicates if tags considered' );
 is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
 throws_ok {
@@ -2195,7 +2231,7 @@ sub count_reads_1_and_2 {
         }
     }
 
-    return ($read1_count, $read2_count);
+    return ( $read1_count, $read2_count );
 }
 
 # Count duplicates
