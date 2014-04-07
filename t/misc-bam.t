@@ -1879,7 +1879,7 @@ is( $stats->{proper}, 2958, 'Properly paired read count' );
 
 # Downsample by tag
 
-my ( $sam, $alignments, $read1_count, $read2_count );
+my ( $read1_count, $read2_count );
 
 $count = downsample_by_tag(
     {
