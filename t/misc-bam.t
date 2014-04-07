@@ -1886,26 +1886,14 @@ $count = downsample_by_tag(
         source_bam_file   => 't/data/test1.bam',
         source_read_count => 1672,
         tag               => 'NNNNBGAGGC',
-        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.paired.bam',
+        target_bam_file   => $tmp_dir . '/test1.NNNNBGAGGC.paired.bam',
         target_read_count => 500,
         read_count_type   => 'paired',
     }
 );
 ok( $count <= 500, 'Downsample to 500 paired reads' );
 
-# Count reads 1 and 2
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.NNNNBGAGGC.paired.bam' );
-$alignments  = $sam->features( -iterator => 1, );
-$read1_count = 0;
-$read2_count = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
-        $read1_count++;
-    }
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
-        $read2_count++;
-    }
-}
+($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.NNNNBGAGGC.paired.bam');
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 $count = downsample_by_tag(
@@ -1913,26 +1901,14 @@ $count = downsample_by_tag(
         source_bam_file   => 't/data/test1.bam',
         source_read_count => 1514,
         tag               => 'NNNNBGAGGC',
-        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.mapped.bam',
+        target_bam_file   => $tmp_dir . '/test1.NNNNBGAGGC.mapped.bam',
         target_read_count => 500,
         read_count_type   => 'mapped',
     }
 );
 ok( $count <= 500, 'Downsample to 500 mapped paired reads' );
 
-# Count reads 1 and 2
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.NNNNBGAGGC.mapped.bam' );
-$alignments  = $sam->features( -iterator => 1, );
-$read1_count = 0;
-$read2_count = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
-        $read1_count++;
-    }
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
-        $read2_count++;
-    }
-}
+($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.NNNNBGAGGC.mapped.bam');
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 $count = downsample_by_tag(
@@ -1940,26 +1916,14 @@ $count = downsample_by_tag(
         source_bam_file   => 't/data/test1.bam',
         source_read_count => 1514,
         tag               => 'NNNNBGAGGC',
-        target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.proper.bam',
+        target_bam_file   => $tmp_dir . '/test1.NNNNBGAGGC.proper.bam',
         target_read_count => 500,
         read_count_type   => 'proper',
     }
 );
 ok( $count <= 500, 'Downsample to 500 properly paired reads' );
 
-# Count reads 1 and 2
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.NNNNBGAGGC.proper.bam' );
-$alignments  = $sam->features( -iterator => 1, );
-$read1_count = 0;
-$read2_count = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
-        $read1_count++;
-    }
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
-        $read2_count++;
-    }
-}
+($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.NNNNBGAGGC.proper.bam');
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 throws_ok {
@@ -1967,7 +1931,7 @@ throws_ok {
         {
             source_read_count => 1514,
             tag               => 'NNNNBGAGGC',
-            target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+            target_bam_file   => $tmp_dir . '/test1.NNNNBGAGGC.bam',
             target_read_count => 500,
             read_count_type   => 'proper',
         }
@@ -1979,7 +1943,7 @@ throws_ok {
         {
             source_bam_file   => 't/data/test1.bam',
             tag               => 'NNNNBGAGGC',
-            target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+            target_bam_file   => $tmp_dir . '/test1.NNNNBGAGGC.bam',
             target_read_count => 500,
             read_count_type   => 'proper',
         }
@@ -1991,7 +1955,7 @@ throws_ok {
         {
             source_bam_file   => 't/data/test1.bam',
             source_read_count => 1514,
-            target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+            target_bam_file   => $tmp_dir . '/test1.NNNNBGAGGC.bam',
             target_read_count => 500,
             read_count_type   => 'proper',
         }
@@ -2016,7 +1980,7 @@ throws_ok {
             source_bam_file   => 't/data/test1.bam',
             source_read_count => 1514,
             tag               => 'NNNNBGAGGC',
-            target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+            target_bam_file   => $tmp_dir . '/test1.NNNNBGAGGC.bam',
             read_count_type   => 'proper',
         }
     );
@@ -2028,7 +1992,7 @@ throws_ok {
             source_bam_file   => 't/data/test1.bam',
             source_read_count => 1514,
             tag               => 'NNNNBGAGGC',
-            target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+            target_bam_file   => $tmp_dir . '/test1.NNNNBGAGGC.bam',
             target_read_count => 500,
         }
     );
@@ -2040,7 +2004,7 @@ throws_ok {
             source_bam_file   => 't/data/test1.bam',
             source_read_count => 1514,
             tag               => 'NNNNBGAGGC',
-            target_bam_file   => $tmp_dir . 'test1.NNNNBGAGGC.bam',
+            target_bam_file   => $tmp_dir . '/test1.NNNNBGAGGC.bam',
             target_read_count => 500,
             read_count_type   => 'invalid',
         }
@@ -2054,78 +2018,42 @@ $count = downsample_all_reads(
     {
         source_bam_file   => 't/data/test1.bam',
         source_read_count => 3258,
-        target_bam_file   => $tmp_dir . 'test1.paired.bam',
+        target_bam_file   => $tmp_dir . '/test1.paired.bam',
         target_read_count => 1000,
         read_count_type   => 'paired',
     }
 );
 ok( $count <= 1000, 'Downsample to 1000 paired reads' );
 
-# Count reads 1 and 2
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.paired.bam' );
-$alignments  = $sam->features( -iterator => 1, );
-$read1_count = 0;
-$read2_count = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
-        $read1_count++;
-    }
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
-        $read2_count++;
-    }
-}
+($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.paired.bam');
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 $count = downsample_all_reads(
     {
         source_bam_file   => 't/data/test1.bam',
         source_read_count => 2958,
-        target_bam_file   => $tmp_dir . 'test1.mapped.bam',
+        target_bam_file   => $tmp_dir . '/test1.mapped.bam',
         target_read_count => 1000,
         read_count_type   => 'mapped',
     }
 );
 ok( $count <= 1000, 'Downsample to 1000 mapped paired reads' );
 
-# Count reads 1 and 2
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.mapped.bam' );
-$alignments  = $sam->features( -iterator => 1, );
-$read1_count = 0;
-$read2_count = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
-        $read1_count++;
-    }
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
-        $read2_count++;
-    }
-}
+($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.mapped.bam');
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 $count = downsample_all_reads(
     {
         source_bam_file   => 't/data/test1.bam',
         source_read_count => 2958,
-        target_bam_file   => $tmp_dir . 'test1.proper.bam',
+        target_bam_file   => $tmp_dir . '/test1.proper.bam',
         target_read_count => 1000,
         read_count_type   => 'proper',
     }
 );
 ok( $count <= 1000, 'Downsample to 1000 properly paired reads' );
 
-# Count reads 1 and 2
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.proper.bam' );
-$alignments  = $sam->features( -iterator => 1, );
-$read1_count = 0;
-$read2_count = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
-        $read1_count++;
-    }
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
-        $read2_count++;
-    }
-}
+($read1_count, $read2_count) = count_reads_1_and_2($tmp_dir . '/test1.proper.bam');
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
 
 # Mark duplicates
@@ -2135,41 +2063,23 @@ my $metrics;
 $metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test1.sorted.bam',
-        output_bam_file => $tmp_dir . 'test1.markdup.bam',
+        output_bam_file => $tmp_dir . '/test1.markdup.bam',
     }
 );
 
-# Count duplicates
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.markdup.bam' );
-$alignments = $sam->features( -iterator => 1, );
-my $dupe_count_no_tag = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
-        $dupe_count_no_tag++;
-    }
-}
-
+my $dupe_count_no_tag = count_duplicates($tmp_dir . '/test1.markdup.bam');
 is( $metrics->{_all}->{duplicate_reads},
     $dupe_count_no_tag, 'Duplicate reads if tags not considered' );
 
 $metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test1.sorted.bam',
-        output_bam_file => $tmp_dir . 'test1.markduptag.bam',
+        output_bam_file => $tmp_dir . '/test1.markduptag.bam',
         consider_tags   => 1,
     }
 );
 
-# Count duplicates
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1.markduptag.bam' );
-$alignments = $sam->features( -iterator => 1, );
-my $dupe_count_tag = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
-        $dupe_count_tag++;
-    }
-}
-
+my $dupe_count_tag = count_duplicates($tmp_dir . '/test1.markduptag.bam');
 is( $metrics->{_all}->{duplicate_reads},
     $dupe_count_tag, 'Duplicate reads if tags considered' );
 
@@ -2178,7 +2088,7 @@ ok( $dupe_count_no_tag > $dupe_count_tag, 'Fewer duplicates if consider tags' );
 $metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test1.sorted.bam',
-        output_bam_file => $tmp_dir . 'test1.markduptag.bam',
+        output_bam_file => $tmp_dir . '/test1.markduptag.bam',
         consider_tags   => 1,
         tags            => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
     }
@@ -2199,85 +2109,53 @@ my $dupe_count;
 $metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test1markdup.bam',
-        output_bam_file => $tmp_dir . 'test1markdup.notag.bam',
+        output_bam_file => $tmp_dir . '/test1markdup.notag.bam',
     }
 );
 
-# Count duplicates
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1markdup.notag.bam' );
-$alignments = $sam->features( -iterator => 1, );
-$dupe_count = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
-        $dupe_count++;
-    }
-}
+$dupe_count = count_duplicates($tmp_dir . '/test1markdup.notag.bam');
 is( $dupe_count, 2, '2 duplicates if tags not considered' );
 is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
 $metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test1markdup.bam',
-        output_bam_file => $tmp_dir . 'test1markdup.tag.bam',
+        output_bam_file => $tmp_dir . '/test1markdup.tag.bam',
         consider_tags   => 1,
     }
 );
 
-# Count duplicates
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test1markdup.tag.bam' );
-$alignments = $sam->features( -iterator => 1, );
-$dupe_count = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
-        $dupe_count++;
-    }
-}
+$dupe_count = count_duplicates($tmp_dir . '/test1markdup.tag.bam');
 is( $dupe_count, 0, '0 duplicates if tags considered' );
 is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
 $metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test2markdup.bam',
-        output_bam_file => $tmp_dir . 'test2markdup.notag.bam',
+        output_bam_file => $tmp_dir . '/test2markdup.notag.bam',
     }
 );
 
-# Count duplicates
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test2markdup.notag.bam' );
-$alignments = $sam->features( -iterator => 1, );
-$dupe_count = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
-        $dupe_count++;
-    }
-}
+$dupe_count = count_duplicates($tmp_dir . '/test2markdup.notag.bam');
 is( $dupe_count, 2, '2 soft-clipped duplicates if tags not considered' );
 is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
 $metrics = mark_duplicates(
     {
         input_bam_file  => 't/data/test2markdup.bam',
-        output_bam_file => $tmp_dir . 'test2markdup.tag.bam',
+        output_bam_file => $tmp_dir . '/test2markdup.tag.bam',
         consider_tags   => 1,
     }
 );
 
-# Count duplicates
-$sam = Bio::DB::Sam->new( -bam => $tmp_dir . 'test2markdup.tag.bam' );
-$alignments = $sam->features( -iterator => 1, );
-$dupe_count = 0;
-while ( my $alignment = $alignments->next_seq ) {
-    if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
-        $dupe_count++;
-    }
-}
+$dupe_count = count_duplicates($tmp_dir . '/test2markdup.tag.bam');
 is( $dupe_count, 0, '0 soft-clipped duplicates if tags considered' );
 is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
 throws_ok {
     $count = mark_duplicates(
         {
-            output_bam_file => $tmp_dir . 'test1.markdup.bam',
+            output_bam_file => $tmp_dir . '/test1.markdup.bam',
         }
     );
 }
@@ -2294,8 +2172,44 @@ throws_ok {
     $count = mark_duplicates(
         {
             input_bam_file  => 't/data/test1.bam',
-            output_bam_file => $tmp_dir . 'test1.markdup.bam',
+            output_bam_file => $tmp_dir . '/test1.markdup.bam',
         }
     );
 }
 qr/Read names do not match/ms, 'BAM file not sorted by read name';
+
+# Count reads 1 and 2
+sub count_reads_1_and_2 {
+    my ($bam_file) = @_;
+
+    my $sam = Bio::DB::Sam->new( -bam => $bam_file );
+    my $alignments  = $sam->features( -iterator => 1, );
+    my $read1_count = 0;
+    my $read2_count = 0;
+    while ( my $alignment = $alignments->next_seq ) {
+        if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
+            $read1_count++;
+        }
+        if ( $alignment->get_tag_values('FLAGS') =~ m/\bSECOND_MATE\b/xms ) {
+            $read2_count++;
+        }
+    }
+
+    return ($read1_count, $read2_count);
+}
+
+# Count duplicates
+sub count_duplicates {
+    my ($bam_file) = @_;
+
+    my $sam = Bio::DB::Sam->new( -bam => $bam_file );
+    my $alignments = $sam->features( -iterator => 1, );
+    my $dupe_count = 0;
+    while ( my $alignment = $alignments->next_seq ) {
+        if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
+            $dupe_count++;
+        }
+    }
+
+    return $dupe_count;
+}
