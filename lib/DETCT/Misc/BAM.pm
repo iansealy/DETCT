@@ -1549,6 +1549,8 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
                 If output BAM file is missing
                 If input BAM file is not paired end, sorted by queryname
   Comments    : Input BAM file must be sorted by queryname
+                If consider tags parameter is true, then tags are still optional
+                (i.e. consider tags, but don't collect tag-specific metrics)
 
 =cut
 
@@ -1685,19 +1687,8 @@ sub mark_duplicates {
       $DETCT::Misc::BAM::Flag::QC_FAILED +
       $DETCT::Misc::BAM::Flag::SUPPLEMENTARY;
 
-    # Track metrics
-    my %metrics;
-    my @all_pseudotags = ('_all');
-    if (@tags) {
-        push @all_pseudotags, @tags, '_other';
-    }
-    foreach my $pseudotag (@all_pseudotags) {
-        $metrics{$pseudotag}{mapped_reads_without_mapped_mate}           = 0;
-        $metrics{$pseudotag}{mapped_read_pairs}                          = 0;
-        $metrics{$pseudotag}{unmapped_reads}                             = 0;
-        $metrics{$pseudotag}{duplicate_mapped_reads_without_mapped_mate} = 0;
-        $metrics{$pseudotag}{duplicate_mapped_read_pairs}                = 0;
-    }
+    # Initialise metrics
+    my $metrics = init_metrics(@tags);
 
     # Open input (for second pass) and output and write header to output
     $sam_in = undef;
@@ -1821,32 +1812,15 @@ sub mark_duplicates {
         }
 
         # Update metrics
-        my @pseudotags = ('_all');
-        if ( @tags && $tag ) {
-            push @pseudotags, $tag;
-        }
-        elsif (@tags) {
-            push @pseudotags, '_other';
-        }
-        foreach my $pseudotag (@pseudotags) {
-            if ( $num_reads_mapped == 0 ) {
-                $metrics{$pseudotag}{unmapped_reads} += 2;
+        $metrics = update_metrics(
+            {
+                metrics          => $metrics,
+                tags             => \@tags,
+                tag              => $tag,
+                num_reads_mapped => $num_reads_mapped,
+                is_dupe          => $is_dupe,
             }
-            elsif ( $num_reads_mapped == 1 ) {
-                $metrics{$pseudotag}{mapped_reads_without_mapped_mate}++;
-                $metrics{$pseudotag}{unmapped_reads}++;
-                if ($is_dupe) {
-                    $metrics{$pseudotag}
-                      {duplicate_mapped_reads_without_mapped_mate}++;
-                }
-            }
-            else {
-                $metrics{$pseudotag}{mapped_read_pairs}++;
-                if ($is_dupe) {
-                    $metrics{$pseudotag}{duplicate_mapped_read_pairs}++;
-                }
-            }
-        }
+        );
 
         # Write reads
         $bam_out->write1($alignment1);
@@ -1854,32 +1828,9 @@ sub mark_duplicates {
     }
 
     # Calculate derived metrics
-    foreach my $pseudotag ( keys %metrics ) {
-        $metrics{$pseudotag}{mapped_reads} =
-          $metrics{$pseudotag}{mapped_reads_without_mapped_mate} +
-          $metrics{$pseudotag}{mapped_read_pairs} * 2;
-        $metrics{$pseudotag}{optical_duplicate_mapped_read_pairs} = 0;
-        $metrics{$pseudotag}{duplicate_reads} =
-          $metrics{$pseudotag}{duplicate_mapped_reads_without_mapped_mate} +
-          $metrics{$pseudotag}{duplicate_mapped_read_pairs} * 2;
-        $metrics{$pseudotag}{duplication_rate} =
-            $metrics{$pseudotag}{mapped_reads}
-          ? $metrics{$pseudotag}{duplicate_reads} /
-          $metrics{$pseudotag}{mapped_reads}
-          : 0;
-        $metrics{$pseudotag}{estimated_library_size} =
-          $metrics{$pseudotag}{mapped_read_pairs}
-          ? estimate_library_size(
-            {
-                num_read_pairs => $metrics{$pseudotag}{mapped_read_pairs},
-                num_duplicate_read_pairs =>
-                  $metrics{$pseudotag}{duplicate_mapped_read_pairs},
-            }
-          )
-          : 0;
-    }
+    $metrics = calc_derived_metrics($metrics);
 
-    return \%metrics;
+    return $metrics;
 }
 
 =func get_five_prime_pos_plus_soft_clip
@@ -1965,6 +1916,197 @@ sub get_tag_for_signature {
     }
 
     return $int;
+}
+
+=func init_metrics
+
+  Usage       : my $metrics = init_metrics( @tags );
+  Purpose     : Initial duplication metrics
+  Returns     : Hashref {
+                    String (tag or pseudo-tag) => Hashref {
+                        mapped_reads_without_mapped_mate           => 0,
+                        mapped_read_pairs                          => 0,
+                        unmapped_reads                             => 0,
+                        duplicate_mapped_reads_without_mapped_mate => 0,
+                        duplicate_mapped_read_pairs                => 0,
+                        optical_duplicate_mapped_read_pairs        => 0,
+                    }
+                }
+  Parameters  : Array of strings (the tags)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub init_metrics {
+    my (@tags) = @_;
+
+    my $metrics;
+
+    my @tags_and_pseudotags = ('_all');
+    if (@tags) {
+        push @tags_and_pseudotags, @tags, '_other';
+    }
+    foreach my $tag (@tags_and_pseudotags) {
+        $metrics->{$tag}{mapped_reads_without_mapped_mate}           = 0;
+        $metrics->{$tag}{mapped_read_pairs}                          = 0;
+        $metrics->{$tag}{unmapped_reads}                             = 0;
+        $metrics->{$tag}{duplicate_mapped_reads_without_mapped_mate} = 0;
+        $metrics->{$tag}{duplicate_mapped_read_pairs}                = 0;
+        $metrics->{$tag}{optical_duplicate_mapped_read_pairs}        = 0;
+    }
+
+    return $metrics;
+}
+
+=func update_metrics
+
+  Usage       : $metrics = update_metrics( {
+                    metrics          => $metrics,
+                    tags             => ['NNNNBGAGGC', 'NNNNBAGAAG'],
+                    tag              => 'NNNNBGAGGC',
+                    num_reads_mapped => 1,
+                    is_dupe          => 1,
+                } );
+  Purpose     : Update duplication metrics
+  Returns     : Hashref {
+                    String (tag or pseudo-tag) => Hashref {
+                        mapped_reads_without_mapped_mate           => Int,
+                        mapped_read_pairs                          => Int,
+                        unmapped_reads                             => Int,
+                        duplicate_mapped_reads_without_mapped_mate => Int,
+                        duplicate_mapped_read_pairs                => Int,
+                        optical_duplicate_mapped_sread_pairs        => Int,
+                    }
+                }
+  Parameters  : Hashref {
+                    metrics          => Hashref (the metrics),
+                    tags             => Arrayref of strings (the tags),
+                    tag              => String (the tag) or undef,
+                    num_reads_mapped => Int (the number of reads mapped),
+                    is_dupe          => Boolean (whether reads are duplicates),
+                }
+  Throws      : No exceptions
+  Comments    : Metrics are updated for a single read pair
+
+=cut
+
+sub update_metrics {
+    my ($arg_ref) = @_;
+
+    my $metrics = $arg_ref->{metrics};
+
+    my @tags_and_pseudotags = ('_all');
+    if ( @{ $arg_ref->{tags} } && $arg_ref->{tag} ) {
+        push @tags_and_pseudotags, $arg_ref->{tag};
+    }
+    elsif ( @{ $arg_ref->{tags} } ) {
+        push @tags_and_pseudotags, '_other';
+    }
+    foreach my $tag (@tags_and_pseudotags) {
+        if ( $arg_ref->{num_reads_mapped} == 0 ) {
+
+            # Neither read mapped
+            $metrics->{$tag}{unmapped_reads} += 2;
+        }
+        elsif ( $arg_ref->{num_reads_mapped} == 1 ) {
+
+            # One read of pair mapped
+            $metrics->{$tag}{mapped_reads_without_mapped_mate}++;
+            $metrics->{$tag}{unmapped_reads}++;
+            if ( $arg_ref->{is_dupe} ) {
+                $metrics->{$tag}{duplicate_mapped_reads_without_mapped_mate}++;
+            }
+        }
+        else {
+            # Both reads of pair mapped
+            $metrics->{$tag}{mapped_read_pairs}++;
+            if ( $arg_ref->{is_dupe} ) {
+                $metrics->{$tag}{duplicate_mapped_read_pairs}++;
+            }
+        }
+    }
+
+    return $metrics;
+}
+
+=func calc_derived_metrics
+
+  Usage       : $metrics = calc_derived_metrics( $metrics );
+  Purpose     : Calculate metrics derived from final metrics
+  Returns     : Hashref {
+                    String (tag or pseudo-tag) => Hashref {
+                        mapped_reads_without_mapped_mate           => Int,
+                        mapped_read_pairs                          => Int,
+                        mapped_reads                               => Int,
+                        unmapped_reads                             => Int,
+                        duplicate_mapped_reads_without_mapped_mate => Int,
+                        duplicate_mapped_read_pairs                => Int,
+                        optical_duplicate_mapped_read_pairs        => Int,
+                        duplicate_reads                            => Int,
+                        duplication_rate                           => Float,
+                        estimated_library_size                     => Int,
+                    }
+                }
+  Parameters  : Hashref {
+                    String (tag or pseudo-tag) => Hashref {
+                        mapped_reads_without_mapped_mate           => Int,
+                        mapped_read_pairs                          => Int,
+                        unmapped_reads                             => Int,
+                        duplicate_mapped_reads_without_mapped_mate => Int,
+                        duplicate_mapped_read_pairs                => Int,
+                        optical_duplicate_mapped_read_pairs        => Int,
+                    }
+                }
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub calc_derived_metrics {
+    my ($metrics) = @_;
+
+    # Calculate derived metrics for each tag or pseudotag (_all or _other)
+    foreach my $tag ( keys %{$metrics} ) {
+
+        # Mapped reads is sum of read pairs and reads without mapped mates
+        $metrics->{$tag}{mapped_reads} =
+          $metrics->{$tag}{mapped_reads_without_mapped_mate} +
+          $metrics->{$tag}{mapped_read_pairs} * 2;
+
+        # Duplicate reads is sum of duplicate read pairs and duplicate reads
+        # without mapped mates
+        $metrics->{$tag}{duplicate_reads} =
+          $metrics->{$tag}{duplicate_mapped_reads_without_mapped_mate} +
+          $metrics->{$tag}{duplicate_mapped_read_pairs} * 2;
+
+        # Duplication rate is duplicated reads divided by mapped reads (or 0 if
+        # no mapped reads)
+        if ( $metrics->{$tag}{mapped_reads} ) {
+            $metrics->{$tag}{duplication_rate} =
+              $metrics->{$tag}{duplicate_reads} /
+              $metrics->{$tag}{mapped_reads};
+        }
+        else {
+            $metrics->{$tag}{duplication_rate} = 0;
+        }
+
+        # Estimated library size (0 if no mapped read pairs)
+        if ( $metrics->{$tag}{mapped_read_pairs} ) {
+            $metrics->{$tag}{estimated_library_size} = estimate_library_size(
+                {
+                    num_read_pairs => $metrics->{$tag}{mapped_read_pairs},
+                    num_duplicate_read_pairs =>
+                      $metrics->{$tag}{duplicate_mapped_read_pairs},
+                }
+            );
+        }
+        else {
+            $metrics->{$tag}{estimated_library_size} = 0;
+        }
+    }
+
+    return $metrics;
 }
 
 =func estimate_library_size
