@@ -1604,11 +1604,7 @@ sub mark_duplicates {
         # Sort signature components, so order is consistent
         # (i.e. pair can be duplicates even if read 1 and read 2 are in
         # opposite orientations, so long as positions are same)
-        @signature_components = sort {
-                 $a->[0] cmp $b->[0]
-              || $a->[1] cmp $b->[1]
-              || $a->[2] cmp $b->[2]
-        } @signature_components;
+        @signature_components = sort _sort_sig @signature_components;
 
         # Make signatures
         my $signature_pe = join q{:},
@@ -1720,11 +1716,7 @@ sub mark_duplicates {
             # Sort signature components, so order is consistent
             # (i.e. pair can be duplicates even if read 1 and read 2 are in
             # opposite orientations, so long as positions are same)
-            @signature_components = sort {
-                     $a->[0] cmp $b->[0]
-                  || $a->[1] cmp $b->[1]
-                  || $a->[2] cmp $b->[2]
-            } @signature_components;
+            @signature_components = sort _sort_sig @signature_components;
 
             # Make signature
             my $signature_pe = join q{:},
@@ -1832,6 +1824,14 @@ sub mark_duplicates {
 
     return $metrics;
 }
+
+# Sort signature components
+sub _sort_sig {
+    return $a->[0] cmp $b->[0] # Reference sequence
+        || $a->[1] cmp $b->[1] # 5' end position
+        || $a->[2] cmp $b->[2] # Strand
+}
+
 
 =func get_five_prime_pos_plus_soft_clip
 
