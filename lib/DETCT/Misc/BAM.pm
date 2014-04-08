@@ -1885,7 +1885,7 @@ sub get_base_qual_sum {
     my ($alignment) = @_;
 
     ## no critic (ProhibitMagicNumbers)
-    return sum( grep { $_ >= 15 } $alignment->qscore )
+    return sum( grep { $_ >= 15 } $alignment->qscore ) || 0;
       ## use critic
 }
 
