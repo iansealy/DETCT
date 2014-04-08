@@ -1688,7 +1688,7 @@ sub mark_duplicates {
       $DETCT::Misc::BAM::Flag::SUPPLEMENTARY;
 
     # Initialise metrics
-    my $metrics = init_metrics(@tags);
+    my $metrics = _init_duplication_metrics(@tags);
 
     # Open input (for second pass) and output and write header to output
     $sam_in = undef;
@@ -1812,7 +1812,7 @@ sub mark_duplicates {
         }
 
         # Update metrics
-        $metrics = update_metrics(
+        $metrics = _update_duplication_metrics(
             {
                 metrics          => $metrics,
                 tags             => \@tags,
@@ -1828,7 +1828,7 @@ sub mark_duplicates {
     }
 
     # Calculate derived metrics
-    $metrics = calc_derived_metrics($metrics);
+    $metrics = _calc_derived_duplication_metrics($metrics);
 
     return $metrics;
 }
@@ -1918,27 +1918,22 @@ sub get_tag_for_signature {
     return $int;
 }
 
-=func init_metrics
-
-  Usage       : my $metrics = init_metrics( @tags );
-  Purpose     : Initial duplication metrics
-  Returns     : Hashref {
-                    String (tag or pseudo-tag) => Hashref {
-                        mapped_reads_without_mapped_mate           => 0,
-                        mapped_read_pairs                          => 0,
-                        unmapped_reads                             => 0,
-                        duplicate_mapped_reads_without_mapped_mate => 0,
-                        duplicate_mapped_read_pairs                => 0,
-                        optical_duplicate_mapped_read_pairs        => 0,
-                    }
-                }
-  Parameters  : Array of strings (the tags)
-  Throws      : No exceptions
-  Comments    : None
-
-=cut
-
-sub init_metrics {
+# Usage       : my $metrics = _init_duplication_metrics( @tags );
+# Purpose     : Initial duplication metrics
+# Returns     : Hashref {
+#                   String (tag or pseudo-tag) => Hashref {
+#                       mapped_reads_without_mapped_mate           => 0,
+#                       mapped_read_pairs                          => 0,
+#                       unmapped_reads                             => 0,
+#                       duplicate_mapped_reads_without_mapped_mate => 0,
+#                       duplicate_mapped_read_pairs                => 0,
+#                       optical_duplicate_mapped_read_pairs        => 0,
+#                   }
+#               }
+# Parameters  : Array of strings (the tags)
+# Throws      : No exceptions
+# Comments    : None
+sub _init_duplication_metrics {
     my (@tags) = @_;
 
     my $metrics;
@@ -1959,39 +1954,34 @@ sub init_metrics {
     return $metrics;
 }
 
-=func update_metrics
-
-  Usage       : $metrics = update_metrics( {
-                    metrics          => $metrics,
-                    tags             => ['NNNNBGAGGC', 'NNNNBAGAAG'],
-                    tag              => 'NNNNBGAGGC',
-                    num_reads_mapped => 1,
-                    is_dupe          => 1,
-                } );
-  Purpose     : Update duplication metrics
-  Returns     : Hashref {
-                    String (tag or pseudo-tag) => Hashref {
-                        mapped_reads_without_mapped_mate           => Int,
-                        mapped_read_pairs                          => Int,
-                        unmapped_reads                             => Int,
-                        duplicate_mapped_reads_without_mapped_mate => Int,
-                        duplicate_mapped_read_pairs                => Int,
-                        optical_duplicate_mapped_sread_pairs        => Int,
-                    }
-                }
-  Parameters  : Hashref {
-                    metrics          => Hashref (the metrics),
-                    tags             => Arrayref of strings (the tags),
-                    tag              => String (the tag) or undef,
-                    num_reads_mapped => Int (the number of reads mapped),
-                    is_dupe          => Boolean (whether reads are duplicates),
-                }
-  Throws      : No exceptions
-  Comments    : Metrics are updated for a single read pair
-
-=cut
-
-sub update_metrics {
+# Usage       : $metrics = _update_duplication_metrics( {
+#                   metrics          => $metrics,
+#                   tags             => ['NNNNBGAGGC', 'NNNNBAGAAG'],
+#                   tag              => 'NNNNBGAGGC',
+#                   num_reads_mapped => 1,
+#                   is_dupe          => 1,
+#               } );
+# Purpose     : Update duplication metrics
+# Returns     : Hashref {
+#                   String (tag or pseudo-tag) => Hashref {
+#                       mapped_reads_without_mapped_mate           => Int,
+#                       mapped_read_pairs                          => Int,
+#                       unmapped_reads                             => Int,
+#                       duplicate_mapped_reads_without_mapped_mate => Int,
+#                       duplicate_mapped_read_pairs                => Int,
+#                       optical_duplicate_mapped_sread_pairs       => Int,
+#                   }
+#               }
+# Parameters  : Hashref {
+#                   metrics          => Hashref (the metrics),
+#                   tags             => Arrayref of strings (the tags),
+#                   tag              => String (the tag) or undef,
+#                   num_reads_mapped => Int (the number of reads mapped),
+#                   is_dupe          => Boolean (whether reads are duplicates),
+#               }
+# Throws      : No exceptions
+# Comments    : Metrics are updated for a single read pair
+sub _update_duplication_metrics {
     my ($arg_ref) = @_;
 
     my $metrics = $arg_ref->{metrics};
@@ -2030,40 +2020,35 @@ sub update_metrics {
     return $metrics;
 }
 
-=func calc_derived_metrics
-
-  Usage       : $metrics = calc_derived_metrics( $metrics );
-  Purpose     : Calculate metrics derived from final metrics
-  Returns     : Hashref {
-                    String (tag or pseudo-tag) => Hashref {
-                        mapped_reads_without_mapped_mate           => Int,
-                        mapped_read_pairs                          => Int,
-                        mapped_reads                               => Int,
-                        unmapped_reads                             => Int,
-                        duplicate_mapped_reads_without_mapped_mate => Int,
-                        duplicate_mapped_read_pairs                => Int,
-                        optical_duplicate_mapped_read_pairs        => Int,
-                        duplicate_reads                            => Int,
-                        duplication_rate                           => Float,
-                        estimated_library_size                     => Int,
-                    }
-                }
-  Parameters  : Hashref {
-                    String (tag or pseudo-tag) => Hashref {
-                        mapped_reads_without_mapped_mate           => Int,
-                        mapped_read_pairs                          => Int,
-                        unmapped_reads                             => Int,
-                        duplicate_mapped_reads_without_mapped_mate => Int,
-                        duplicate_mapped_read_pairs                => Int,
-                        optical_duplicate_mapped_read_pairs        => Int,
-                    }
-                }
-  Throws      : No exceptions
-  Comments    : None
-
-=cut
-
-sub calc_derived_metrics {
+# Usage       : $metrics = _calc_derived_duplication_metrics( $metrics );
+# Purpose     : Calculate metrics derived from final metrics
+# Returns     : Hashref {
+#                   String (tag or pseudo-tag) => Hashref {
+#                       mapped_reads_without_mapped_mate           => Int,
+#                       mapped_read_pairs                          => Int,
+#                       mapped_reads                               => Int,
+#                       unmapped_reads                             => Int,
+#                       duplicate_mapped_reads_without_mapped_mate => Int,
+#                       duplicate_mapped_read_pairs                => Int,
+#                       optical_duplicate_mapped_read_pairs        => Int,
+#                       duplicate_reads                            => Int,
+#                       duplication_rate                           => Float,
+#                       estimated_library_size                     => Int,
+#                   }
+#               }
+# Parameters  : Hashref {
+#                   String (tag or pseudo-tag) => Hashref {
+#                       mapped_reads_without_mapped_mate           => Int,
+#                       mapped_read_pairs                          => Int,
+#                       unmapped_reads                             => Int,
+#                       duplicate_mapped_reads_without_mapped_mate => Int,
+#                       duplicate_mapped_read_pairs                => Int,
+#                       optical_duplicate_mapped_read_pairs        => Int,
+#                   }
+#               }
+# Throws      : No exceptions
+# Comments    : None
+sub _calc_derived_duplication_metrics {
     my ($metrics) = @_;
 
     # Calculate derived metrics for each tag or pseudotag (_all or _other)
@@ -2093,7 +2078,7 @@ sub calc_derived_metrics {
 
         # Estimated library size (0 if no mapped read pairs)
         if ( $metrics->{$tag}{mapped_read_pairs} ) {
-            $metrics->{$tag}{estimated_library_size} = estimate_library_size(
+            $metrics->{$tag}{estimated_library_size} = _estimate_library_size(
                 {
                     num_read_pairs => $metrics->{$tag}{mapped_read_pairs},
                     num_duplicate_read_pairs =>
@@ -2109,32 +2094,27 @@ sub calc_derived_metrics {
     return $metrics;
 }
 
-=func estimate_library_size
-
-  Usage       : my $size = DETCT::Misc::BAM::estimate_library_size( {
-                    num_read_pairs           => 100000,
-                    num_duplicate_read_pairs => 1000,
-                } );
-  Purpose     : Estimate the size of a library
-  Returns     : Int (the estimated library size) or undef
-  Parameters  : Hashref {
-                    num_read_pairs           => Int (read pair count),
-                    num_duplicate_read_pairs => Int (duplicate read pair count),
-                }
-  Throws      : If read pair count or duplicate read pair count are not positive
-                integers or duplicate read pair count is higher than read pair
-                count
-  Comments    : Based on code from Picard's DuplicationMetrics.java
-                Uses the Lander-Waterman equation:
-                    C/X = 1 - exp( -N/X )
-                Where:
-                    X = number of distinct molecules in library
-                    N = number of read pairs
-                    C = number of unique read pairs
-
-=cut
-
-sub estimate_library_size {
+# Usage       : my $size = _estimate_library_size( {
+#                   num_read_pairs           => 100000,
+#                   num_duplicate_read_pairs => 1000,
+#               } );
+# Purpose     : Estimate the size of a library
+# Returns     : Int (the estimated library size) or undef
+# Parameters  : Hashref {
+#                   num_read_pairs           => Int (read pair count),
+#                   num_duplicate_read_pairs => Int (duplicate read pair count),
+#               }
+# Throws      : If read pair count or duplicate read pair count are not positive
+#               integers or duplicate read pair count is higher than read pair
+#               count
+# Comments    : Based on code from Picard's DuplicationMetrics.java
+#               Uses the Lander-Waterman equation:
+#                   C/X = 1 - exp( -N/X )
+#               Where:
+#                   X = number of distinct molecules in library
+#                   N = number of read pairs
+#                   C = number of unique read pairs
+sub _estimate_library_size {
     my ($arg_ref) = @_;
 
     # n = number of read pairs
