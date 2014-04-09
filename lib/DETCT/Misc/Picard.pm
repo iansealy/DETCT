@@ -101,7 +101,6 @@ sub mark_duplicates {
         REMOVE_DUPLICATES                  => 'false',
         MAX_FILE_HANDLES_FOR_READ_ENDS_MAP => 1000,
         TMP_DIR                            => $arg_ref->{dir},
-        VERBOSITY                          => 'WARNING',
         VALIDATION_STRINGENCY              => 'SILENT',
         CREATE_INDEX                       => 'false',
     );
@@ -261,7 +260,6 @@ sub merge {
         ASSUME_SORTED               => 'false',
         MERGE_SEQUENCE_DICTIONARIES => 'true',
         TMP_DIR                     => $arg_ref->{dir},
-        VERBOSITY                   => 'WARNING',
         VALIDATION_STRINGENCY       => 'SILENT',
         CREATE_INDEX                => 'false',
     );
@@ -344,7 +342,6 @@ sub bam_to_fastq {
         FASTQ                 => $arg_ref->{read1_fastq_file},
         SECOND_END_FASTQ      => $arg_ref->{read2_fastq_file},
         TMP_DIR               => $arg_ref->{dir},
-        VERBOSITY             => 'WARNING',
         VALIDATION_STRINGENCY => 'SILENT',
         CREATE_INDEX          => 'false',
     );
@@ -419,7 +416,6 @@ sub fix_mate_info {
         INPUT                 => $arg_ref->{input_bam_file},
         OUTPUT                => $arg_ref->{output_bam_file},
         TMP_DIR               => $arg_ref->{dir},
-        VERBOSITY             => 'WARNING',
         VALIDATION_STRINGENCY => 'SILENT',
         CREATE_INDEX          => 'false',
     );
@@ -500,7 +496,6 @@ sub sort_bam {
         INPUT                 => $arg_ref->{input_bam_file},
         OUTPUT                => $arg_ref->{output_bam_file},
         TMP_DIR               => $arg_ref->{dir},
-        VERBOSITY             => 'WARNING',
         VALIDATION_STRINGENCY => 'SILENT',
         CREATE_INDEX          => 'false',
         SORT_ORDER            => $sort_order,
