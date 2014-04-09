@@ -1798,7 +1798,10 @@ sub mark_duplicates {
             }
         }
         else {
-            # Neither read mapped
+            # Neither read mapped, but get tag if necessary
+            if ( $arg_ref->{consider_tags} ) {
+                $tag = matched_tag( $alignment1, \%re_for );
+            }
             $alignment1->flag( $alignment1->flag & $not_dupe_mask );
             $alignment2->flag( $alignment2->flag & $not_dupe_mask );
         }
