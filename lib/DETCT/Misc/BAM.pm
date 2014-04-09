@@ -2086,7 +2086,7 @@ sub _calc_derived_duplication_metrics {
                     num_duplicate_read_pairs =>
                       $metrics->{$tag}{duplicate_mapped_read_pairs},
                 }
-            );
+            ) || 0;
         }
         else {
             $metrics->{$tag}{estimated_library_size} = 0;
