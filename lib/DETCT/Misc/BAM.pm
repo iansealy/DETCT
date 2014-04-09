@@ -70,9 +70,6 @@ Readonly our @POLYA_REGEXP => (
     qr/\A AA.AA.AA.. \z/xms,
 );
 
-# Digits for base 62 number
-Readonly our @BASE_62_DIGITS => ( 0 .. 9, 'a' .. 'z', 'A' .. 'Z' );
-
 =func get_reference_sequence_lengths
 
   Usage       : my %length_of
@@ -1614,10 +1611,10 @@ sub mark_duplicates {
 
         # Add tag to signatures if necessary
         if ( $arg_ref->{consider_tags} ) {
-            my $tag_as_int = get_tag_for_signature($alignment1);
-            $signature_pe  .= q{:} . $tag_as_int;
-            $signature_se1 .= q{:} . $tag_as_int;
-            $signature_se2 .= q{:} . $tag_as_int;
+            my $tag_bytes = get_tag_for_signature($alignment1);
+            $signature_pe  .= q{:} . $tag_bytes;
+            $signature_se1 .= q{:} . $tag_bytes;
+            $signature_se2 .= q{:} . $tag_bytes;
         }
 
         # Store total base quality score for read pair if best score
@@ -1652,8 +1649,8 @@ sub mark_duplicates {
 
         # Add tag to signature if necessary
         if ( $arg_ref->{consider_tags} ) {
-            my $tag_as_int = get_tag_for_signature($alignment);
-            $signature_se .= q{:} . $tag_as_int;
+            my $tag_bytes = get_tag_for_signature($alignment);
+            $signature_se .= q{:} . $tag_bytes;
         }
 
         # Store total base quality score for read pair if best score and not
@@ -1724,8 +1721,8 @@ sub mark_duplicates {
 
             # Add tag to signature if necessary
             if ( $arg_ref->{consider_tags} ) {
-                my $tag_as_int = get_tag_for_signature($alignment1);
-                $signature_pe .= q{:} . $tag_as_int;
+                my $tag_bytes = get_tag_for_signature($alignment1);
+                $signature_pe .= q{:} . $tag_bytes;
                 $tag = matched_tag( $alignment1, \%re_for );
             }
 
@@ -1773,8 +1770,8 @@ sub mark_duplicates {
 
                 # Add tag to signature if necessary
                 if ( $arg_ref->{consider_tags} ) {
-                    my $tag_as_int = get_tag_for_signature($alignment);
-                    $signature_se .= q{:} . $tag_as_int;
+                    my $tag_bytes = get_tag_for_signature($alignment);
+                    $signature_se .= q{:} . $tag_bytes;
                     $tag = matched_tag( $alignment, \%re_for );
                 }
 
@@ -1893,9 +1890,9 @@ sub get_base_qual_sum {
 
 =func get_tag_for_signature
 
-  Usage       : my $int = get_tag_for_signature( $alignment );
-  Purpose     : Get tag as an integer encoded in base 62
-  Returns     : String (the tag as an integer encoded in base 62)
+  Usage       : my $tag_bytes = get_tag_for_signature( $alignment );
+  Purpose     : Get tag as bytes
+  Returns     : String (the tag as bytes)
   Parameters  : Bio::DB::Bam::Alignment or Bio::DB::Bam::AlignWrapper
   Throws      : No exceptions
   Comments    : None
@@ -1907,17 +1904,17 @@ sub get_tag_for_signature {
 
     my ($tag) = $alignment->qname =~ m/[#] ([NAGCTX]+) \z/xmsg;
 
-    # Convert tag to integer in base 62 to save space
-    $tag =~ tr/NAGCTX/012345/;
-    my $int = q{};
-    while ( $tag > 0 ) {
-        ## no critic (ProhibitMagicNumbers)
-        $int = $BASE_62_DIGITS[ $tag % 62 ] . $int;
-        $tag = int( $tag / 62 );
-        ## use critic
-    }
+    # Convert tag to binary
+    # N = 000; A = 001; G = 010; C = 011; T = 100; X = 101
+    $tag =~ s/N/000/xmsg;
+    $tag =~ s/A/001/xmsg;
+    $tag =~ s/G/010/xmsg;
+    $tag =~ s/C/011/xmsg;
+    $tag =~ s/T/100/xmsg;
+    $tag =~ s/X/101/xmsg;
+    $tag = pack 'b*', $tag;
 
-    return $int;
+    return $tag;
 }
 
 # Usage       : my $metrics = _init_duplication_metrics( @tags );
