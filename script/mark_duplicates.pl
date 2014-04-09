@@ -42,9 +42,12 @@ my $method = 'native';
 my $input_bam_file;
 my $output_bam_file;
 my $consider_tags;
+my $fix_mate_info;
 my $samtools_binary     = 'samtools';
 my $java_binary         = 'java';
+my $sort_bam_jar        = 'picard-tools-1.110-detct/SortSam.jar';
 my $mark_duplicates_jar = 'picard-tools-1.110-detct/MarkDuplicates.jar';
+my $fix_mate_info_jar   = 'picard-tools-1.110-detct/FixMateInformation.jar';
 my ( $debug, $help, $man );
 
 # Get and check command line options
@@ -55,35 +58,55 @@ make_path($dir);
 
 # Intermediate files
 my $sorted_bam_file         = File::Spec->catfile( $dir, 'sorted.bam' );
+my $fixmateinfo_bam_file    = File::Spec->catfile( $dir, 'fixmateinfo.bam' );
 my $markduplicates_bam_file = File::Spec->catfile( $dir, 'markduplicates.bam' );
 
 my $metrics;
 
+# Delete intermediate files if necessary
+for
+  my $file ( $sorted_bam_file, $fixmateinfo_bam_file, $markduplicates_bam_file )
+{
+    if ( -e $file ) {
+        unlink $file;
+    }
+}
+
 if ( $method eq 'native' ) {
 
-    # Delete intermediate files if necessary
-    if ( -e $sorted_bam_file ) {
-        unlink $sorted_bam_file;
-    }
-    if ( -e $markduplicates_bam_file ) {
-        unlink $markduplicates_bam_file;
-    }
-
     # Sort BAM file by read name
-    DETCT::Misc::SAMtools::sort_bam(
+    DETCT::Misc::Picard::sort_bam(
         {
             dir             => $dir,
             input_bam_file  => $input_bam_file,
             output_bam_file => $sorted_bam_file,
-            samtools_binary => $samtools_binary,
+            java_binary     => $java_binary,
+            sort_bam_jar    => $sort_bam_jar,
             sort_order      => 'queryname',
         }
     );
 
+    if ($fix_mate_info) {
+
+        # Fix mate information
+        DETCT::Misc::Picard::fix_mate_info(
+            {
+                dir               => $dir,
+                input_bam_file    => $sorted_bam_file,
+                output_bam_file   => $fixmateinfo_bam_file,
+                java_binary       => $java_binary,
+                fix_mate_info_jar => $fix_mate_info_jar,
+            }
+        );
+    }
+
+    my $markduplicates_input_bam_file =
+      $fix_mate_info ? $fixmateinfo_bam_file : $sorted_bam_file;
+
     # Mark duplicates
     $metrics = DETCT::Misc::BAM::mark_duplicates(
         {
-            input_bam_file  => $sorted_bam_file,
+            input_bam_file  => $markduplicates_input_bam_file,
             output_bam_file => $markduplicates_bam_file,
             consider_tags   => $consider_tags,
         }
@@ -99,15 +122,29 @@ if ( $method eq 'native' ) {
             sort_order      => 'coordinate',
         }
     );
-
-    # Delete intermediate files
-    unlink $sorted_bam_file, $markduplicates_bam_file;
 }
 elsif ( $method eq 'picard' ) {
+    if ($fix_mate_info) {
+
+        # Fix mate information
+        DETCT::Misc::Picard::fix_mate_info(
+            {
+                dir               => $dir,
+                input_bam_file    => $input_bam_file,
+                output_bam_file   => $fixmateinfo_bam_file,
+                java_binary       => $java_binary,
+                fix_mate_info_jar => $fix_mate_info_jar,
+            }
+        );
+    }
+
+    my $markduplicates_input_bam_file =
+      $fix_mate_info ? $fixmateinfo_bam_file : $input_bam_file;
+
     DETCT::Misc::Picard::mark_duplicates(
         {
             dir                 => $dir,
-            input_bam_file      => $input_bam_file,
+            input_bam_file      => $markduplicates_input_bam_file,
             output_bam_file     => $output_bam_file,
             metrics_file        => $output_bam_file . '.metrics',
             java_binary         => $java_binary,
@@ -142,6 +179,9 @@ DETCT::Misc::SAMtools::flagstats(
     }
 );
 
+# Delete intermediate files
+unlink $sorted_bam_file, $fixmateinfo_bam_file, $markduplicates_bam_file;
+
 # Get and check command line options
 sub get_and_check_options {
 
@@ -152,9 +192,12 @@ sub get_and_check_options {
         'input_bam_file=s'      => \$input_bam_file,
         'output_bam_file=s'     => \$output_bam_file,
         'consider_tags'         => \$consider_tags,
+        'fix_mate_info'         => \$fix_mate_info,
         'samtools_binary=s'     => \$samtools_binary,
         'java_binary=s'         => \$java_binary,
+        'sort_bam_jar=s'        => \$sort_bam_jar,
         'mark_duplicates_jar=s' => \$mark_duplicates_jar,
+        'fix_mate_info_jar=s'   => \$fix_mate_info_jar,
         'debug'                 => \$debug,
         'help'                  => \$help,
         'man'                   => \$man,
@@ -190,9 +233,12 @@ sub get_and_check_options {
         [--input_bam_file file]
         [--output_bam_file file]
         [--consider_tags]
+        [--fix_mate_info]
         [--samtools_binary file]
         [--java_binary file]
+        [--sort_bam_jar file]
         [--mark_duplicates_jar file]
+        [--fix_mate_info_jar file]
         [--debug]
         [--help]
         [--man]
@@ -221,6 +267,10 @@ Output BAM file.
 
 Consider tag (part after # in read name) when deciding if reads are duplicates.
 
+=item B<--fix_mate_info>
+
+Fix mate information before marking duplicates.
+
 =item B<--samtools_binary FILE>
 
 SAMtools binary.
@@ -229,9 +279,17 @@ SAMtools binary.
 
 Java binary.
 
+=item B<--sort_bam_jar FILE>
+
+Picard SortSam JAR file.
+
 =item B<--mark_duplicates_jar FILE>
 
 Picard MarkDuplicates JAR file.
+
+=item B<--fix_mate_info_jar FILE>
+
+Picard FixMateInformation JAR file.
 
 =item B<--debug>
 
