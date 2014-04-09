@@ -1827,11 +1827,10 @@ sub mark_duplicates {
 
 # Sort signature components
 sub _sort_sig {
-    return $a->[0] cmp $b->[0] # Reference sequence
-        || $a->[1] cmp $b->[1] # 5' end position
-        || $a->[2] cmp $b->[2] # Strand
+    return $a->[0] cmp $b->[0]    # Reference sequence
+      || $a->[1] cmp $b->[1]      # 5' end position
+      || $a->[2] cmp $b->[2]      # Strand
 }
-
 
 =func get_five_prime_pos_plus_soft_clip
 
@@ -1886,7 +1885,7 @@ sub get_base_qual_sum {
 
     ## no critic (ProhibitMagicNumbers)
     return sum( grep { $_ >= 15 } $alignment->qscore ) || 0;
-      ## use critic
+    ## use critic
 }
 
 =func get_tag_for_signature
