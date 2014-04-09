@@ -25,6 +25,7 @@ use File::Path qw( make_path );
 use DETCT::Misc::BAM;
 use DETCT::Misc::SAMtools;
 use DETCT::Misc::Picard;
+use DETCT::Misc::Output;
 
 =head1 DESCRIPTION
 
@@ -42,6 +43,7 @@ my $method = 'native';
 my $input_bam_file;
 my $output_bam_file;
 my $consider_tags;
+my @read_tags;
 my $fix_mate_info;
 my $samtools_binary     = 'samtools';
 my $java_binary         = 'java';
@@ -53,6 +55,11 @@ my ( $debug, $help, $man );
 # Get and check command line options
 get_and_check_options();
 
+# No need for read tags if not considering tags
+if ( !$consider_tags ) {
+    @read_tags = ();
+}
+
 # Ensure working directory exists
 make_path($dir);
 
@@ -60,17 +67,13 @@ make_path($dir);
 my $sorted_bam_file         = File::Spec->catfile( $dir, 'sorted.bam' );
 my $fixmateinfo_bam_file    = File::Spec->catfile( $dir, 'fixmateinfo.bam' );
 my $markduplicates_bam_file = File::Spec->catfile( $dir, 'markduplicates.bam' );
-
-my $metrics;
+my @intermediate_files =
+  ( $sorted_bam_file, $fixmateinfo_bam_file, $markduplicates_bam_file );
 
 # Delete intermediate files if necessary
-for
-  my $file ( $sorted_bam_file, $fixmateinfo_bam_file, $markduplicates_bam_file )
-{
-    if ( -e $file ) {
-        unlink $file;
-    }
-}
+delete_files(@intermediate_files);
+
+my $metrics;
 
 if ( $method eq 'native' ) {
 
@@ -109,6 +112,7 @@ if ( $method eq 'native' ) {
             input_bam_file  => $markduplicates_input_bam_file,
             output_bam_file => $markduplicates_bam_file,
             consider_tags   => $consider_tags,
+            tags            => \@read_tags,
         }
     );
 
@@ -158,7 +162,28 @@ elsif ( $method eq 'picard' ) {
             metrics_file => $output_bam_file . '.metrics',
         }
     );
+    $metrics->{_all} = $metrics;
 }
+
+# Output metrics
+my @tags_and_pseudotags = ('_all');
+if ( @read_tags && $method eq 'native' ) {
+    push @tags_and_pseudotags, @read_tags, '_other';
+}
+my @metrics;
+foreach my $tag (@tags_and_pseudotags) {
+    my $sample_name = $tag;
+    $sample_name =~ s/_all/All/xms;
+    $sample_name =~ s/_other/Other/xms;
+    $metrics->{$tag}{sample_name} = $sample_name;
+    push @metrics, $metrics->{$tag};
+}
+DETCT::Misc::Output::dump_duplication_metrics(
+    {
+        output_file => $output_bam_file . '.metrics',
+        metrics     => \@metrics,
+    }
+);
 
 # Index BAM file
 DETCT::Misc::SAMtools::make_index(
@@ -180,7 +205,20 @@ DETCT::Misc::SAMtools::flagstats(
 );
 
 # Delete intermediate files
-unlink $sorted_bam_file, $fixmateinfo_bam_file, $markduplicates_bam_file;
+delete_files(@intermediate_files);
+
+# Delete intermediate files if necessary
+sub delete_files {
+    my @files = @_;
+
+    for my $file (@files) {
+        if ( -e $file ) {
+            unlink $file;
+        }
+    }
+
+    return;
+}
 
 # Get and check command line options
 sub get_and_check_options {
@@ -192,6 +230,7 @@ sub get_and_check_options {
         'input_bam_file=s'      => \$input_bam_file,
         'output_bam_file=s'     => \$output_bam_file,
         'consider_tags'         => \$consider_tags,
+        'read_tags=s@{,}'       => \@read_tags,
         'fix_mate_info'         => \$fix_mate_info,
         'samtools_binary=s'     => \$samtools_binary,
         'java_binary=s'         => \$java_binary,
@@ -233,6 +272,7 @@ sub get_and_check_options {
         [--input_bam_file file]
         [--output_bam_file file]
         [--consider_tags]
+        [--read_tags tags...]
         [--fix_mate_info]
         [--samtools_binary file]
         [--java_binary file]
@@ -266,6 +306,10 @@ Output BAM file.
 =item B<--consider_tags>
 
 Consider tag (part after # in read name) when deciding if reads are duplicates.
+
+=item B<--read_tags TAGS>
+
+Read tags.
 
 =item B<--fix_mate_info>
 
