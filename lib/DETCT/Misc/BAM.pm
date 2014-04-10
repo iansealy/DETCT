@@ -1515,7 +1515,7 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
 
 =func mark_duplicates
 
-  Usage       : DETCT::Misc::BAM::mark_duplicates( {
+  Usage       : my $metrics = DETCT::Misc::BAM::mark_duplicates( {
                     input_bam_file  => $bam_file,
                     output_bam_file => $new_bam_file,
                     consider_tags   => 1,
