@@ -4,7 +4,6 @@ read_count_type: paired
 round_down_to: 100
 samtools_binary: samtools
 java_binary: java
-mark_duplicates_jar: picard-tools-1.110-detct/MarkDuplicates.jar
 merge_sam_files_jar: picard-tools-1.110-detct/MergeSamFiles.jar
 ref_fasta: t/data/test12.fa
 samples:

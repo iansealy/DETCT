@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 128;
+plan tests => 127;
 
 use DETCT::Analysis::Downsample;
 
@@ -33,7 +33,6 @@ my $analysis = DETCT::Analysis::Downsample->new(
         read_count_type     => 'paired',
         samtools_binary     => 'samtools',
         java_binary         => 'java',
-        mark_duplicates_jar => $mark_duplicates_jar,
         merge_sam_files_jar => $merge_sam_files_jar,
         chunk_total         => 20,
     }
@@ -94,15 +93,13 @@ throws_ok { $analysis->set_samtools_binary() }
 qr/No SAMtools binary specified/ms, 'No SAMtools binary';
 
 # Test MarkDuplicates JAR attribute
-is( $analysis->mark_duplicates_jar,
-    $mark_duplicates_jar, 'Get MarkDuplicates JAR' );
-is( $analysis->set_mark_duplicates_jar($picard_dir),
+is( $analysis->mark_duplicates_jar, undef, 'Get MarkDuplicates JAR' );
+is( $analysis->set_mark_duplicates_jar($mark_duplicates_jar),
     undef, 'Set MarkDuplicates JAR' );
-is( $analysis->mark_duplicates_jar, $picard_dir, 'Get new MarkDuplicates JAR' );
-throws_ok { $analysis->set_mark_duplicates_jar() }
-qr/No MarkDuplicates JAR specified/ms, 'No MarkDuplicates JAR';
+is( $analysis->mark_duplicates_jar,
+    $mark_duplicates_jar, 'Get new MarkDuplicates JAR' );
 throws_ok { $analysis->set_mark_duplicates_jar('nonexistent') }
-qr/does not exist or cannot be read/ms, 'Missing MarkDuplicates JAR';
+qr/cannot be read/ms, 'Missing MarkDuplicates JAR';
 
 # Test MergeSamFiles JAR attribute
 is( $analysis->merge_sam_files_jar,
@@ -337,7 +334,6 @@ SKIP: {
             read_count_type     => 'paired',
             samtools_binary     => 'samtools',
             java_binary         => 'java',
-            mark_duplicates_jar => $mark_duplicates_jar,
             merge_sam_files_jar => $merge_sam_files_jar,
             chunk_total         => 20,
             ensembl_species     => 'danio_rerio',
@@ -358,7 +354,6 @@ $analysis = DETCT::Analysis::Downsample->new(
         read_count_type     => 'paired',
         samtools_binary     => 'samtools',
         java_binary         => 'java',
-        mark_duplicates_jar => $mark_duplicates_jar,
         merge_sam_files_jar => $merge_sam_files_jar,
         chunk_total         => 20,
     }
@@ -379,7 +374,6 @@ SKIP: {
             read_count_type     => 'paired',
             samtools_binary     => 'samtools',
             java_binary         => 'java',
-            mark_duplicates_jar => $mark_duplicates_jar,
             merge_sam_files_jar => $merge_sam_files_jar,
             chunk_total         => 20,
             ensembl_host        => 'ensembldb.ensembl.org',
@@ -411,7 +405,6 @@ SKIP: {
             read_count_type     => 'paired',
             samtools_binary     => 'samtools',
             java_binary         => 'java',
-            mark_duplicates_jar => $mark_duplicates_jar,
             merge_sam_files_jar => $merge_sam_files_jar,
             chunk_total         => 20,
             ensembl_host        => 'ensembldb.ensembl.org',

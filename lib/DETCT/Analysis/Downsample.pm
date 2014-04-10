@@ -50,7 +50,6 @@ private merge_sam_files_jar => my %merge_sam_files_jar; # e.g. MergeSamFiles.jar
                     round_down_to       => 1000000,
                     samtools_binary     => 'samtools',
                     java_binary         => 'java',
-                    mark_duplicates_jar => 'picard/MarkDuplicates.jar',
                     merge_sam_files_jar => 'picard/MergeSamFiles.jar',
                     chunk_total         => 20,
                 } );
@@ -398,14 +397,13 @@ sub set_mark_duplicates_jar {
 # Purpose     : Check for valid MarkDuplicates JAR
 # Returns     : String (the valid MarkDuplicates JAR)
 # Parameters  : String (the MarkDuplicates JAR)
-# Throws      : If MarkDuplicates JAR is missing or not readable
+# Throws      : If MarkDuplicates JAR is defined but not readable
 # Comments    : None
 sub _check_mark_duplicates_jar {
     my ($mark_duplicates_jar) = @_;
     return $mark_duplicates_jar
-      if defined $mark_duplicates_jar && -r $mark_duplicates_jar;
-    confess 'No MarkDuplicates JAR specified' if !defined $mark_duplicates_jar;
-    confess sprintf 'MarkDuplicates JAR (%s) does not exist or cannot be read',
+      if !defined $mark_duplicates_jar || -r $mark_duplicates_jar;
+    confess sprintf 'MarkDuplicates JAR (%s) cannot be read',
       $mark_duplicates_jar;
 }
 
