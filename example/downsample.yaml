@@ -7,25 +7,35 @@
   prerequisites:
     - stats_by_tag
 -
-  name:           mark_duplicates_by_tag
-  default_memory: 4000
+  name:           sort_by_queryname_by_tag
+  default_memory: 200
   prerequisites:
     - downsample_by_tag
 -
-  name:           sample_flagstats_by_tag
-  default_memory: 100
+  name:           mark_duplicates_by_tag
+  default_memory: 4000
   prerequisites:
-    - mark_duplicates_by_tag
+    - sort_by_queryname_by_tag
 -
   name:           mark_duplicates_metrics_by_tag
   default_memory: 100
   prerequisites:
     - mark_duplicates_by_tag
 -
+  name:           sort_by_coordinate_by_tag
+  default_memory: 200
+  prerequisites:
+    - mark_duplicates_by_tag
+-
+  name:           sample_flagstats_by_tag
+  default_memory: 100
+  prerequisites:
+    - sort_by_coordinate_by_tag
+-
   name:           merge_by_tag
   default_memory: 250
   prerequisites:
-    - mark_duplicates_by_tag
+    - sort_by_coordinate_by_tag
 -
   name:           make_index
   default_memory: 100
