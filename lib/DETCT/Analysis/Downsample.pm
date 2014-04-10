@@ -40,6 +40,7 @@ private java_binary       => my %java_binary;          # e.g. java
 private mark_duplicates_jar =>
   my %mark_duplicates_jar;                             # e.g. MarkDuplicates.jar
 private merge_sam_files_jar => my %merge_sam_files_jar; # e.g. MergeSamFiles.jar
+private mark_duplicates_method => my %mark_duplicates_method;    # e.g. picard
 
 =method new
 
@@ -56,22 +57,23 @@ private merge_sam_files_jar => my %merge_sam_files_jar; # e.g. MergeSamFiles.jar
   Purpose     : Constructor for analysis objects
   Returns     : DETCT::Analysis::Downsample
   Parameters  : Hashref {
-                    name                => String,
-                    target_read_count   => Int or undef,
-                    read_count_type     => String ('paired', 'mapped' or 'proper'),
-                    round_down_to       => Int or undef,
-                    samtools_binary     => String,
-                    java_binary         => String,
-                    mark_duplicates_jar => String,
-                    merge_sam_files_jar => String,
-                    ensembl_host        => String or undef,
-                    ensembl_port        => Int or undef,
-                    ensembl_user        => String or undef,
-                    ensembl_pass        => String or undef,
-                    ensembl_name        => String or undef,
-                    ensembl_species     => String or undef,
-                    chunk_total         => Int,
-                    test_chunk          => Int or undef,
+                    name                   => String,
+                    target_read_count      => Int or undef,
+                    read_count_type        => String (paired, mapped or proper),
+                    round_down_to          => Int or undef,
+                    samtools_binary        => String,
+                    java_binary            => String,
+                    mark_duplicates_jar    => String,
+                    merge_sam_files_jar    => String,
+                    mark_duplicates_method => String (native or picard),
+                    ensembl_host           => String or undef,
+                    ensembl_port           => Int or undef,
+                    ensembl_user           => String or undef,
+                    ensembl_pass           => String or undef,
+                    ensembl_name           => String or undef,
+                    ensembl_species        => String or undef,
+                    chunk_total            => Int,
+                    test_chunk             => Int or undef,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -88,6 +90,7 @@ sub new {
     $self->set_java_binary( $arg_ref->{java_binary} );
     $self->set_mark_duplicates_jar( $arg_ref->{mark_duplicates_jar} );
     $self->set_merge_sam_files_jar( $arg_ref->{merge_sam_files_jar} );
+    $self->set_mark_duplicates_method( $arg_ref->{mark_duplicates_method} );
     return $self;
 }
 
@@ -124,6 +127,7 @@ sub new_from_yaml {
     $self->set_java_binary( $yaml->[0]->{java_binary} );
     $self->set_mark_duplicates_jar( $yaml->[0]->{mark_duplicates_jar} );
     $self->set_merge_sam_files_jar( $yaml->[0]->{merge_sam_files_jar} );
+    $self->set_mark_duplicates_method( $yaml->[0]->{mark_duplicates_method} );
 
     return $self;
 }
@@ -179,7 +183,7 @@ sub _check_target_read_count {
 
   Usage       : my $read_count_type = $analysis->read_count_type;
   Purpose     : Getter for read count type attribute
-  Returns     : String ('paired', 'mapped', or 'proper')
+  Returns     : String ('paired', 'mapped' or 'proper')
   Parameters  : None
   Throws      : No exceptions
   Comments    : None
@@ -193,7 +197,7 @@ sub read_count_type {
 
 =method set_read_count_type
 
-  Usage       : $analysis->set_read_count_type(20);
+  Usage       : $analysis->set_read_count_type('paired');
   Purpose     : Setter for read count type attribute
   Returns     : undef
   Parameters  : String (the read count type)
@@ -211,7 +215,7 @@ sub set_read_count_type {
 # Usage       : $read_count_type = _check_read_count_type($read_count_type);
 # Purpose     : Check for valid read count type
 # Returns     : String (the valid read count type)
-# Parameters  : string (the read count type)
+# Parameters  : String (the read count type)
 # Throws      : If read count type is missing or invalid
 # Comments    : None
 sub _check_read_count_type {
@@ -454,6 +458,55 @@ sub _check_merge_sam_files_jar {
     confess 'No MergeSamFiles JAR specified' if !defined $merge_sam_files_jar;
     confess sprintf 'MergeSamFiles JAR (%s) does not exist or cannot be read',
       $merge_sam_files_jar;
+}
+
+=method mark_duplicates_method
+
+  Usage       : my $mark_duplicates_method = $analysis->mark_duplicates_method;
+  Purpose     : Getter for mark duplicates method attribute
+  Returns     : String ('native' or 'picard')
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub mark_duplicates_method {
+    my ($self) = @_;
+    return $mark_duplicates_method{ id $self};
+}
+
+=method set_mark_duplicates_method
+
+  Usage       : $analysis->set_mark_duplicates_method('picard');
+  Purpose     : Setter for mark duplicates method attribute
+  Returns     : undef
+  Parameters  : String (the mark duplicates method)
+  Throws      : No exceptions
+  Comments    : Defaults to native
+
+=cut
+
+sub set_mark_duplicates_method {
+    my ( $self, $arg ) = @_;
+    $mark_duplicates_method{ id $self} =
+      _check_mark_duplicates_method( $arg || 'native' );
+    return;
+}
+
+# Usage       : $mark_duplicates_method =
+#                   _check_mark_duplicates_method($mark_duplicates_method);
+# Purpose     : Check for valid mark duplicates method
+# Returns     : String (the valid mark duplicates method)
+# Parameters  : String (the mark duplicates method)
+# Throws      : If mark duplicates method is invalid
+# Comments    : None
+sub _check_mark_duplicates_method {
+    my ($mark_duplicates_method) = @_;
+    return $mark_duplicates_method
+      if any { $_ eq $mark_duplicates_method } qw(native picard);
+    confess
+      "Invalid mark duplicates method ($mark_duplicates_method) specified";
 }
 
 1;

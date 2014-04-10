@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 127;
+plan tests => 131;
 
 use DETCT::Analysis::Downsample;
 
@@ -111,6 +111,15 @@ throws_ok { $analysis->set_merge_sam_files_jar() }
 qr/No MergeSamFiles JAR specified/ms, 'No MergeSamFiles JAR';
 throws_ok { $analysis->set_merge_sam_files_jar('nonexistent') }
 qr/does not exist or cannot be read/ms, 'Missing MergeSamFiles JAR';
+
+# Test mark duplicates method attribute
+is( $analysis->mark_duplicates_method, 'native', 'Get mark duplicates method' );
+is( $analysis->set_mark_duplicates_method('picard'),
+    undef, 'Set mark duplicates method' );
+is( $analysis->mark_duplicates_method,
+    'picard', 'Get new mark duplicates method' );
+throws_ok { $analysis->set_mark_duplicates_method('invalid') }
+qr/Invalid mark duplicates method/ms, 'Invalid mark duplicates method';
 
 # Test Ensembl host attribute
 is( $analysis->ensembl_host, undef, 'Get Ensembl host' );
