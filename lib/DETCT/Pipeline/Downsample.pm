@@ -30,18 +30,14 @@ use DETCT::Misc::BAM qw(
   stats_all_reads
   downsample_by_tag
   downsample_all_reads
-  mark_duplicates
 );
 use DETCT::Misc::Picard qw(
-  mark_duplicates
   extract_mark_duplicates_metrics
   merge
-  sort_bam
 );
 use DETCT::Misc::SAMtools qw(
   make_index
   flagstats
-  sort_bam
 );
 use DETCT::Misc::Output qw(
   dump_duplication_metrics
