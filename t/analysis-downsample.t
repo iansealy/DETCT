@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 131;
+plan tests => 135;
 
 use DETCT::Analysis::Downsample;
 
@@ -23,6 +23,10 @@ if ( !-e $mark_duplicates_jar ) {
 my $merge_sam_files_jar = $picard_dir . '/MergeSamFiles.jar';
 if ( !-e $merge_sam_files_jar ) {
     write_file( $merge_sam_files_jar, { no_clobber => 1 }, 'MergeSamFiles' );
+}
+my $sort_bam_jar = $picard_dir . '/SortSam.jar';
+if ( !-e $sort_bam_jar ) {
+    write_file( $sort_bam_jar, { no_clobber => 1 }, 'SortSam' );
 }
 
 my $is_ensembl_reachable = is_ensembl_reachable();
@@ -111,6 +115,13 @@ throws_ok { $analysis->set_merge_sam_files_jar() }
 qr/No MergeSamFiles JAR specified/ms, 'No MergeSamFiles JAR';
 throws_ok { $analysis->set_merge_sam_files_jar('nonexistent') }
 qr/does not exist or cannot be read/ms, 'Missing MergeSamFiles JAR';
+
+# Test SortSam JAR attribute
+is( $analysis->sort_bam_jar,                    undef, 'Get SortSam JAR' );
+is( $analysis->set_sort_bam_jar($sort_bam_jar), undef, 'Set SortSam JAR' );
+is( $analysis->sort_bam_jar, $sort_bam_jar, 'Get new SortSam JAR' );
+throws_ok { $analysis->set_sort_bam_jar('nonexistent') } qr/cannot be read/ms,
+  'Missing SortSam JAR';
 
 # Test mark duplicates method attribute
 is( $analysis->mark_duplicates_method, 'native', 'Get mark duplicates method' );

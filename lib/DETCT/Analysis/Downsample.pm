@@ -40,6 +40,7 @@ private java_binary       => my %java_binary;          # e.g. java
 private mark_duplicates_jar =>
   my %mark_duplicates_jar;                             # e.g. MarkDuplicates.jar
 private merge_sam_files_jar => my %merge_sam_files_jar; # e.g. MergeSamFiles.jar
+private sort_bam_jar        => my %sort_bam_jar;        # e.g. SortSam.jar
 private mark_duplicates_method => my %mark_duplicates_method;    # e.g. picard
 
 =method new
@@ -65,6 +66,7 @@ private mark_duplicates_method => my %mark_duplicates_method;    # e.g. picard
                     java_binary            => String,
                     mark_duplicates_jar    => String,
                     merge_sam_files_jar    => String,
+                    sort_bam_jar           => String,
                     mark_duplicates_method => String (native or picard),
                     ensembl_host           => String or undef,
                     ensembl_port           => Int or undef,
@@ -90,6 +92,7 @@ sub new {
     $self->set_java_binary( $arg_ref->{java_binary} );
     $self->set_mark_duplicates_jar( $arg_ref->{mark_duplicates_jar} );
     $self->set_merge_sam_files_jar( $arg_ref->{merge_sam_files_jar} );
+    $self->set_sort_bam_jar( $arg_ref->{sort_bam_jar} );
     $self->set_mark_duplicates_method( $arg_ref->{mark_duplicates_method} );
     return $self;
 }
@@ -127,6 +130,7 @@ sub new_from_yaml {
     $self->set_java_binary( $yaml->[0]->{java_binary} );
     $self->set_mark_duplicates_jar( $yaml->[0]->{mark_duplicates_jar} );
     $self->set_merge_sam_files_jar( $yaml->[0]->{merge_sam_files_jar} );
+    $self->set_sort_bam_jar( $yaml->[0]->{sort_bam_jar} );
     $self->set_mark_duplicates_method( $yaml->[0]->{mark_duplicates_method} );
 
     return $self;
@@ -458,6 +462,51 @@ sub _check_merge_sam_files_jar {
     confess 'No MergeSamFiles JAR specified' if !defined $merge_sam_files_jar;
     confess sprintf 'MergeSamFiles JAR (%s) does not exist or cannot be read',
       $merge_sam_files_jar;
+}
+
+=method sort_bam_jar
+
+  Usage       : my $sort_bam_jar = $analysis->sort_bam_jar;
+  Purpose     : Getter for SortSam JAR attribute
+  Returns     : String
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub sort_bam_jar {
+    my ($self) = @_;
+    return $sort_bam_jar{ id $self};
+}
+
+=method set_sort_bam_jar
+
+  Usage       : $analysis->set_sort_bam_jar('picard/SortSam.jar');
+  Purpose     : Setter for SortSam JAR attribute
+  Returns     : undef
+  Parameters  : String (the SortSam JAR)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_sort_bam_jar {
+    my ( $self, $arg ) = @_;
+    $sort_bam_jar{ id $self} = _check_sort_bam_jar($arg);
+    return;
+}
+
+# Usage       : $sort_bam_jar = _check_sort_bam_jar($sort_bam_jar);
+# Purpose     : Check for valid SortSam JAR
+# Returns     : String (the valid SortSam JAR)
+# Parameters  : String (the SortSam JAR)
+# Throws      : If SortSam JAR is defined but not readable
+# Comments    : None
+sub _check_sort_bam_jar {
+    my ($sort_bam_jar) = @_;
+    return $sort_bam_jar if !defined $sort_bam_jar || -r $sort_bam_jar;
+    confess sprintf 'SortSam JAR (%s) cannot be read', $sort_bam_jar;
 }
 
 =method mark_duplicates_method
