@@ -1551,7 +1551,7 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
 
 =cut
 
-sub mark_duplicates {
+sub mark_duplicates {    ## no critic (ProhibitExcessComplexity)
     my ($arg_ref) = @_;
 
     confess 'No input BAM file specified'
