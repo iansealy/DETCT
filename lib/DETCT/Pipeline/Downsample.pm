@@ -30,15 +30,18 @@ use DETCT::Misc::BAM qw(
   stats_all_reads
   downsample_by_tag
   downsample_all_reads
+  mark_duplicates
 );
 use DETCT::Misc::Picard qw(
   mark_duplicates
   extract_mark_duplicates_metrics
   merge
+  sort_bam
 );
 use DETCT::Misc::SAMtools qw(
   make_index
   flagstats
+  sort_bam
 );
 use DETCT::Misc::Output qw(
   dump_duplication_metrics
@@ -362,6 +365,137 @@ sub run_downsample_all_reads {
     return;
 }
 
+=method all_parameters_for_sort_by_queryname_by_tag
+
+  Usage       : all_parameters_for_sort_by_queryname_by_tag();
+  Purpose     : Get all parameters for sort_by_queryname_by_tag stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_sort_by_queryname_by_tag {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my $component = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        my @tags = $self->analysis->list_all_tags_by_bam_file($bam_file);
+        foreach my $tag (@tags) {
+            $component++;
+            my $input_bam_file =
+              File::Spec->catfile( $self->analysis_dir, 'downsample_by_tag',
+                $component . '.bam' );
+            push @all_parameters, [$input_bam_file];
+        }
+    }
+
+    return @all_parameters;
+}
+
+=method run_sort_by_queryname_by_tag
+
+  Usage       : run_sort_by_queryname_by_tag();
+  Purpose     : Run function for sort_by_queryname_by_tag stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_sort_by_queryname_by_tag {
+    my ( $self, $job ) = @_;
+
+    return $self->run_sort_by_queryname($job);
+}
+
+=method all_parameters_for_sort_by_queryname_all_reads
+
+  Usage       : all_parameters_for_sort_by_queryname_all_reads();
+  Purpose     : Get all parameters for sort_by_queryname_all_reads stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_sort_by_queryname_all_reads {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my $component = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        $component++;
+        my $input_bam_file =
+          File::Spec->catfile( $self->analysis_dir, 'downsample_all_reads',
+            $component . '.bam' );
+        push @all_parameters, [$input_bam_file];
+    }
+
+    return @all_parameters;
+}
+
+=method run_sort_by_queryname_all_reads
+
+  Usage       : run_sort_by_queryname_all_reads();
+  Purpose     : Run function for sort_by_queryname_all_reads stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_sort_by_queryname_all_reads {
+    my ( $self, $job ) = @_;
+
+    return $self->run_sort_by_queryname($job);
+}
+
+=method run_sort_by_queryname
+
+  Usage       : run_sort_by_queryname();
+  Purpose     : Run function for sort_by_queryname stages
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_sort_by_queryname {
+    my ( $self, $job ) = @_;
+
+    my ($input_bam_file) = @{ $job->parameters };
+
+    if ( $self->analysis->mark_duplicates_method eq 'native' ) {
+
+        # Sort BAM file by read name
+        DETCT::Misc::Picard::sort_bam(
+            {
+                dir             => $job->base_filename,
+                input_bam_file  => $input_bam_file,
+                output_bam_file => $job->base_filename . '.bam',
+                java_binary     => $self->analysis->java_binary,
+                sort_bam_jar    => $self->analysis->sort_bam_jar,
+                sort_order      => 'queryname',
+            }
+        );
+    }
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, 1 );
+
+    return;
+}
+
 =method all_parameters_for_mark_duplicates_by_tag
 
   Usage       : all_parameters_for_mark_duplicates_by_tag();
@@ -376,6 +510,12 @@ sub run_downsample_all_reads {
 sub all_parameters_for_mark_duplicates_by_tag {
     my ($self) = @_;
 
+    # Previous stage will be skipped if using native mark duplicates method
+    my $prev_stage_name =
+      $self->analysis->mark_duplicates_method eq 'native'
+      ? 'sort_by_queryname_by_tag'
+      : 'downsample_by_tag';
+
     my @all_parameters;
 
     my $component = 0;
@@ -384,9 +524,9 @@ sub all_parameters_for_mark_duplicates_by_tag {
         foreach my $tag (@tags) {
             $component++;
             my $input_bam_file =
-              File::Spec->catfile( $self->analysis_dir, 'downsample_by_tag',
+              File::Spec->catfile( $self->analysis_dir, $prev_stage_name,
                 $component . '.bam' );
-            push @all_parameters, [$input_bam_file];
+            push @all_parameters, [ $input_bam_file, $tag ];
         }
     }
 
@@ -424,15 +564,22 @@ sub run_mark_duplicates_by_tag {
 sub all_parameters_for_mark_duplicates_all_reads {
     my ($self) = @_;
 
+    # Previous stage will be skipped if using native mark duplicates method
+    my $prev_stage_name =
+      $self->analysis->mark_duplicates_method eq 'native'
+      ? 'sort_by_queryname_all_reads'
+      : 'downsample_all_reads';
+
     my @all_parameters;
 
     my $component = 0;
     foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
         $component++;
+        my @tags = $self->analysis->list_all_tags_by_bam_file($bam_file);
         my $input_bam_file =
-          File::Spec->catfile( $self->analysis_dir, 'downsample_all_reads',
+          File::Spec->catfile( $self->analysis_dir, $prev_stage_name,
             $component . '.bam' );
-        push @all_parameters, [$input_bam_file];
+        push @all_parameters, [ $input_bam_file, @tags ];
     }
 
     return @all_parameters;
@@ -469,21 +616,371 @@ sub run_mark_duplicates_all_reads {
 sub run_mark_duplicates {
     my ( $self, $job ) = @_;
 
-    my ($input_bam_file) = @{ $job->parameters };
+    my ( $input_bam_file, @tags ) = @{ $job->parameters };
 
-    # Mark duplicates
-    mark_duplicates(
+    # No need for tag-specific metrics if just one tag
+    if ( scalar @tags == 1 ) {
+        @tags = ();
+    }
+
+    my $output = 1;
+
+    if ( $self->analysis->mark_duplicates_method eq 'native' ) {
+
+        # Mark Duplicates with native Perl-based method
+        $output = DETCT::Misc::BAM::mark_duplicates(
+            {
+                input_bam_file  => $input_bam_file,
+                output_bam_file => $job->base_filename . '.bam',
+                consider_tags   => 1,
+                tags            => \@tags,
+            }
+        );
+    }
+    else {
+        # Mark duplicates with Picard MarkDuplicates
+        DETCT::Misc::Picard::mark_duplicates(
+            {
+                dir                 => $job->base_filename,
+                input_bam_file      => $input_bam_file,
+                output_bam_file     => $job->base_filename . '.bam',
+                metrics_file        => $job->base_filename . '.metrics',
+                java_binary         => $self->analysis->java_binary,
+                mark_duplicates_jar => $self->analysis->mark_duplicates_jar,
+                memory              => $job->memory,
+                consider_tags       => 1,
+            }
+        );
+    }
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, $output );
+
+    return;
+}
+
+=method all_parameters_for_mark_duplicates_metrics_by_tag
+
+  Usage       : all_parameters_for_mark_duplicates_metrics_by_tag();
+  Purpose     : Get all parameters for mark_duplicates_metrics_by_tag stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_mark_duplicates_metrics_by_tag {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my $metrics_output_file =
+      File::Spec->catfile( $self->analysis_dir,
+        'mark_duplicates_metrics_by_tag',
+        'markduplicates.tsv' );
+
+    my @parameters = ($metrics_output_file);
+    my $component  = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        my @tags = $self->analysis->list_all_tags_by_bam_file($bam_file);
+        foreach my $tag (@tags) {
+            $component++;
+            my $metrics_file;
+            if ( $self->analysis->mark_duplicates_method eq 'native' ) {
+                $metrics_file =
+                  $self->get_and_check_output_file( 'mark_duplicates_by_tag',
+                    $component );
+            }
+            else {
+                $metrics_file = File::Spec->catfile( $self->analysis_dir,
+                    'mark_duplicates_by_tag', $component . '.metrics' );
+            }
+            my $sample_name =
+              $self->analysis->get_sample_name_by_bam_file_and_tag( $bam_file,
+                $tag );
+            push @parameters, [ $sample_name, $metrics_file ];
+        }
+    }
+    push @all_parameters, \@parameters;
+
+    return @all_parameters;
+}
+
+=method run_mark_duplicates_metrics_by_tag
+
+  Usage       : run_mark_duplicates_metrics_by_tag();
+  Purpose     : Run function for mark_duplicates_metrics_by_tag stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_mark_duplicates_metrics_by_tag {
+    my ( $self, $job ) = @_;
+
+    return $self->run_mark_duplicates_metrics($job);
+}
+
+=method all_parameters_for_mark_duplicates_metrics_all_reads
+
+  Usage       : all_parameters_for_mark_duplicates_metrics_all_reads();
+  Purpose     : Get all parameters for mark_duplicates_metrics_all_reads stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_mark_duplicates_metrics_all_reads {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my $metrics_output_file =
+      File::Spec->catfile( $self->analysis_dir,
+        'mark_duplicates_metrics_all_reads',
+        'markduplicates.tsv' );
+
+    my @parameters = ($metrics_output_file);
+    my $component  = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        $component++;
+        my $sample_names = join q{ },
+          $self->analysis->get_sample_names_by_bam_file($bam_file);
+        my $metrics_file;
+        if ( $self->analysis->mark_duplicates_method eq 'native' ) {
+            $metrics_file =
+              $self->get_and_check_output_file( 'mark_duplicates_all_reads',
+                $component );
+        }
+        else {
+            $metrics_file = File::Spec->catfile( $self->analysis_dir,
+                'mark_duplicates_all_reads', $component . '.metrics' );
+        }
+        push @parameters, [ $sample_names, $metrics_file ];
+    }
+    push @all_parameters, \@parameters;
+
+    return @all_parameters;
+}
+
+=method run_mark_duplicates_metrics_all_reads
+
+  Usage       : run_mark_duplicates_metrics_all_reads();
+  Purpose     : Run function for mark_duplicates_metrics_all_reads stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_mark_duplicates_metrics_all_reads {
+    my ( $self, $job ) = @_;
+
+    return $self->run_mark_duplicates_metrics($job);
+}
+
+=method run_mark_duplicates_metrics
+
+  Usage       : run_mark_duplicates_metrics();
+  Purpose     : Run function for mark_duplicates_metrics stages
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_mark_duplicates_metrics {
+    my ( $self, $job ) = @_;
+
+    my (@parameters) = @{ $job->parameters };
+
+    my $metrics_output_file = shift @parameters;
+
+    # Get metrics
+    my @metrics;
+    foreach my $parameter (@parameters) {
+        my ( $sample_name, $metrics_file ) = @{$parameter};
+
+        if ( $self->analysis->mark_duplicates_method eq 'native' ) {
+
+            # Get metrics output from native method
+            my $output = LoadFile($metrics_file);
+            my @tags = sort grep { $_ !~ m/\A_/xms } keys %{$output};
+            if ( !@tags ) {
+
+                # Just one set of metrics
+                $output->{_all}->{sample_name} = $sample_name;
+                push @metrics, $output->{_all};
+            }
+            else {
+                # Metrics for each tag
+                $output->{_all}->{sample_name} = $sample_name . ' All';
+                push @metrics, $output->{_all};
+                foreach my $tag (@tags) {
+                    $output->{$tag}->{sample_name} = $sample_name . q{ } . $tag;
+                    push @metrics, $output->{$tag};
+                }
+                $output->{_other}->{sample_name} = $sample_name . ' Other';
+                push @metrics, $output->{_other};
+            }
+        }
+        else {
+            # Get metrics from Picard MarkDuplicates output file
+            my $output = extract_mark_duplicates_metrics(
+                {
+                    metrics_file => $metrics_file,
+                }
+            );
+            $output->{sample_name} = $sample_name;
+            push @metrics, $output;
+        }
+    }
+
+    # Output metrics
+    dump_duplication_metrics(
         {
-            dir                 => $job->base_filename,
-            input_bam_file      => $input_bam_file,
-            output_bam_file     => $job->base_filename . '.bam',
-            metrics_file        => $job->base_filename . '.metrics',
-            java_binary         => $self->analysis->java_binary,
-            mark_duplicates_jar => $self->analysis->mark_duplicates_jar,
-            memory              => $job->memory,
-            consider_tags       => 1,
+            output_file => $metrics_output_file,
+            metrics     => \@metrics,
         }
     );
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, 1 );
+
+    return;
+}
+
+=method all_parameters_for_sort_by_coordinate_by_tag
+
+  Usage       : all_parameters_for_sort_by_coordinate_by_tag();
+  Purpose     : Get all parameters for sort_by_coordinate_by_tag stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_sort_by_coordinate_by_tag {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my $component = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        my @tags = $self->analysis->list_all_tags_by_bam_file($bam_file);
+        foreach my $tag (@tags) {
+            $component++;
+            my $input_bam_file =
+              File::Spec->catfile( $self->analysis_dir,
+                'mark_duplicates_by_tag', $component . '.bam' );
+            push @all_parameters, [$input_bam_file];
+        }
+    }
+
+    return @all_parameters;
+}
+
+=method run_sort_by_coordinate_by_tag
+
+  Usage       : run_sort_by_coordinate_by_tag();
+  Purpose     : Run function for sort_by_coordinate_by_tag stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_sort_by_coordinate_by_tag {
+    my ( $self, $job ) = @_;
+
+    return $self->run_sort_by_coordinate($job);
+}
+
+=method all_parameters_for_sort_by_coordinate_all_reads
+
+  Usage       : all_parameters_for_sort_by_coordinate_all_reads();
+  Purpose     : Get all parameters for sort_by_coordinate_all_reads stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_sort_by_coordinate_all_reads {
+    my ($self) = @_;
+
+    my @all_parameters;
+
+    my $component = 0;
+    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
+        $component++;
+        my $input_bam_file =
+          File::Spec->catfile( $self->analysis_dir, 'mark_duplicates_all_reads',
+            $component . '.bam' );
+        push @all_parameters, [$input_bam_file];
+    }
+
+    return @all_parameters;
+}
+
+=method run_sort_by_coordinate_all_reads
+
+  Usage       : run_sort_by_coordinate_all_reads();
+  Purpose     : Run function for sort_by_coordinate_all_reads stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_sort_by_coordinate_all_reads {
+    my ( $self, $job ) = @_;
+
+    return $self->run_sort_by_coordinate($job);
+}
+
+=method run_sort_by_coordinate
+
+  Usage       : run_sort_by_coordinate();
+  Purpose     : Run function for sort_by_coordinate stages
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_sort_by_coordinate {
+    my ( $self, $job ) = @_;
+
+    my ($input_bam_file) = @{ $job->parameters };
+
+    if ( $self->analysis->mark_duplicates_method eq 'native' ) {
+
+        # Sort BAM file by coordinate
+        DETCT::Misc::SAMtools::sort_bam(
+            {
+                dir             => $job->base_filename,
+                input_bam_file  => $input_bam_file,
+                output_bam_file => $job->base_filename . '.bam',
+                samtools_binary => $self->analysis->samtools_binary,
+                sort_order      => 'coordinate',
+            }
+        );
+    }
 
     my $output_file = $job->base_filename . '.out';
 
@@ -506,6 +1003,12 @@ sub run_mark_duplicates {
 sub all_parameters_for_sample_flagstats_by_tag {
     my ($self) = @_;
 
+    # Previous stage will be skipped if using native mark duplicates method
+    my $prev_stage_name =
+      $self->analysis->mark_duplicates_method eq 'native'
+      ? 'sort_by_coordinate_by_tag'
+      : 'mark_duplicates_by_tag';
+
     my @all_parameters;
 
     my $component = 0;
@@ -514,8 +1017,8 @@ sub all_parameters_for_sample_flagstats_by_tag {
         foreach my $tag (@tags) {
             $component++;
             my $input_bam_file =
-              File::Spec->catfile( $self->analysis_dir,
-                'mark_duplicates_by_tag', $component . '.bam' );
+              File::Spec->catfile( $self->analysis_dir, $prev_stage_name,
+                $component . '.bam' );
             my $prefix =
               $self->analysis->get_sample_name_by_bam_file_and_tag( $bam_file,
                 $tag );
@@ -557,13 +1060,19 @@ sub run_sample_flagstats_by_tag {
 sub all_parameters_for_sample_flagstats_all_reads {
     my ($self) = @_;
 
+    # Previous stage will be skipped if using native mark duplicates method
+    my $prev_stage_name =
+      $self->analysis->mark_duplicates_method eq 'native'
+      ? 'sort_by_coordinate_all_reads'
+      : 'mark_duplicates_all_reads';
+
     my @all_parameters;
 
     my $component = 0;
     foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
         $component++;
         my $input_bam_file =
-          File::Spec->catfile( $self->analysis_dir, 'mark_duplicates_all_reads',
+          File::Spec->catfile( $self->analysis_dir, $prev_stage_name,
             $component . '.bam' );
         my $prefix = join q{_},
           $self->analysis->get_sample_names_by_bam_file($bam_file);
@@ -626,163 +1135,6 @@ sub run_sample_flagstats {
     return;
 }
 
-=method all_parameters_for_mark_duplicates_metrics_by_tag
-
-  Usage       : all_parameters_for_mark_duplicates_metrics_by_tag();
-  Purpose     : Get all parameters for mark_duplicates_metrics_by_tag stage
-  Returns     : Array of arrayrefs
-  Parameters  : None
-  Throws      : No exceptions
-  Comments    : None
-
-=cut
-
-sub all_parameters_for_mark_duplicates_metrics_by_tag {
-    my ($self) = @_;
-
-    my @all_parameters;
-
-    my $metrics_output_file =
-      File::Spec->catfile( $self->analysis_dir,
-        'mark_duplicates_metrics_by_tag',
-        'markduplicates.tsv' );
-
-    my @parameters = ($metrics_output_file);
-    my $component  = 0;
-    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
-        my @tags = $self->analysis->list_all_tags_by_bam_file($bam_file);
-        foreach my $tag (@tags) {
-            $component++;
-            my $metrics_file =
-              File::Spec->catfile( $self->analysis_dir,
-                'mark_duplicates_by_tag', $component . '.metrics' );
-            my $sample_name =
-              $self->analysis->get_sample_name_by_bam_file_and_tag( $bam_file,
-                $tag );
-            push @parameters, [ $sample_name, $metrics_file ];
-        }
-    }
-    push @all_parameters, \@parameters;
-
-    return @all_parameters;
-}
-
-=method run_mark_duplicates_metrics_by_tag
-
-  Usage       : run_mark_duplicates_metrics_by_tag();
-  Purpose     : Run function for mark_duplicates_metrics_by_tag stage
-  Returns     : undef
-  Parameters  : DETCT::Pipeline::Job
-  Throws      : No exceptions
-  Comments    : None
-
-=cut
-
-sub run_mark_duplicates_metrics_by_tag {
-    my ( $self, $job ) = @_;
-
-    return $self->run_mark_duplicates_metrics($job);
-}
-
-=method all_parameters_for_mark_duplicates_metrics_all_reads
-
-  Usage       : all_parameters_for_mark_duplicates_metrics_all_reads();
-  Purpose     : Get all parameters for mark_duplicates_metrics_all_reads stage
-  Returns     : Array of arrayrefs
-  Parameters  : None
-  Throws      : No exceptions
-  Comments    : None
-
-=cut
-
-sub all_parameters_for_mark_duplicates_metrics_all_reads {
-    my ($self) = @_;
-
-    my @all_parameters;
-
-    my $metrics_output_file =
-      File::Spec->catfile( $self->analysis_dir,
-        'mark_duplicates_metrics_all_reads',
-        'markduplicates.tsv' );
-
-    my @parameters = ($metrics_output_file);
-    my $component  = 0;
-    foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
-        $component++;
-        my $sample_names = join q{ },
-          $self->analysis->get_sample_names_by_bam_file($bam_file);
-        my $metrics_file = File::Spec->catfile( $self->analysis_dir,
-            'mark_duplicates_all_reads', $component . '.metrics' );
-        push @parameters, [ $sample_names, $metrics_file ];
-    }
-    push @all_parameters, \@parameters;
-
-    return @all_parameters;
-}
-
-=method run_mark_duplicates_metrics_all_reads
-
-  Usage       : run_mark_duplicates_metrics_all_reads();
-  Purpose     : Run function for mark_duplicates_metrics_all_reads stage
-  Returns     : undef
-  Parameters  : DETCT::Pipeline::Job
-  Throws      : No exceptions
-  Comments    : None
-
-=cut
-
-sub run_mark_duplicates_metrics_all_reads {
-    my ( $self, $job ) = @_;
-
-    return $self->run_mark_duplicates_metrics($job);
-}
-
-=method run_mark_duplicates_metrics
-
-  Usage       : run_mark_duplicates_metrics();
-  Purpose     : Run function for mark_duplicates_metrics stages
-  Returns     : undef
-  Parameters  : DETCT::Pipeline::Job
-  Throws      : No exceptions
-  Comments    : None
-
-=cut
-
-sub run_mark_duplicates_metrics {
-    my ( $self, $job ) = @_;
-
-    my (@parameters) = @{ $job->parameters };
-
-    my $metrics_output_file = shift @parameters;
-
-    # Get metrics
-    my @metrics;
-    foreach my $parameter (@parameters) {
-        my ( $sample_name, $metrics_file ) = @{$parameter};
-        my $output = extract_mark_duplicates_metrics(
-            {
-                metrics_file => $metrics_file,
-            }
-        );
-        $output->{sample_name} = $sample_name;
-        push @metrics, $output;
-    }
-
-    # Output metrics
-    dump_duplication_metrics(
-        {
-            output_file => $metrics_output_file,
-            metrics     => \@metrics,
-        }
-    );
-
-    my $output_file = $job->base_filename . '.out';
-
-    DumpFile( $output_file, 1 );
-
-    return;
-}
-
 =method all_parameters_for_merge_by_tag
 
   Usage       : all_parameters_for_merge_by_tag();
@@ -797,6 +1149,12 @@ sub run_mark_duplicates_metrics {
 sub all_parameters_for_merge_by_tag {
     my ($self) = @_;
 
+    # Previous stage will be skipped if using native mark duplicates method
+    my $prev_stage_name =
+      $self->analysis->mark_duplicates_method eq 'native'
+      ? 'sort_by_coordinate_by_tag'
+      : 'mark_duplicates_by_tag';
+
     my @all_parameters;
 
     my @input_bam_files;
@@ -806,7 +1164,7 @@ sub all_parameters_for_merge_by_tag {
         foreach my $tag (@tags) {
             $component++;
             my $input_bam_file = File::Spec->catfile( $self->analysis_dir,
-                'mark_duplicates_by_tag', $component . '.bam' );
+                $prev_stage_name, $component . '.bam' );
             push @input_bam_files, $input_bam_file;
         }
     }
@@ -846,6 +1204,12 @@ sub run_merge_by_tag {
 sub all_parameters_for_merge_all_reads {
     my ($self) = @_;
 
+    # Previous stage will be skipped if using native mark duplicates method
+    my $prev_stage_name =
+      $self->analysis->mark_duplicates_method eq 'native'
+      ? 'sort_by_coordinate_all_reads'
+      : 'mark_duplicates_all_reads';
+
     my @all_parameters;
 
     my @input_bam_files;
@@ -853,7 +1217,7 @@ sub all_parameters_for_merge_all_reads {
     foreach my $bam_file ( $self->analysis->list_all_bam_files() ) {
         $component++;
         my $input_bam_file = File::Spec->catfile( $self->analysis_dir,
-            'mark_duplicates_all_reads', $component . '.bam' );
+            $prev_stage_name, $component . '.bam' );
         push @input_bam_files, $input_bam_file;
     }
     push @all_parameters, \@input_bam_files;
