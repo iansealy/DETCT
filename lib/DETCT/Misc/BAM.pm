@@ -1567,7 +1567,7 @@ sub mark_duplicates {    ## no critic (ProhibitExcessComplexity)
     my %re_for = @tags ? DETCT::Misc::Tag::convert_tag_to_regexp(@tags) : ();
 
     # Open input (for first pass)
-    my $sam_in = Bio::DB::Sam->new( $arg_ref->{input_bam_file} );
+    my $sam_in = Bio::DB::Sam->new( -bam => $arg_ref->{input_bam_file} );
 
     # Track signatures of each read pair and separately of each read
     # Value is best total base quality or, in the case of reads from mapped
