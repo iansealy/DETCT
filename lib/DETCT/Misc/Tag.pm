@@ -166,8 +166,8 @@ sub detag_trim_fastq {
         }
 
         # Add tag to id
-        $read1_id =~ s{ /1 \z}{#$tag_for_id/1}xms;
-        $read2_id =~ s{ /2 \z}{#$tag_for_id/2}xms;
+        $read1_id =~ s{ /[12] \z}{#$tag_for_id/1}xms;
+        $read2_id =~ s{ /[12] \z}{#$tag_for_id/2}xms;
 
         write_or_die( $fh_out_for->{$tag_found}->{1}, $read1_id,   "\n" );
         write_or_die( $fh_out_for->{$tag_found}->{1}, $read1_seq,  "\n" );
