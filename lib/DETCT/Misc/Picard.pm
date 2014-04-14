@@ -125,7 +125,7 @@ sub mark_duplicates {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-    if (check_for_error($stderr_file)) {
+    if ( check_for_error($stderr_file) ) {
         confess "Couldn't run $cmd";
     }
 
@@ -286,7 +286,7 @@ sub merge {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-    if (check_for_error($stderr_file)) {
+    if ( check_for_error($stderr_file) ) {
         confess "Couldn't run $cmd";
     }
 
@@ -369,7 +369,7 @@ sub bam_to_fastq {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-    if (check_for_error($stderr_file)) {
+    if ( check_for_error($stderr_file) ) {
         confess "Couldn't run $cmd";
     }
 
@@ -447,7 +447,7 @@ sub fix_mate_info {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-    if (check_for_error($stderr_file)) {
+    if ( check_for_error($stderr_file) ) {
         confess "Couldn't run $cmd";
     }
 
@@ -532,7 +532,7 @@ sub sort_bam {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-    if (check_for_error($stderr_file)) {
+    if ( check_for_error($stderr_file) ) {
         confess "Couldn't run $cmd";
     }
 
