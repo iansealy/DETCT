@@ -125,6 +125,10 @@ sub mark_duplicates {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
+    if (check_for_error($stderr_file)) {
+        confess "Couldn't run $cmd";
+    }
+
     return;
 }
 
@@ -282,6 +286,10 @@ sub merge {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
+    if (check_for_error($stderr_file)) {
+        confess "Couldn't run $cmd";
+    }
+
     return;
 }
 
@@ -361,6 +369,10 @@ sub bam_to_fastq {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
+    if (check_for_error($stderr_file)) {
+        confess "Couldn't run $cmd";
+    }
+
     return;
 }
 
@@ -434,6 +446,10 @@ sub fix_mate_info {
     $cmd .= ' 1>' . $stdout_file;
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
+
+    if (check_for_error($stderr_file)) {
+        confess "Couldn't run $cmd";
+    }
 
     return;
 }
@@ -516,7 +532,30 @@ sub sort_bam {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
+    if (check_for_error($stderr_file)) {
+        confess "Couldn't run $cmd";
+    }
+
     return;
+}
+
+=func check_for_error
+
+  Usage       : confess if check_for_error($stderr_file);
+  Purpose     : Check STDERR for errors
+  Returns     : Boolean
+  Parameters  : String (the STDERR file)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub check_for_error {
+    my ($stderr_file) = @_;
+
+    my $stderr = read_file($stderr_file);
+
+    return $stderr =~ m/\A Error/xms ? 1 : 0;
 }
 
 1;
