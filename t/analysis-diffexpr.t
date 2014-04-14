@@ -5,7 +5,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 149;
+plan tests => 153;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -131,6 +131,13 @@ throws_ok { $analysis->set_output_sig_level() }
 qr/No output significance level specified/ms, 'No output significance level';
 throws_ok { $analysis->set_output_sig_level(1) }
 qr/Invalid output significance level/ms, 'Invalid output significance level';
+
+# Test input TSV file attribute
+is( $analysis->input_tsv_file,                undef, 'Get input TSV file' );
+is( $analysis->set_input_tsv_file('example'), undef, 'Set input TSV file' );
+is( $analysis->input_tsv_file, 'example', 'Get new input TSV file' );
+throws_ok { $analysis->set_input_tsv_file('nonexistent') } qr/cannot be read/ms,
+  'Missing input TSV file';
 
 # Test reference FASTA attribute
 is( $analysis->ref_fasta, undef, 'Get reference FASTA' );

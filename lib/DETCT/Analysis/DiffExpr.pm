@@ -41,6 +41,7 @@ private hmm_binary         => my %hmm_binary;            # e.g. chiphmmnew
 private r_binary           => my %r_binary;              # e.g. R
 private deseq_script       => my %deseq_script;          # e.g. ~/run_deseq.R
 private output_sig_level   => my %output_sig_level;      # e.g. 0.05
+private input_tsv_file     => my %input_tsv_file;        # e.g. all.tsv
 
 =method new
 
@@ -72,6 +73,7 @@ private output_sig_level   => my %output_sig_level;      # e.g. 0.05
                     r_binary           => String,
                     deseq_script       => String,
                     output_sig_level   => Float,
+                    input_tsv_file     => String,
                     ref_fasta          => String or undef,
                     ensembl_host       => String or undef,
                     ensembl_port       => Int or undef,
@@ -100,6 +102,7 @@ sub new {
     $self->set_r_binary( $arg_ref->{r_binary} );
     $self->set_deseq_script( $arg_ref->{deseq_script} );
     $self->set_output_sig_level( $arg_ref->{output_sig_level} );
+    $self->set_input_tsv_file( $arg_ref->{input_tsv_file} );
     return $self;
 }
 
@@ -139,6 +142,7 @@ sub new_from_yaml {
     $self->set_r_binary( $yaml->[0]->{r_binary} );
     $self->set_deseq_script( $yaml->[0]->{deseq_script} );
     $self->set_output_sig_level( $yaml->[0]->{output_sig_level} );
+    $self->set_input_tsv_file( $yaml->[0]->{input_tsv_file} );
 
     return $self;
 }
@@ -609,6 +613,51 @@ sub _check_output_sig_level {
     confess 'No output significance level specified'
       if !defined $output_sig_level;
     confess "Invalid output significance level ($output_sig_level) specified";
+}
+
+=method input_tsv_file
+
+  Usage       : my $input_tsv_file = $analysis->input_tsv_file;
+  Purpose     : Getter for input TSV file attribute
+  Returns     : String
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub input_tsv_file {
+    my ($self) = @_;
+    return $input_tsv_file{ id $self};
+}
+
+=method set_input_tsv_file
+
+  Usage       : $analysis->set_input_tsv_file('all.tsv');
+  Purpose     : Setter for input TSV file attribute
+  Returns     : undef
+  Parameters  : String (the input TSV file)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_input_tsv_file {
+    my ( $self, $arg ) = @_;
+    $input_tsv_file{ id $self} = _check_input_tsv_file($arg);
+    return;
+}
+
+# Usage       : $input_tsv_file = _check_input_tsv_file($input_tsv_file);
+# Purpose     : Check for valid input TSV file
+# Returns     : String (the valid input TSV file)
+# Parameters  : String (the input TSV file)
+# Throws      : If input TSV file is defined but not readable
+# Comments    : None
+sub _check_input_tsv_file {
+    my ($input_tsv_file) = @_;
+    return $input_tsv_file if !defined $input_tsv_file || -r $input_tsv_file;
+    confess "Input TSV file ($input_tsv_file) cannot be read";
 }
 
 1;
