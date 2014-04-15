@@ -5,13 +5,17 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 153;
+plan tests => 158;
 
 use DETCT::Analysis::DiffExpr;
 
+use File::Temp qw( tempdir );
+use File::Slurp;
 use IO::Socket::INET;
 
 my $is_ensembl_reachable = is_ensembl_reachable();
+
+my $tmp_dir = tempdir( CLEANUP => 1 );
 
 my $analysis = DETCT::Analysis::DiffExpr->new(
     {
@@ -132,12 +136,27 @@ qr/No output significance level specified/ms, 'No output significance level';
 throws_ok { $analysis->set_output_sig_level(1) }
 qr/Invalid output significance level/ms, 'Invalid output significance level';
 
-# Test input TSV file attribute
-is( $analysis->input_tsv_file,                undef, 'Get input TSV file' );
-is( $analysis->set_input_tsv_file('example'), undef, 'Set input TSV file' );
-is( $analysis->input_tsv_file, 'example', 'Get new input TSV file' );
-throws_ok { $analysis->set_input_tsv_file('nonexistent') } qr/cannot be read/ms,
-  'Missing input TSV file';
+# Test table file attribute
+write_file( $tmp_dir . '/all.tsv', 'all.tsv' );
+is( $analysis->table_file, undef, 'Get table file' );
+is( $analysis->set_table_file( $tmp_dir . '/all.tsv' ),
+    undef, 'Set table file' );
+is( $analysis->table_file, $tmp_dir . '/all.tsv', 'Get new table file' );
+throws_ok { $analysis->set_table_file('nonexistent') } qr/cannot be read/ms,
+  'Missing table file';
+$analysis->set_table_file();
+
+# Test table format attribute
+is( $analysis->table_format,            undef, 'Get table format' );
+is( $analysis->set_table_format('tsv'), undef, 'Set table format' );
+is( $analysis->table_format,            'tsv', 'Get new table format' );
+throws_ok { $analysis->set_table_format('invalid') } qr/Invalid table format/ms,
+  'Missing table format';
+$analysis->set_table_format();
+
+# Test guessing table format from table file
+$analysis->set_table_file( $tmp_dir . '/all.tsv' );
+is( $analysis->table_format, 'tsv', 'Get guessed table format' );
 
 # Test reference FASTA attribute
 is( $analysis->ref_fasta, undef, 'Get reference FASTA' );

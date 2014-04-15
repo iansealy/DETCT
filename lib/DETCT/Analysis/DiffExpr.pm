@@ -22,6 +22,7 @@ use parent qw(DETCT::Analysis);
 
 use Readonly;
 use Class::InsideOut qw( private register id );
+use List::MoreUtils qw( any );
 use YAML::Tiny;
 
 =head1 SYNOPSIS
@@ -41,7 +42,8 @@ private hmm_binary         => my %hmm_binary;            # e.g. chiphmmnew
 private r_binary           => my %r_binary;              # e.g. R
 private deseq_script       => my %deseq_script;          # e.g. ~/run_deseq.R
 private output_sig_level   => my %output_sig_level;      # e.g. 0.05
-private input_tsv_file     => my %input_tsv_file;        # e.g. all.tsv
+private table_file         => my %table_file;            # e.g. all.tsv
+private table_format       => my %table_format;          # e.g. tsv
 
 =method new
 
@@ -73,7 +75,8 @@ private input_tsv_file     => my %input_tsv_file;        # e.g. all.tsv
                     r_binary           => String,
                     deseq_script       => String,
                     output_sig_level   => Float,
-                    input_tsv_file     => String,
+                    table_file         => String,
+                    table_format       => String,
                     ref_fasta          => String or undef,
                     ensembl_host       => String or undef,
                     ensembl_port       => Int or undef,
@@ -102,7 +105,8 @@ sub new {
     $self->set_r_binary( $arg_ref->{r_binary} );
     $self->set_deseq_script( $arg_ref->{deseq_script} );
     $self->set_output_sig_level( $arg_ref->{output_sig_level} );
-    $self->set_input_tsv_file( $arg_ref->{input_tsv_file} );
+    $self->set_table_file( $arg_ref->{table_file} );
+    $self->set_table_format( $arg_ref->{table_format} );
     return $self;
 }
 
@@ -142,7 +146,8 @@ sub new_from_yaml {
     $self->set_r_binary( $yaml->[0]->{r_binary} );
     $self->set_deseq_script( $yaml->[0]->{deseq_script} );
     $self->set_output_sig_level( $yaml->[0]->{output_sig_level} );
-    $self->set_input_tsv_file( $yaml->[0]->{input_tsv_file} );
+    $self->set_table_file( $yaml->[0]->{table_file} );
+    $self->set_table_format( $yaml->[0]->{table_format} );
 
     return $self;
 }
@@ -615,10 +620,10 @@ sub _check_output_sig_level {
     confess "Invalid output significance level ($output_sig_level) specified";
 }
 
-=method input_tsv_file
+=method table_file
 
-  Usage       : my $input_tsv_file = $analysis->input_tsv_file;
-  Purpose     : Getter for input TSV file attribute
+  Usage       : my $table_file = $analysis->table_file;
+  Purpose     : Getter for table file attribute
   Returns     : String
   Parameters  : None
   Throws      : No exceptions
@@ -626,38 +631,96 @@ sub _check_output_sig_level {
 
 =cut
 
-sub input_tsv_file {
+sub table_file {
     my ($self) = @_;
-    return $input_tsv_file{ id $self};
+    return $table_file{ id $self};
 }
 
-=method set_input_tsv_file
+=method set_table_file
 
-  Usage       : $analysis->set_input_tsv_file('all.tsv');
-  Purpose     : Setter for input TSV file attribute
+  Usage       : $analysis->set_table_file('all.tsv');
+  Purpose     : Setter for table file attribute
   Returns     : undef
-  Parameters  : String (the input TSV file)
+  Parameters  : String (the table file)
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
-sub set_input_tsv_file {
+sub set_table_file {
     my ( $self, $arg ) = @_;
-    $input_tsv_file{ id $self} = _check_input_tsv_file($arg);
+    $table_file{ id $self} = _check_table_file($arg);
     return;
 }
 
-# Usage       : $input_tsv_file = _check_input_tsv_file($input_tsv_file);
-# Purpose     : Check for valid input TSV file
-# Returns     : String (the valid input TSV file)
-# Parameters  : String (the input TSV file)
-# Throws      : If input TSV file is defined but not readable
+# Usage       : $table_file = _check_table_file($table_file);
+# Purpose     : Check for valid table file
+# Returns     : String (the valid table file)
+# Parameters  : String (the table file)
+# Throws      : If table file is defined but not readable
 # Comments    : None
-sub _check_input_tsv_file {
-    my ($input_tsv_file) = @_;
-    return $input_tsv_file if !defined $input_tsv_file || -r $input_tsv_file;
-    confess "Input TSV file ($input_tsv_file) cannot be read";
+sub _check_table_file {
+    my ($table_file) = @_;
+    return $table_file if !defined $table_file || -r $table_file;
+    confess "Table file ($table_file) cannot be read";
+}
+
+=method table_format
+
+  Usage       : my $table_format = $analysis->table_format;
+  Purpose     : Getter for table format attribute
+  Returns     : String ('csv' or 'tsv')
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub table_format {
+    my ($self) = @_;
+
+    if ( !$table_format{ id $self} && $table_file{ id $self} ) {
+
+        # Attempt to guess format from filename
+        my ($extension) = $table_file{ id $self} =~ m/[.] ([a-z]{3}) \z/xms;
+
+        #try {
+        $self->set_table_format($extension);
+
+        #};
+    }
+
+    return $table_format{ id $self};
+}
+
+=method set_table_format
+
+  Usage       : $analysis->set_table_format('tsv');
+  Purpose     : Setter for table format attribute
+  Returns     : undef
+  Parameters  : String (the table format)
+  Throws      : No exceptions
+  Comments    : Defaults to native
+
+=cut
+
+sub set_table_format {
+    my ( $self, $arg ) = @_;
+    $table_format{ id $self} = _check_table_format($arg);
+    return;
+}
+
+# Usage       : $table_format = _check_table_format($table_format);
+# Purpose     : Check for valid table format
+# Returns     : String (the valid table format)
+# Parameters  : String (the table format)
+# Throws      : If table format is defined but invalid
+# Comments    : None
+sub _check_table_format {
+    my ($table_format) = @_;
+    return $table_format
+      if !defined $table_format || any { $_ eq $table_format } qw(csv tsv);
+    confess "Invalid table format ($table_format) specified";
 }
 
 1;
