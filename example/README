@@ -25,14 +25,6 @@ perl -Ilib script/run_pipeline.pl --pipeline de \
 --stages_yaml example/de.yaml \
 --sleep_time 1 --verbose
 
-Or (using LSF):
-
-perl -Ilib script/run_pipeline.pl --pipeline de \
---dir tmp \
---analysis_yaml example/de-analysis.yaml \
---stages_yaml example/de.yaml \
---sleep_time 60 --verbose
-
 To run the example downsampling pipeline (again from the top level directory)
 using native duplicate marking:
 
@@ -53,22 +45,6 @@ perl -Ilib script/run_pipeline.pl --pipeline downsample \
 --stages_yaml example/downsample.yaml \
 --sleep_time 1 --verbose
 
-Or (using LSF):
-
-perl -Ilib script/run_pipeline.pl --pipeline downsample \
---dir tmp \
---analysis_yaml example/downsample-native-analysis.yaml \
---stages_yaml example/downsample.yaml \
---sleep_time 60 --verbose
-
-or:
-
-perl -Ilib script/run_pipeline.pl --pipeline downsample \
---dir tmp \
---analysis_yaml example/downsample-picard-analysis.yaml \
---stages_yaml example/downsample.yaml \
---sleep_time 60 --verbose
-
 To run the example alternative downsampling pipeline (which downsamples all
 reads, not by tag):
 
@@ -86,18 +62,5 @@ perl -Ilib script/run_pipeline.pl --pipeline downsample \
 --stages_yaml example/downsample-all.yaml \
 --sleep_time 1 --verbose
 
-Or (using LSF):
-
-perl -Ilib script/run_pipeline.pl --pipeline downsample \
---dir tmp \
---analysis_yaml example/downsample-native-analysis.yaml \
---stages_yaml example/downsample-all.yaml \
---sleep_time 60 --verbose
-
-or:
-
-perl -Ilib script/run_pipeline.pl --pipeline downsample \
---dir tmp \
---analysis_yaml example/downsample-picard-analysis.yaml \
---stages_yaml example/downsample-all.yaml \
---sleep_time 60 --verbose
+To run any of the above examples using LSF, just remove the "--scheduler local"
+option.
