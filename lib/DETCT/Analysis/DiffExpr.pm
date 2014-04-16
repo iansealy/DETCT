@@ -682,7 +682,8 @@ sub table_format {
     if ( !$table_format{ id $self} && $table_file{ id $self} ) {
 
         # Attempt to guess format from filename
-        my ($extension) = $table_file{ id $self} =~ m/[.] ([a-z]{3}) \z/xms;
+        my ($extension) =
+          $table_file{ id $self} =~ m/[.] ([[:lower:]]{3}) \z/xms;
 
         #try {
         $self->set_table_format($extension);
