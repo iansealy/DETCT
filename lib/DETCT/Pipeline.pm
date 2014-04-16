@@ -1414,7 +1414,7 @@ sub all_parameters {
 
     my $sub_name = 'all_parameters_for_' . $stage->name;
 
-    return $self->$sub_name();
+    return $self->$sub_name($stage);
 }
 
 =method run_job

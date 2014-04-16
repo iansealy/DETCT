@@ -89,14 +89,14 @@ sub all_parameters_by_bam_file_then_chunk {
   Usage       : all_parameters_for_count_tags();
   Purpose     : Get all parameters for count_tags stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_count_tags {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     return $self->all_parameters_by_bam_file_then_chunk();
 }
@@ -145,14 +145,14 @@ sub run_count_tags {
   Usage       : all_parameters_for_bin_reads();
   Purpose     : Get all parameters for bin_reads stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_bin_reads {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     return $self->all_parameters_by_bam_file_then_chunk();
 }
@@ -201,14 +201,14 @@ sub run_bin_reads {
   Usage       : all_parameters_for_get_read_peaks();
   Purpose     : Get all parameters for get_read_peaks stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_get_read_peaks {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     return $self->all_parameters_by_bam_file_then_chunk();
 }
@@ -258,14 +258,14 @@ sub run_get_read_peaks {
   Usage       : all_parameters_for_merge_read_peaks();
   Purpose     : Get all parameters for merge_read_peaks stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_merge_read_peaks {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -353,14 +353,14 @@ sub run_merge_read_peaks {
   Usage       : all_parameters_for_summarise_read_peaks();
   Purpose     : Get all parameters for summarise_read_peaks stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_summarise_read_peaks {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -429,14 +429,14 @@ sub run_summarise_read_peaks {
   Usage       : all_parameters_for_run_peak_hmm();
   Purpose     : Get all parameters for run_peak_hmm stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_run_peak_hmm {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -535,14 +535,14 @@ sub run_run_peak_hmm {
   Usage       : all_parameters_for_join_hmm_bins();
   Purpose     : Get all parameters for join_hmm_bins stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_join_hmm_bins {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -613,14 +613,14 @@ sub run_join_hmm_bins {
   Usage       : all_parameters_for_get_three_prime_ends();
   Purpose     : Get all parameters for get_three_prime_ends stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_get_three_prime_ends {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -702,14 +702,14 @@ sub run_get_three_prime_ends {
   Usage       : all_parameters_for_merge_three_prime_ends();
   Purpose     : Get all parameters for merge_three_prime_ends stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_merge_three_prime_ends {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -787,14 +787,14 @@ sub run_merge_three_prime_ends {
   Usage       : all_parameters_for_filter_three_prime_ends();
   Purpose     : Get all parameters for filter_three_prime_ends stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_filter_three_prime_ends {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -858,14 +858,14 @@ sub run_filter_three_prime_ends {
   Usage       : all_parameters_for_choose_three_prime_end();
   Purpose     : Get all parameters for choose_three_prime_end stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_choose_three_prime_end {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -928,14 +928,14 @@ sub run_choose_three_prime_end {
   Usage       : all_parameters_for_count_reads();
   Purpose     : Get all parameters for count_reads stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_count_reads {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -1006,14 +1006,14 @@ sub run_count_reads {
   Usage       : all_parameters_for_merge_read_counts();
   Purpose     : Get all parameters for merge_read_counts stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_merge_read_counts {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -1095,14 +1095,14 @@ sub run_merge_read_counts {
   Usage       : all_parameters_for_run_deseq();
   Purpose     : Get all parameters for run_deseq stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_run_deseq {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -1165,14 +1165,14 @@ sub run_run_deseq {
   Usage       : all_parameters_for_add_gene_annotation();
   Purpose     : Get all parameters for add_gene_annotation stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_add_gene_annotation {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -1227,14 +1227,14 @@ sub run_add_gene_annotation {
   Usage       : all_parameters_for_dump_as_table();
   Purpose     : Get all parameters for dump_as_table stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_dump_as_table {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -1294,14 +1294,14 @@ sub run_dump_as_table {
   Usage       : all_parameters_for_parse_table();
   Purpose     : Get all parameters for parse_table stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_parse_table {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     return [];
 }

@@ -54,14 +54,14 @@ use DETCT::Misc::Output qw(
   Usage       : all_parameters_for_stats_by_tag();
   Purpose     : Get all parameters for stats_by_tag stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_stats_by_tag {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -109,14 +109,14 @@ sub run_stats_by_tag {
   Usage       : all_parameters_for_stats_all_reads();
   Purpose     : Get all parameters for stats_all_reads stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_stats_all_reads {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -162,14 +162,14 @@ sub run_stats_all_reads {
   Usage       : all_parameters_for_downsample_by_tag();
   Purpose     : Get all parameters for downsample_by_tag stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_downsample_by_tag {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -260,14 +260,14 @@ sub run_downsample_by_tag {
   Usage       : all_parameters_for_downsample_all_reads();
   Purpose     : Get all parameters for downsample_all_reads stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_downsample_all_reads {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -366,14 +366,14 @@ sub run_downsample_all_reads {
   Usage       : all_parameters_for_sort_by_queryname_by_tag();
   Purpose     : Get all parameters for sort_by_queryname_by_tag stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_sort_by_queryname_by_tag {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -414,14 +414,14 @@ sub run_sort_by_queryname_by_tag {
   Usage       : all_parameters_for_sort_by_queryname_all_reads();
   Purpose     : Get all parameters for sort_by_queryname_all_reads stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_sort_by_queryname_all_reads {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -497,14 +497,14 @@ sub run_sort_by_queryname {
   Usage       : all_parameters_for_mark_duplicates_by_tag();
   Purpose     : Get all parameters for mark_duplicates_by_tag stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_mark_duplicates_by_tag {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     # Previous stage will be skipped if using native mark duplicates method
     my $prev_stage_name =
@@ -551,14 +551,14 @@ sub run_mark_duplicates_by_tag {
   Usage       : all_parameters_for_mark_duplicates_all_reads();
   Purpose     : Get all parameters for mark_duplicates_all_reads stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_mark_duplicates_all_reads {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     # Previous stage will be skipped if using native mark duplicates method
     my $prev_stage_name =
@@ -661,14 +661,14 @@ sub run_mark_duplicates {
   Usage       : all_parameters_for_mark_duplicates_metrics_by_tag();
   Purpose     : Get all parameters for mark_duplicates_metrics_by_tag stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_mark_duplicates_metrics_by_tag {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -726,14 +726,14 @@ sub run_mark_duplicates_metrics_by_tag {
   Usage       : all_parameters_for_mark_duplicates_metrics_all_reads();
   Purpose     : Get all parameters for mark_duplicates_metrics_all_reads stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_mark_duplicates_metrics_all_reads {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -860,14 +860,14 @@ sub run_mark_duplicates_metrics {
   Usage       : all_parameters_for_sort_by_coordinate_by_tag();
   Purpose     : Get all parameters for sort_by_coordinate_by_tag stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_sort_by_coordinate_by_tag {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -908,14 +908,14 @@ sub run_sort_by_coordinate_by_tag {
   Usage       : all_parameters_for_sort_by_coordinate_all_reads();
   Purpose     : Get all parameters for sort_by_coordinate_all_reads stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_sort_by_coordinate_all_reads {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     my @all_parameters;
 
@@ -990,14 +990,14 @@ sub run_sort_by_coordinate {
   Usage       : all_parameters_for_sample_flagstats_by_tag();
   Purpose     : Get all parameters for sample_flagstats_by_tag stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_sample_flagstats_by_tag {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     # Previous stage will be skipped if using native mark duplicates method
     my $prev_stage_name =
@@ -1047,14 +1047,14 @@ sub run_sample_flagstats_by_tag {
   Usage       : all_parameters_for_sample_flagstats_all_reads();
   Purpose     : Get all parameters for sample_flagstats_all_reads stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_sample_flagstats_all_reads {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     # Previous stage will be skipped if using native mark duplicates method
     my $prev_stage_name =
@@ -1136,14 +1136,14 @@ sub run_sample_flagstats {
   Usage       : all_parameters_for_merge_by_tag();
   Purpose     : Get all parameters for merge_by_tag stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_merge_by_tag {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     # Previous stage will be skipped if using native mark duplicates method
     my $prev_stage_name =
@@ -1191,14 +1191,14 @@ sub run_merge_by_tag {
   Usage       : all_parameters_for_merge_all_reads();
   Purpose     : Get all parameters for merge_all_reads stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_merge_all_reads {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     # Previous stage will be skipped if using native mark duplicates method
     my $prev_stage_name =
@@ -1281,14 +1281,14 @@ sub run_merge {
   Usage       : all_parameters_for_make_index();
   Purpose     : Get all parameters for make_index stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_make_index {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     return [];
 }
@@ -1331,14 +1331,14 @@ sub run_make_index {
   Usage       : all_parameters_for_merged_flagstats();
   Purpose     : Get all parameters for merged_flagstats stage
   Returns     : Array of arrayrefs
-  Parameters  : None
+  Parameters  : DETCT::Pipeline::Stage
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub all_parameters_for_merged_flagstats {
-    my ($self) = @_;
+    my ( $self, $stage ) = @_;
 
     return [];
 }
