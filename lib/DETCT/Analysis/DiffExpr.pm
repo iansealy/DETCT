@@ -685,10 +685,9 @@ sub table_format {
         my ($extension) =
           $table_file{ id $self} =~ m/[.] ([[:lower:]]{3}) \z/xms;
 
-        #try {
-        $self->set_table_format($extension);
-
-        #};
+        try {
+            $self->set_table_format($extension);
+        };
     }
 
     return $table_format{ id $self};
