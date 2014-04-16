@@ -46,6 +46,7 @@ use DETCT::Misc::R qw(
 );
 use DETCT::Misc::Output qw(
   dump_as_table
+  parse_table
 );
 
 =head1 SYNOPSIS
@@ -1284,6 +1285,52 @@ sub run_dump_as_table {
     my $output_file = $job->base_filename . '.out';
 
     DumpFile( $output_file, 1 );
+
+    return;
+}
+
+=method all_parameters_for_parse_table
+
+  Usage       : all_parameters_for_parse_table();
+  Purpose     : Get all parameters for parse_table stage
+  Returns     : Array of arrayrefs
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_parse_table {
+    my ($self) = @_;
+
+    return [];
+}
+
+=method run_parse_table
+
+  Usage       : run_parse_table();
+  Purpose     : Run function for parse_table stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_parse_table {
+    my ( $self, $job ) = @_;
+
+    my $regions = DETCT::Misc::Output::parse_table(
+        {
+            analysis     => $self->analysis,
+            table_file   => $self->analysis->table_file,
+            table_format => $self->analysis->table_format,
+        }
+    );
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, $regions );
 
     return;
 }
