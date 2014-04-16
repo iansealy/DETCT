@@ -309,7 +309,7 @@ sub get_definition {
     push @def, [ q{3' end read count},   $INT, ];
     push @def, [ 'p value',              $FLOAT, ];
     push @def, [ 'Adjusted p value',     $FLOAT, ];
-    push @def, [ q{Distance to 3' end }, $INT, ];
+    push @def, [ q{Distance to 3' end}, $INT, ];
     push @def,
       [ $genebuild_version . ' Ensembl Gene ID', $STRING, $gene_link, ];
     push @def, [ 'Gene type', $STRING, ];
