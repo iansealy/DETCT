@@ -1176,12 +1176,14 @@ sub all_parameters_for_add_gene_annotation {
 
     my @all_parameters;
 
-    my $run_deseq_output_file =
-      $self->get_and_check_output_file( 'run_deseq', 1 );
+    my $prerequisite_stage_name = $stage->get_all_prerequisites->[0]->name;
+
+    my $deseq_output_file =
+      $self->get_and_check_output_file( $prerequisite_stage_name, 1 );
 
     my $chunks = $self->analysis->get_all_chunks();
     foreach my $chunk ( @{$chunks} ) {
-        push @all_parameters, [ $chunk, $run_deseq_output_file ];
+        push @all_parameters, [ $chunk, $deseq_output_file ];
     }
 
     return @all_parameters;
@@ -1201,10 +1203,10 @@ sub all_parameters_for_add_gene_annotation {
 sub run_add_gene_annotation {
     my ( $self, $job ) = @_;
 
-    my ( $chunk, $run_deseq_output_file ) = @{ $job->parameters };
+    my ( $chunk, $deseq_output_file ) = @{ $job->parameters };
 
     # Get regions
-    my $regions = LoadFile($run_deseq_output_file);
+    my $regions = LoadFile($deseq_output_file);
 
     # Filter regions by sequences in chunk
     my %chosen_seq = map { $_->name => 1 } @{$chunk};
