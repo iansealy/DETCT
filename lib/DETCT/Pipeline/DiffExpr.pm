@@ -47,6 +47,7 @@ use DETCT::Misc::R qw(
 use DETCT::Misc::Output qw(
   dump_as_table
   parse_table
+  convert_table_for_deseq
 );
 
 =head1 SYNOPSIS
@@ -1104,6 +1105,10 @@ sub run_merge_read_counts {
 sub all_parameters_for_run_deseq {
     my ( $self, $stage ) = @_;
 
+    if ( $stage->get_all_prerequisites->[0]->name eq 'convert_table' ) {
+        return [ $self->get_and_check_output_file( 'convert_table', 1 ) ];
+    }
+
     my @all_parameters;
 
     my $chunks = $self->analysis->get_all_chunks();
@@ -1276,7 +1281,7 @@ sub run_dump_as_table {
         push @regions, @{ LoadFile($output_file) };
     }
 
-    DETCT::Misc::Output::dump_as_table(
+    dump_as_table(
         {
             analysis => $self->analysis,
             dir      => $job->base_filename,
@@ -1322,11 +1327,66 @@ sub all_parameters_for_parse_table {
 sub run_parse_table {
     my ( $self, $job ) = @_;
 
-    my $regions = DETCT::Misc::Output::parse_table(
+    my $regions = parse_table(
         {
             analysis     => $self->analysis,
             table_file   => $self->analysis->table_file,
             table_format => $self->analysis->table_format,
+        }
+    );
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, $regions );
+
+    return;
+}
+
+=method all_parameters_for_convert_table
+
+  Usage       : all_parameters_for_convert_table();
+  Purpose     : Get all parameters for convert_table stage
+  Returns     : Array of arrayrefs
+  Parameters  : DETCT::Pipeline::Stage
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_convert_table {
+    my ( $self, $stage ) = @_;
+
+    my @all_parameters;
+
+    my $table_output_file =
+      $self->get_and_check_output_file( 'parse_table', 1 );
+
+    push @all_parameters, [$table_output_file];
+
+    return @all_parameters;
+}
+
+=method run_convert_table
+
+  Usage       : run_convert_table();
+  Purpose     : Run function for convert_table stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_convert_table {
+    my ( $self, $job ) = @_;
+
+    my ($table_output_file) = @{ $job->parameters };
+
+    my $regions = LoadFile($table_output_file);
+
+    $regions = convert_table_for_deseq(
+        {
+            regions => $regions,
         }
     );
 

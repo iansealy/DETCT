@@ -33,6 +33,7 @@ our @EXPORT_OK = qw(
   dump_as_table
   dump_duplication_metrics
   parse_table
+  convert_table_for_deseq
 );
 
 =head1 SYNOPSIS
@@ -748,7 +749,7 @@ sub dump_html {
                     table_file   => 'all.tsv',
                     table_format => 'tsv',
                 } );
-  Purpose     : Parse table of regions into internal format
+  Purpose     : Parse table of regions into final internal format
   Returns     : Arrayref [
                     Arrayref [
                         String (region sequence name),
@@ -1003,6 +1004,54 @@ sub parse_line {
     }
 
     return @row;
+}
+
+=func convert_table_for_deseq
+
+  Usage       : $regions = DETCT::Misc::Output::convert_table_for_deseq( {
+                    regions  => $regions_ary_ref,
+                } );
+  Purpose     : Convert final internal format to format for DESeq
+  Returns     : Hashref {
+                    String (sequence name) => Arrayref [
+                        Arrayref [
+                            Int (region start),
+                            Int (region end),
+                            Int (region maximum read count),
+                            Float (region log probability sum),
+                            String (3' end sequence name) or undef,
+                            Int (3' end position) or undef,
+                            Int (3' end strand) or undef,
+                            Int (3' end read count) or undef,
+                            Arrayref [
+                                Int (count)
+                                ...
+                            ]
+                        ],
+                        ... (regions)
+                }
+  Parameters  : Hashref {
+                    regions  => Arrayref (of regions),
+                }
+  Throws      : If regions are missing
+  Comments    : None
+
+=cut
+
+sub convert_table_for_deseq {
+    my ($arg_ref) = @_;
+
+    confess 'No regions specified' if !defined $arg_ref->{regions};
+
+    my %regions;
+
+    foreach my $region ( @{ $arg_ref->{regions} } ) {
+        my $seq_name = shift @{$region};
+        @{$region} = @{$region}[ 0 .. 8 ];
+        push @{ $regions{$seq_name} }, $region;
+    }
+
+    return \%regions;
 }
 
 # Cache Text::CSV object
