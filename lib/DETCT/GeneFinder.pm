@@ -415,4 +415,111 @@ sub add_gene_annotation {
     return \@output;
 }
 
+=method add_existing_gene_annotation
+
+  Usage       : my $regions_ref = $gene_finder->add_existing_gene_annotation({
+                    regions          => $regions_ary_ref,
+                    existing_regions => $existing_regions_ary_ref,
+                });
+  Purpose     : Add existing gene annotation to regions
+  Returns     : Arrayref [
+                    Arrayref [
+                        String (region sequence name),
+                        Int (region start),
+                        Int (region end),
+                        Int (region maximum read count),
+                        Float (region log probability sum),
+                        String (3' end sequence name) or undef,
+                        Int (3' end position) or undef,
+                        Int (3' end strand) or undef,
+                        Int (3' end read count) or undef,
+                        Arrayref [
+                            Int (count)
+                            ...
+                        ],
+                        Arrayref [
+                            Int (normalised count)
+                            ...
+                        ],
+                        Int (p value) or undef,
+                        Int (adjusted p value) or undef,
+                        Arrayref [
+                            Int (condition fold change) or undef,
+                            Int (log2 condition fold change) or undef,
+                        ],
+                        Arrayref [
+                            Arrayref [
+                                Int (group fold change) or undef,
+                                Int (log2 group fold change) or undef,
+                            ],
+                            ... (groups)
+                        ],
+                        Hashref {
+                            String (genebuild version) => Arrayref [
+                                Arrayref [
+                                    String (gene stable id),
+                                    String (gene name) or undef,
+                                    String (gene description) or undef,
+                                    String (gene biotype),
+                                    Int (distance to 3' end),
+                                    Arrayref [
+                                        Arrayref [
+                                            String (transcript stable id),
+                                            String (transcript biotype),
+                                        ],
+                                        ... (transcripts)
+                                    ],
+                                ],
+                                ... (genes)
+                            ],
+                        }
+                    ],
+                    ... (regions)
+                ]
+  Parameters  : Hashref {
+                    regions          => Arrayref (of regions),
+                    existing_regions => Arrayref (of regions),
+                }
+  Throws      : If regions are missing
+                If existing regions are missing
+                If regions and existing regions do not match
+  Comments    : None
+
+=cut
+
+sub add_existing_gene_annotation {
+    my ( $self, $arg_ref ) = @_;
+
+    confess 'No regions specified' if !defined $arg_ref->{regions};
+    confess 'No existing regions specified' if !defined $arg_ref->{existing_regions};
+
+    # Get existing annotation
+    my %gene_annotation;
+    foreach my $region ( @{ $arg_ref->{existing_regions} } ) {
+        my $seq_name   = $region->[0];
+        my $start      = $region->[1];
+        my $end        = $region->[2];
+        my $strand     = $region->[7]; ## no critic (ProhibitMagicNumbers)
+        my $annotation = $region->[-1];
+        my $key = join q{:}, $seq_name, $start, $end, $strand;
+        $gene_annotation{$key} = $annotation;
+    }
+
+    # Add existing annotation
+    foreach my $region ( @{ $arg_ref->{regions} } ) {
+        my $seq_name   = $region->[0];
+        my $start      = $region->[1];
+        my $end        = $region->[2];
+        my $strand     = $region->[7]; ## no critic (ProhibitMagicNumbers)
+        my $key = join q{:}, $seq_name, $start, $end, $strand;
+        if (exists $gene_annotation{$key}) {
+            push @{$region}, $gene_annotation{$key};
+        } else {
+            confess sprintf 'No existing gene annotation for %s', $key;
+        }
+    }
+
+    return $arg_ref->{regions};
+}
+
 1;
