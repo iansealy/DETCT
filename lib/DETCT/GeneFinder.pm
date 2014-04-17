@@ -491,7 +491,8 @@ sub add_existing_gene_annotation {
     my ( $self, $arg_ref ) = @_;
 
     confess 'No regions specified' if !defined $arg_ref->{regions};
-    confess 'No existing regions specified' if !defined $arg_ref->{existing_regions};
+    confess 'No existing regions specified'
+      if !defined $arg_ref->{existing_regions};
 
     # Get existing annotation
     my %gene_annotation;
@@ -499,7 +500,7 @@ sub add_existing_gene_annotation {
         my $seq_name   = $region->[0];
         my $start      = $region->[1];
         my $end        = $region->[2];
-        my $strand     = $region->[7]; ## no critic (ProhibitMagicNumbers)
+        my $strand     = $region->[7];    ## no critic (ProhibitMagicNumbers)
         my $annotation = $region->[-1];
         my $key = join q{:}, $seq_name, $start, $end, $strand;
         $gene_annotation{$key} = $annotation;
@@ -507,14 +508,15 @@ sub add_existing_gene_annotation {
 
     # Add existing annotation
     foreach my $region ( @{ $arg_ref->{regions} } ) {
-        my $seq_name   = $region->[0];
-        my $start      = $region->[1];
-        my $end        = $region->[2];
-        my $strand     = $region->[7]; ## no critic (ProhibitMagicNumbers)
+        my $seq_name = $region->[0];
+        my $start    = $region->[1];
+        my $end      = $region->[2];
+        my $strand   = $region->[7];      ## no critic (ProhibitMagicNumbers)
         my $key = join q{:}, $seq_name, $start, $end, $strand;
-        if (exists $gene_annotation{$key}) {
+        if ( exists $gene_annotation{$key} ) {
             push @{$region}, $gene_annotation{$key};
-        } else {
+        }
+        else {
             confess sprintf 'No existing gene annotation for %s', $key;
         }
     }
