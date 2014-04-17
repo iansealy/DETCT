@@ -918,7 +918,7 @@ sub parse_table {
             \%counts_for_group_condition );
 
         # Skip to next region if no gene annotation
-        if (!defined $row[9]) {
+        if ( !defined $row[9] ) {
             push @region, {};
             push @regions, \@region;
             next;
@@ -929,18 +929,20 @@ sub parse_table {
         # knowing which transcripts are associated with which genes), but data
         # will be output correctly as a table (i.e. can roundtrip)
         ## no critic (ProhibitMagicNumbers)
-        my @distance             = split /,/xms,   $row[8];   # 3' end distance
-        my @gene_stable_id       = split /,/xms,   $row[9];   # Gene ID
-        my @gene_biotype         = split /,/xms,   $row[10];  # Gene type
-        my @transcript_stable_id = split /,/xms,   $row[11];  # Transcript ID
-        my @transcript_biotype   = split /,/xms,   $row[12];  # Transcript type
+        my @distance             = split /,/xms, $row[8];     # 3' end distance
+        my @gene_stable_id       = split /,/xms, $row[9];     # Gene ID
+        my @gene_biotype         = split /,/xms, $row[10];    # Gene type
+        my @transcript_stable_id = split /,/xms, $row[11];    # Transcript ID
+        my @transcript_biotype   = split /,/xms, $row[12];    # Transcript type
+
         # Gene name (can be missing)
         my @name = defined $row[13] ? split /,\S/xms, $row[13] : ();
+
         # Gene description (can be missing)
         my @description = defined $row[14] ? split /,\S/xms, $row[14] : ();
         ## use critic
-        my @genes;
 
+        my @genes;
         while (@gene_stable_id) {
             if ( scalar @gene_stable_id == 1 ) {
 
