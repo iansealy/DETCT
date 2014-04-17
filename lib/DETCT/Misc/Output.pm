@@ -525,7 +525,7 @@ sub dump_csv {
 
         $i++;
     }
-    write_or_die( $fh, ( join q{,}, @output_row ), "\n" );
+    write_or_die( $fh, ( join q{,}, @output_row ), "\r\n" );
 
     return;
 }
