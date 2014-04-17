@@ -84,7 +84,7 @@ sub dump_as_table {
     my @samples = @{ $arg_ref->{analysis}->get_all_samples() };
     my @conditions = uniq( nsort( map { $_->condition } @samples ) );
     my @groups =
-      grep { defined $_ } uniq( nsort( map { $_->group } @samples ) );
+      uniq( nsort( grep { defined $_ } map { $_->group } @samples ) );
 
     # Get regions sorted by p value then location
     my $regions = sort_regions( $arg_ref->{regions} );
@@ -832,7 +832,7 @@ sub parse_table {
     my @samples = @{ $arg_ref->{analysis}->get_all_samples() };
     my @conditions = uniq( nsort( map { $_->condition } @samples ) );
     my @groups =
-      grep { defined $_ } uniq( nsort( map { $_->group } @samples ) );
+      uniq( nsort( grep { defined $_ } map { $_->group } @samples ) );
 
     # Get table
     my @rows = read_file( $arg_ref->{table_file} );
