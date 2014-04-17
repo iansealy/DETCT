@@ -1,0 +1,23 @@
+-
+  name:           parse_table
+  default_memory: 100
+-
+  name:           convert_table
+  default_memory: 1000
+  prerequisites:
+    - parse_table
+-
+  name:           run_deseq
+  default_memory: 2000
+  prerequisites:
+    - convert_table
+-
+  name:           add_existing_gene_annotation
+  default_memory: 1000
+  prerequisites:
+    - run_deseq
+-
+  name:           dump_as_table
+  default_memory: 3000
+  prerequisites:
+    - add_existing_gene_annotation

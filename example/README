@@ -33,6 +33,15 @@ perl -Ilib script/run_pipeline.pl --pipeline de \
 --stages_yaml example/reannotate.yaml \
 --sleep_time 1 --verbose
 
+To run the example pipeline for rerunning differential expression analysis (on a
+subset or with changed conditions or groups):
+
+perl -Ilib script/run_pipeline.pl --pipeline de \
+--scheduler local --dir tmp \
+--analysis_yaml example/rede-analysis.yaml \
+--stages_yaml example/rede.yaml \
+--sleep_time 1 --verbose
+
 To run the example downsampling pipeline (again from the top level directory)
 using native duplicate marking:
 

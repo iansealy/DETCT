@@ -1229,6 +1229,68 @@ sub run_add_gene_annotation {
     return;
 }
 
+=method all_parameters_for_add_existing_gene_annotation
+
+  Usage       : all_parameters_for_add_existing_gene_annotation();
+  Purpose     : Get all parameters for add_existing_gene_annotation stage
+  Returns     : Array of arrayrefs
+  Parameters  : DETCT::Pipeline::Stage
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_add_existing_gene_annotation {
+    my ( $self, $stage ) = @_;
+
+    my @all_parameters;
+
+    my $table_output_file =
+      $self->get_and_check_output_file( 'parse_table', 1 );
+    my $deseq_output_file = $self->get_and_check_output_file( 'run_deseq', 1 );
+
+    push @all_parameters, [ $table_output_file, $deseq_output_file ];
+
+    return @all_parameters;
+}
+
+=method run_add_existing_gene_annotation
+
+  Usage       : run_add_existing_gene_annotation();
+  Purpose     : Run function for add_existing_gene_annotation stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_add_existing_gene_annotation {
+    my ( $self, $job ) = @_;
+
+    my ( $table_output_file, $deseq_output_file ) = @{ $job->parameters };
+
+    # Get regions and existing regions
+    my $existing_regions = LoadFile($table_output_file);
+    my $regions          = LoadFile($deseq_output_file);
+
+    # Add existing gene annotation
+    my $gene_finder = DETCT::GeneFinder->new(
+        { slice_adaptor => $self->analysis->slice_adaptor, } );
+    my $annotated_regions_ref = $gene_finder->add_existing_gene_annotation(
+        {
+            regions          => $regions,
+            existing_regions => $existing_regions,
+        }
+    );
+
+    my $output_file = $job->base_filename . '.out';
+
+    DumpFile( $output_file, $annotated_regions_ref );
+
+    return;
+}
+
 =method all_parameters_for_dump_as_table
 
   Usage       : all_parameters_for_dump_as_table();
@@ -1242,6 +1304,16 @@ sub run_add_gene_annotation {
 
 sub all_parameters_for_dump_as_table {
     my ( $self, $stage ) = @_;
+
+    if ( $stage->get_all_prerequisites->[0]->name eq
+        'add_existing_gene_annotation' )
+    {
+        return [
+            $self->get_and_check_output_file(
+                'add_existing_gene_annotation', 1
+            )
+        ];
+    }
 
     my @all_parameters;
 
