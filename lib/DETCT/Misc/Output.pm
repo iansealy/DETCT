@@ -934,8 +934,10 @@ sub parse_table {
         my @gene_biotype         = split /,/xms,   $row[10];  # Gene type
         my @transcript_stable_id = split /,/xms,   $row[11];  # Transcript ID
         my @transcript_biotype   = split /,/xms,   $row[12];  # Transcript type
-        my @name                 = split /,\S/xms, $row[13];  # Gene name
-        my @description          = split /,\S/xms, $row[14];  # Gene description
+        # Gene name (can be missing)
+        my @name = defined $row[13] ? split /,\S/xms, $row[13] : ();
+        # Gene description (can be missing)
+        my @description = defined $row[14] ? split /,\S/xms, $row[14] : ();
         ## use critic
         my @genes;
 
