@@ -917,6 +917,13 @@ sub parse_table {
           DETCT::Misc::R::calc_group_fold_changes( \@conditions, \@groups,
             \%counts_for_group_condition );
 
+        # Skip to next region if no gene annotation
+        if (!defined $row[9]) {
+            push @region, {};
+            push @regions, \@region;
+            next;
+        }
+
         # Gene annotation
         # Not guaranteed to be identical to original data (e.g. no way of
         # knowing which transcripts are associated with which genes), but data
