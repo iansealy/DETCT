@@ -1047,7 +1047,7 @@ sub convert_table_for_deseq {
 
     foreach my $region ( @{ $arg_ref->{regions} } ) {
         my $seq_name = shift @{$region};
-        @{$region} = @{$region}[ 0 .. 8 ];
+        @{$region} = @{$region}[ 0 .. 8 ];   ## no critic (ProhibitMagicNumbers)
         push @{ $regions{$seq_name} }, $region;
     }
 
