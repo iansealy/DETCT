@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 394;
+plan tests => 400;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -1861,6 +1861,14 @@ samtools view -h t/data/test1.bam | grep -E '^@SQ|#.....GAGGC' \
 | samtools view -bS - | samtools flagstat -
 =cut
 
+# Without sequence 5, should be 1516 paired reads, 1370 mapped paired reads and
+# 1370 properly paired reads according to:
+
+=for comment
+samtools view -h t/data/test1.bam 1 2 3 4 | grep -E '^@SQ|#.....GAGGC' \
+| samtools view -bS - | samtools flagstat -
+=cut
+
 $stats = stats_by_tag(
     {
         bam_file => 't/data/test1.bam',
@@ -1871,12 +1879,31 @@ is( $stats->{NNNNBGAGGC}->{paired}, 1672, 'Paired read count' );
 is( $stats->{NNNNBGAGGC}->{mapped}, 1514, 'Mapped paired read count' );
 is( $stats->{NNNNBGAGGC}->{proper}, 1514, 'Properly paired read count' );
 
+$stats = stats_by_tag(
+    {
+        bam_file       => 't/data/test1.bam',
+        tags           => ['NNNNBGAGGC'],
+        skip_sequences => ['5'],
+    }
+);
+is( $stats->{NNNNBGAGGC}->{paired}, 1516, 'Paired read count' );
+is( $stats->{NNNNBGAGGC}->{mapped}, 1370, 'Mapped paired read count' );
+is( $stats->{NNNNBGAGGC}->{proper}, 1370, 'Properly paired read count' );
+
 # Stats for all reads
 # Should be 3258 paired reads, 2958 mapped paired reads and 2958 properly paired
 # reads according to:
 
 =for comment
 samtools view -h t/data/test1.bam \
+| samtools view -bS - | samtools flagstat -
+=cut
+
+# Without sequence 5, should be 2964 paired reads, 2684 mapped paired reads and
+# 2684 properly paired reads according to:
+
+=for comment
+samtools view -h t/data/test1.bam 1 2 3 4 \
 | samtools view -bS - | samtools flagstat -
 =cut
 
@@ -1888,6 +1915,16 @@ $stats = stats_all_reads(
 is( $stats->{paired}, 3258, 'Paired read count' );
 is( $stats->{mapped}, 2958, 'Mapped paired read count' );
 is( $stats->{proper}, 2958, 'Properly paired read count' );
+
+$stats = stats_all_reads(
+    {
+        bam_file       => 't/data/test1.bam',
+        skip_sequences => ['5'],
+    }
+);
+is( $stats->{paired}, 2964, 'Paired read count' );
+is( $stats->{mapped}, 2684, 'Mapped paired read count' );
+is( $stats->{proper}, 2684, 'Properly paired read count' );
 
 # Downsample by tag
 

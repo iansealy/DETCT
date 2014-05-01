@@ -1237,8 +1237,9 @@ sub merge_read_counts {
                     }
                 }
   Parameters  : Hashref {
-                    bam_file => String (the BAM file)
-                    tags     => Arrayref of strings (the tags)
+                    bam_file       => String (the BAM file)
+                    tags           => Arrayref of strings (the tags)
+                    skip_sequences => Arrayref of strings (the skip sequences)
                 }
   Throws      : If BAM file is missing
                 If tags are missing
@@ -1257,6 +1258,9 @@ sub stats_by_tag {
     # Convert tags to regular expressions
     my %re_for = DETCT::Misc::Tag::convert_tag_to_regexp(@tags);
 
+    my %is_skip_sequence =
+      map { $_ => 1 } @{ $arg_ref->{skip_sequences} || [] };
+
     my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
 
     my %stats = map { $_ => { paired => 0, mapped => 0, proper => 0, } } @tags;
@@ -1264,6 +1268,11 @@ sub stats_by_tag {
     # Get all reads
     my $alignments = $sam->features( -iterator => 1, );
     while ( my $alignment = $alignments->next_seq ) {
+        next
+          if ( $alignment->seq_id
+            && exists $is_skip_sequence{ $alignment->seq_id } )
+          || ( $alignment->mate_seq_id
+            && exists $is_skip_sequence{ $alignment->mate_seq_id } );
 
         # Match tag
         my $tag_found = matched_tag( $alignment, \%re_for );
@@ -1296,7 +1305,8 @@ sub stats_by_tag {
                     proper => Int (properly paired read count),
                 }
   Parameters  : Hashref {
-                    bam_file => String (the BAM file)
+                    bam_file       => String (the BAM file)
+                    skip_sequences => Arrayref of strings (the skip sequences)
                 }
   Throws      : If BAM file is missing
   Comments    : None
@@ -1308,6 +1318,9 @@ sub stats_all_reads {
 
     confess 'No BAM file specified' if !defined $arg_ref->{bam_file};
 
+    my %is_skip_sequence =
+      map { $_ => 1 } @{ $arg_ref->{skip_sequences} || [] };
+
     my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
 
     my %stats = ( paired => 0, mapped => 0, proper => 0, );
@@ -1315,6 +1328,11 @@ sub stats_all_reads {
     # Get all reads
     my $alignments = $sam->features( -iterator => 1, );
     while ( my $alignment = $alignments->next_seq ) {
+        next
+          if ( $alignment->seq_id
+            && exists $is_skip_sequence{ $alignment->seq_id } )
+          || ( $alignment->mate_seq_id
+            && exists $is_skip_sequence{ $alignment->mate_seq_id } );
 
         # Counts
         if ( is_paired($alignment) ) {

@@ -92,8 +92,9 @@ sub run_stats_by_tag {
     # Get stats for BAM file
     my $stats = stats_by_tag(
         {
-            bam_file => $bam_file,
-            tags     => \@tags,
+            bam_file       => $bam_file,
+            tags           => \@tags,
+            skip_sequences => $self->analysis->get_all_skip_sequences(),
         }
     );
 
@@ -146,7 +147,8 @@ sub run_stats_all_reads {
     # Get stats for BAM file
     my $stats = stats_all_reads(
         {
-            bam_file => $bam_file,
+            bam_file       => $bam_file,
+            skip_sequences => $self->analysis->get_all_skip_sequences(),
         }
     );
 
