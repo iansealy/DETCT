@@ -34,17 +34,18 @@ use DETCT::Misc::BAM;
 =cut
 
 # Attributes:
-private name            => my %name;               # e.g. zmp_ph1
-private sample          => my %sample;             # arrayref of samples
-private sequence        => my %sequence;           # arrayref of sequences
-private total_bp        => my %total_bp;           # e.g. 1412464843
-private ref_fasta       => my %ref_fasta;          # e.g. zv9.fa
-private fasta_index     => my %fasta_index;        # Bio::DB::Sam::Fai
-private ensembl_host    => my %ensembl_host;       # e.g. ensembldb.ensembl.org
-private ensembl_port    => my %ensembl_port;       # e.g. 3306
-private ensembl_user    => my %ensembl_user;       # e.g. anonymous
-private ensembl_pass    => my %ensembl_pass;       # e.g. secret
-private ensembl_name    => my %ensembl_name;       # e.g. zv9_core
+private name          => my %name;           # e.g. zmp_ph1
+private skip_sequence => my %skip_sequence;  # hashref of skipped sequence names
+private sample        => my %sample;         # arrayref of samples
+private sequence      => my %sequence;       # arrayref of sequences
+private total_bp      => my %total_bp;       # e.g. 1412464843
+private ref_fasta     => my %ref_fasta;      # e.g. zv9.fa
+private fasta_index   => my %fasta_index;    # Bio::DB::Sam::Fai
+private ensembl_host  => my %ensembl_host;   # e.g. ensembldb.ensembl.org
+private ensembl_port  => my %ensembl_port;   # e.g. 3306
+private ensembl_user  => my %ensembl_user;   # e.g. anonymous
+private ensembl_pass  => my %ensembl_pass;   # e.g. secret
+private ensembl_name  => my %ensembl_name;   # e.g. zv9_core
 private ensembl_species => my %ensembl_species;    # e.g. danio_rerio
 private slice_adaptor => my %slice_adaptor; # Bio::EnsEMBL::DBSQL::SliceAdaptor
 private chunk_total   => my %chunk_total;   # e.g. 20
@@ -133,6 +134,10 @@ sub new_from_yaml {
     $self->set_chunk_total( $yaml->[0]->{chunk_total} );
     $self->set_test_chunk( $yaml->[0]->{test_chunk} );
 
+    # Need to add skip sequences before adding samples because add_sample()
+    # calls add_all_sequences()
+    $self->add_all_skip_sequences( $yaml->[0]->{skip_sequences} );
+
     foreach my $sample_hash ( @{ $yaml->[0]->{samples} } ) {
         my $sample = DETCT::Sample->new(
             {
@@ -204,6 +209,63 @@ sub _check_name {
       if length $name > $MAX_NAME_LENGTH;
 
     return $name;
+}
+
+=method add_all_skip_sequences
+
+  Usage       : $analysis->add_all_skip_sequences(['MT']);
+  Purpose     : Add all skip sequences to an analysis
+  Returns     : undef
+  Parameters  : Arrayref of strings (the skip sequences) or undef
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub add_all_skip_sequences {
+    my ( $self, $skip_sequences ) = @_;
+
+    $skip_sequence{ id $self} = {};
+
+    foreach my $seq_name ( @{ $skip_sequences || [] } ) {
+        $skip_sequence{ id $self}->{$seq_name} = 1;
+    }
+
+    return;
+}
+
+=method get_all_skip_sequences
+
+  Usage       : $skip_sequences = $analysis->get_all_skip_sequences();
+  Purpose     : Get all skip sequences of an analysis
+  Returns     : Arrayref of strings
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_all_skip_sequences {
+    my ($self) = @_;
+
+    return [ sort keys %{ $skip_sequence{ id $self} || {} } ];
+}
+
+=method is_skip_sequence
+
+  Usage       : next if $analysis->is_skip_sequence('MT');
+  Purpose     : Check if sequence should be skipped
+  Returns     : 1 or 0
+  Parameters  : String (the sequence name)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub is_skip_sequence {
+    my ( $self, $seq_name ) = @_;
+
+    return exists $skip_sequence{ id $self}->{$seq_name} ? 1 : 0;
 }
 
 =method add_sample
@@ -281,6 +343,8 @@ sub add_all_sequences {
     my %len = DETCT::Misc::BAM::get_reference_sequence_lengths($bam_file);
 
     foreach my $name ( reverse sort { $len{$a} <=> $len{$b} } keys %len ) {
+        next if $self->is_skip_sequence($name);
+
         my $sequence = DETCT::Sequence->new(
             {
                 name => $name,

@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 135;
+plan tests => 143;
 
 use DETCT::Analysis::Downsample;
 
@@ -259,6 +259,19 @@ is( scalar @{$chunks},            1,     '1 chunk' );
 is( $analysis->set_test_chunk(4), undef, 'Set test chunk' );
 $chunks = $analysis->get_all_chunks();
 is( scalar @{$chunks}, 3, '3 chunks' );
+
+# Test skip sequences
+is( scalar @{ $analysis->get_all_skip_sequences }, 0, 'Get skip sequences' );
+is( $analysis->is_skip_sequence('4'),           0, '4 is not skip sequence' );
+is( scalar @{ $analysis->get_all_sequences() }, 5, '5 sequences' );
+is( $analysis->add_all_skip_sequences( [ '4', '5' ] ),
+    undef, 'Add skip sequences' );
+is( scalar @{ $analysis->get_all_skip_sequences }, 2,
+    'Get new skip sequences' );
+is( $analysis->is_skip_sequence('4'),           1, '4 is skip sequence' );
+is( scalar @{ $analysis->get_all_sequences() }, 5, '5 sequences' );
+$analysis->add_all_sequences('t/data/test1.bam');
+is( scalar @{ $analysis->get_all_sequences() }, 3, '3 sequences' );
 
 # Test constructing from YAML
 $analysis = DETCT::Analysis::Downsample->new_from_yaml(
