@@ -1,3 +1,6 @@
+use warnings;
+use strict;
+use autodie;
 use Test::More;
 use Test::Exception;
 use Test::Warn;
@@ -217,7 +220,7 @@ is( length $read_qual, 54, 'Quality trimmed to 54 bp' );
 
 my @tags = qw( N B D H V R Y K M S W A G C T AA );
 
-%re_for = convert_tag_to_regexp(@tags);
+my %re_for = convert_tag_to_regexp(@tags);
 
 ok( q{A} =~ $re_for{A}->[0], 'A matches A' );
 ok( q{G} !~ $re_for{A}->[0], 'A does not match G' );

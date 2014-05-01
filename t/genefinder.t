@@ -1,3 +1,6 @@
+use warnings;
+use strict;
+use autodie;
 use Test::More;
 use Test::Exception;
 use Test::Warn;
@@ -74,6 +77,7 @@ qr/Class of Ensembl slice adaptor/ms, 'Invalid Ensembl slice adaptor';
 my $genes;
 my $transcripts;
 my $distance;
+my $nearest_end_pos;
 
 # Near to one gene on forward strand
 ( $genes, $distance, $nearest_end_pos ) =

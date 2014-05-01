@@ -1,3 +1,6 @@
+use warnings;
+use strict;
+use autodie;
 use Test::More;
 use Test::Exception;
 use Test::Warn;
@@ -1847,6 +1850,8 @@ is( scalar @{ $read_counts->{'1'}->[0]->[8] }, 2,  '2 samples' );
 is( $read_counts->{'1'}->[0]->[8]->[0],        10, '10 reads' );
 is( $read_counts->{'1'}->[0]->[8]->[1],        20, '20 reads' );
 
+my $stats;
+
 # Stats by tag
 # Should be 1672 paired reads, 1514 mapped paired reads and 1514 properly paired
 # reads according to:
@@ -1875,7 +1880,7 @@ samtools view -h t/data/test1.bam \
 | samtools view -bS - | samtools flagstat -
 =cut
 
-my $stats = stats_all_reads(
+$stats = stats_all_reads(
     {
         bam_file => 't/data/test1.bam',
     }
