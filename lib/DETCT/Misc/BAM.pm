@@ -1369,6 +1369,7 @@ sub stats_all_reads {
                     target_bam_file   => String (the downsampled BAM file)
                     target_read_count => Int (the target read count)
                     read_count_type   => String ('paired', 'mapped' or 'proper')
+                    skip_sequences    => Arrayref of strings (skip sequences)
                 }
   Throws      : If tag is missing
   Comments    : None
@@ -1401,6 +1402,7 @@ sub downsample_by_tag {
                     target_bam_file   => String (the downsampled BAM file)
                     target_read_count => Int (the target read count)
                     read_count_type   => String ('paired', 'mapped' or 'proper')
+                    skip_sequences    => Arrayref of strings (skip sequences)
                 }
   Throws      : No exceptions
   Comments    : None
@@ -1430,6 +1432,7 @@ sub downsample_all_reads {
                     target_bam_file   => String (the downsampled BAM file)
                     target_read_count => Int (the target read count)
                     read_count_type   => String ('paired', 'mapped' or 'proper')
+                    skip_sequences    => Arrayref of strings (skip sequences)
                 }
   Throws      : If source BAM file is missing
                 If source read count is missing
@@ -1469,6 +1472,12 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
     my $bam_out = Bio::DB::Bam->open( $arg_ref->{target_bam_file}, q{w} );
     $bam_out->header_write( $bam_in->header );
 
+    # Convert skip sequences to BAM refID
+    my $i = 0;
+    my %sam_to_bam = map { $_ => $i++ } @{ $bam_in->header->target_name };
+    my %is_skip_sequence =
+      map { $sam_to_bam{$_} => 1 } @{ $arg_ref->{skip_sequences} || [] };
+
     # Calculate probability of keeping read
     my $keep_chance =
       $arg_ref->{target_read_count} / $arg_ref->{source_read_count};
@@ -1484,6 +1493,16 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
     while ( my $alignment = $bam_in->read1 ) {
         last
           if $total_kept == $arg_ref->{target_read_count} && !$total_half_kept;
+
+        next
+          if (
+            $alignment->tid != -1    ## no critic (ProhibitMagicNumbers)
+            && exists $is_skip_sequence{ $alignment->tid }
+          )
+          || (
+            $alignment->mtid != -1    ## no critic (ProhibitMagicNumbers)
+            && exists $is_skip_sequence{ $alignment->mtid }
+          );
 
         # Write read if kept mate
         if ( exists $keep{ $alignment->qname } ) {

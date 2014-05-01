@@ -234,6 +234,7 @@ sub run_downsample_by_tag {
             target_bam_file   => $job->base_filename . '.bam',
             target_read_count => $self->analysis->target_read_count,
             read_count_type   => $self->analysis->read_count_type,
+            skip_sequences    => $self->analysis->get_all_skip_sequences(),
         }
     );
 
@@ -343,6 +344,7 @@ sub run_downsample_all_reads {
             target_bam_file   => $job->base_filename . '.bam',
             target_read_count => $target_read_count,
             read_count_type   => $self->analysis->read_count_type,
+            skip_sequences    => $self->analysis->get_all_skip_sequences(),
         }
     );
 

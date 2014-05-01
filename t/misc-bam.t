@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 400;
+plan tests => 404;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -1928,7 +1928,7 @@ is( $stats->{proper}, 2684, 'Properly paired read count' );
 
 # Downsample by tag
 
-my ( $read1_count, $read2_count );
+my ( $read1_count, $read2_count, $seq_name_count );
 
 $count = downsample_by_tag(
     {
@@ -1977,6 +1977,23 @@ ok( $count <= 500, 'Downsample to 500 properly paired reads' );
 ( $read1_count, $read2_count ) =
   count_reads_1_and_2( $tmp_dir . '/test1.NNNNBGAGGC.proper.bam' );
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
+
+$count = downsample_by_tag(
+    {
+        source_bam_file   => 't/data/test1.bam',
+        source_read_count => 1672,
+        tag               => 'NNNNBGAGGC',
+        target_bam_file   => $tmp_dir . '/test1.NNNNBGAGGC.paired.no1.bam',
+        target_read_count => 500,
+        read_count_type   => 'paired',
+        skip_sequences    => ['1'],
+    }
+);
+ok( $count <= 500, 'Downsample to 500 paired reads without sequence 1' );
+
+$seq_name_count =
+  count_seq_names( $tmp_dir . '/test1.NNNNBGAGGC.paired.no1.bam' );
+is( $seq_name_count->{1}, undef, 'No reads from sequence 1' );
 
 throws_ok {
     $count = downsample_by_tag(
@@ -2110,6 +2127,21 @@ ok( $count <= 1000, 'Downsample to 1000 properly paired reads' );
 ( $read1_count, $read2_count ) =
   count_reads_1_and_2( $tmp_dir . '/test1.proper.bam' );
 ok( $read1_count == $read2_count, 'Downsample equal number of reads 1 and 2' );
+
+$count = downsample_all_reads(
+    {
+        source_bam_file   => 't/data/test1.bam',
+        source_read_count => 3258,
+        target_bam_file   => $tmp_dir . '/test1.paired.no1.bam',
+        target_read_count => 1000,
+        read_count_type   => 'paired',
+        skip_sequences    => ['1'],
+    }
+);
+ok( $count <= 1000, 'Downsample to 1000 paired reads' );
+
+$seq_name_count = count_seq_names( $tmp_dir . '/test1.paired.no1.bam' );
+is( $seq_name_count->{1}, undef, 'No reads from sequence 1' );
 
 # Mark duplicates
 
@@ -2290,4 +2322,19 @@ sub count_duplicates {
     }
 
     return $dupe_count;
+}
+
+# Count sequence names
+sub count_seq_names {
+    my ($bam_file) = @_;
+
+    my $sam = Bio::DB::Sam->new( -bam => $bam_file );
+    my $alignments = $sam->features( -iterator => 1, );
+    my %seq_name_count;
+    while ( my $alignment = $alignments->next_seq ) {
+        next if !$alignment->seq_id;
+        $seq_name_count{ $alignment->seq_id }++;
+    }
+
+    return \%seq_name_count;
 }
