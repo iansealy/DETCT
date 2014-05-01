@@ -816,7 +816,7 @@ sub dump_html {
 
 =cut
 
-sub parse_table {
+sub parse_table {    ## no critic (ProhibitExcessComplexity)
     my ($arg_ref) = @_;
 
     confess 'No analysis specified'     if !defined $arg_ref->{analysis};
@@ -918,7 +918,7 @@ sub parse_table {
             \%counts_for_group_condition );
 
         # Skip to next region if no gene annotation
-        if ( !defined $row[9] ) {
+        if ( !defined $row[9] ) {    ## no critic (ProhibitMagicNumbers)
             push @region, {};
             push @regions, \@region;
             next;
