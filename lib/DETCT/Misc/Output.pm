@@ -873,11 +873,11 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
         push @region, $row[2];    # Region end
         push @region, undef;      # Region maximum read count
         push @region, undef;      # Region log probability sum
-        push @region, $row[0];    # 3' end sequence name
         ## no critic (ProhibitMagicNumbers)
-        push @region, $row[3];    # 3' end position
-        push @region, $row[4];    # 3' end strand
-        push @region, $row[5];    # 3' end read count
+        push @region, defined $row[3] ? $row[0] : undef;  # 3' end sequence name
+        push @region, $row[3];                            # 3' end position
+        push @region, $row[4];                            # 3' end strand
+        push @region, $row[5];                            # 3' end read count
         ## use critic
 
         # Counts and normalised counts, plus store for fold change calculation
