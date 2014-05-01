@@ -8,10 +8,11 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 13;
+plan tests => 72;
 
 use DETCT::Misc::Output qw(
   dump_as_table
+  parse_table
 );
 
 use File::Temp qw( tempdir );
@@ -97,5 +98,94 @@ foreach my $format ( 'csv', 'tsv', 'html' ) {
         ok( !-z $filepath, $file . ' is not empty' );
     }
 }
+
+# Parse output
+
+my $new_regions = parse_table(
+    {
+        analysis     => $analysis,
+        table_file   => File::Spec->catfile( $tmp_dir, 'all.tsv' ),
+        table_format => 'tsv',
+    }
+);
+
+is( $new_regions->[0]->[0],       '1',   'Region sequence name' );
+is( $new_regions->[0]->[1],       1,     'Region start' );
+is( $new_regions->[0]->[2],       110,   'Region end' );
+is( $new_regions->[0]->[3],       undef, 'Region maximum read count' );
+is( $new_regions->[0]->[4],       undef, 'Region log probability sum' );
+is( $new_regions->[0]->[5],       '1',   q{3' end sequence name} );
+is( $new_regions->[0]->[6],       110,   q{3' end position} );
+is( $new_regions->[0]->[7],       1,     q{3' end strand} );
+is( $new_regions->[0]->[8],       10,    q{3' end read count} );
+is( $new_regions->[0]->[9]->[0],  4,     'Count' );
+is( $new_regions->[0]->[9]->[1],  1,     'Count' );
+is( $new_regions->[0]->[9]->[2],  2,     'Count' );
+is( $new_regions->[0]->[9]->[3],  7,     'Count' );
+is( $new_regions->[0]->[10]->[0], 4.6,   'Normalised count' );
+is( $new_regions->[0]->[10]->[1], 1.1,   'Normalised count' );
+is( $new_regions->[0]->[10]->[2], 2.1,   'Normalised count' );
+is( $new_regions->[0]->[10]->[3], 4.6,   'Normalised count' );
+is( $new_regions->[0]->[11],      undef, 'p value' );
+is( $new_regions->[0]->[12],      undef, 'Adjusted p value' );
+is( ( sprintf '%.2f', $new_regions->[0]->[13]->[0] ),
+    1.18, 'Condition fold change' );
+is( ( sprintf '%.3f', $new_regions->[0]->[13]->[1] ),
+    0.233, 'Condition fold change' );
+is( ( sprintf '%.2f', $new_regions->[0]->[14]->[0]->[0] ),
+    0.46, 'Group fold change' );
+is( ( sprintf '%.2f', $new_regions->[0]->[14]->[0]->[1] ),
+    -1.13, 'Group fold change' );
+is( ( sprintf '%.2f', $new_regions->[0]->[14]->[1]->[0] ),
+    4.18, 'Group fold change' );
+is( ( sprintf '%.2f', $new_regions->[0]->[14]->[1]->[1] ),
+    2.06, 'Group fold change' );
+is( scalar keys %{ $new_regions->[0]->[15] }, 1, 'Gene annotation' );
+is( $new_regions->[0]->[15]->{e61}->[0]->[0], 'ENSDARG00000095747', 'Gene ID' );
+is( $new_regions->[0]->[15]->{e61}->[0]->[1], 'cxc64', 'Gene name' );
+is(
+    $new_regions->[0]->[15]->{e61}->[0]->[2],
+    'CXC chemokine 64',
+    'Gene description'
+);
+is( $new_regions->[0]->[15]->{e61}->[0]->[3], 'protein_coding', 'Gene type' );
+is( $new_regions->[0]->[15]->{e61}->[0]->[4], 5, q{3' end distance} );
+is( $new_regions->[0]->[15]->{e61}->[0]->[5]->[0]->[0],
+    'ENSDART00000133571', 'Transcript ID' );
+is( $new_regions->[0]->[15]->{e61}->[0]->[5]->[0]->[1],
+    'protein_coding', 'Transcript type' );
+
+is( $new_regions->[1]->[0],       '1',   'Region sequence name' );
+is( $new_regions->[1]->[1],       1,     'Region start' );
+is( $new_regions->[1]->[2],       1000,  'Region end' );
+is( $new_regions->[1]->[3],       undef, 'Region maximum read count' );
+is( $new_regions->[1]->[4],       undef, 'Region log probability sum' );
+is( $new_regions->[1]->[5],       undef, q{3' end sequence name} );
+is( $new_regions->[1]->[6],       undef, q{3' end position} );
+is( $new_regions->[1]->[7],       undef, q{3' end strand} );
+is( $new_regions->[1]->[8],       undef, q{3' end read count} );
+is( $new_regions->[1]->[9]->[0],  4,     'Count' );
+is( $new_regions->[1]->[9]->[1],  1,     'Count' );
+is( $new_regions->[1]->[9]->[2],  2,     'Count' );
+is( $new_regions->[1]->[9]->[3],  7,     'Count' );
+is( $new_regions->[1]->[10]->[0], 4.6,   'Normalised count' );
+is( $new_regions->[1]->[10]->[1], 1.1,   'Normalised count' );
+is( $new_regions->[1]->[10]->[2], 2.1,   'Normalised count' );
+is( $new_regions->[1]->[10]->[3], 4.6,   'Normalised count' );
+is( $new_regions->[1]->[11],      undef, 'p value' );
+is( $new_regions->[1]->[12],      undef, 'Adjusted p value' );
+is( ( sprintf '%.2f', $new_regions->[1]->[13]->[0] ),
+    1.18, 'Condition fold change' );
+is( ( sprintf '%.3f', $new_regions->[1]->[13]->[1] ),
+    0.233, 'Condition fold change' );
+is( ( sprintf '%.2f', $new_regions->[1]->[14]->[0]->[0] ),
+    0.46, 'Group fold change' );
+is( ( sprintf '%.2f', $new_regions->[1]->[14]->[0]->[1] ),
+    -1.13, 'Group fold change' );
+is( ( sprintf '%.2f', $new_regions->[1]->[14]->[1]->[0] ),
+    4.18, 'Group fold change' );
+is( ( sprintf '%.2f', $new_regions->[1]->[14]->[1]->[1] ),
+    2.06, 'Group fold change' );
+is( scalar keys %{ $new_regions->[1]->[15] }, 0, 'No gene annotation' );
 
 # TODO: Actually test output
