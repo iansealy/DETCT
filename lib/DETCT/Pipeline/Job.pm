@@ -50,8 +50,8 @@ Readonly our %STATUS_FOR => (
     USUSP => 'RUNNING',
     SSUSP => 'RUNNING',
     WAIT  => 'RUNNING',
+    UNKWN => 'RUNNING',
     EXIT  => 'FAILED',
-    UNKWN => 'FAILED',
     ZOMBI => 'FAILED',
     DONE  => 'DONE',
 );
