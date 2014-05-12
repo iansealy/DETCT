@@ -8,7 +8,7 @@
     - stats_all_reads
 -
   name:           sort_by_queryname_all_reads
-  default_memory: 200
+  default_memory: 2000
   prerequisites:
     - downsample_all_reads
 -

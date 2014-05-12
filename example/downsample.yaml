@@ -8,7 +8,7 @@
     - stats_by_tag
 -
   name:           sort_by_queryname_by_tag
-  default_memory: 200
+  default_memory: 2000
   prerequisites:
     - downsample_by_tag
 -
