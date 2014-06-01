@@ -2173,14 +2173,14 @@ sub _estimate_library_size {
     my $hi = 10;    ## no critic (ProhibitMagicNumbers)
 
     # Make upper limit high enough
-    while ( ( 1 / $hi - 1 + exp( -$n / $hi / $c ) ) >= 0 ) {
+    while ( ( 1 / $hi - 1 + exp -$n / $hi / $c ) >= 0 ) {
         $hi *= 10;    ## no critic (ProhibitMagicNumbers)
     }
 
     # Converge on estimate of library size
     foreach ( 1 .. 40 ) {    ## no critic (ProhibitMagicNumbers)
         my $avg  = ( $lo + $hi ) / 2;
-        my $diff = 1 / $avg - 1 + exp( -$n / $avg / $c );
+        my $diff = 1 / $avg - 1 + exp -$n / $avg / $c;
         if ( $diff > 0 ) {
             $lo = $avg;
         }
