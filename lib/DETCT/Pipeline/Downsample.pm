@@ -835,10 +835,7 @@ sub run_mark_duplicates_metrics {
         else {
             # Get metrics from Picard MarkDuplicates output file
             my $output = extract_mark_duplicates_metrics(
-                {
-                    metrics_file => $metrics_file,
-                }
-            );
+                { metrics_file => $metrics_file, } );
             $output->{sample_name} = $sample_name;
             push @metrics, $output;
         }

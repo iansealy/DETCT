@@ -167,10 +167,10 @@ sub run_deseq {
     my $output_file = File::Spec->catfile( $arg_ref->{dir}, 'output.txt' );
     my $size_factors_file =
       File::Spec->catfile( $arg_ref->{dir}, 'size_factors.txt' );
-    my $qc_pdf_file = File::Spec->catfile( $arg_ref->{dir}, 'qc.pdf' );
+    my $qc_pdf_file       = File::Spec->catfile( $arg_ref->{dir}, 'qc.pdf' );
     my $filter_percentile = $arg_ref->{filter_percentile};
-    my $stdout_file = File::Spec->catfile( $arg_ref->{dir}, 'deseq.o' );
-    my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'deseq.e' );
+    my $stdout_file       = File::Spec->catfile( $arg_ref->{dir}, 'deseq.o' );
+    my $stderr_file       = File::Spec->catfile( $arg_ref->{dir}, 'deseq.e' );
 
     my $cmd = join q{ }, $arg_ref->{r_binary}, '--slave', '--args',
       $input_file, $samples_file, $output_file, $size_factors_file,

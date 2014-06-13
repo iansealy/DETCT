@@ -604,7 +604,7 @@ sub filter_percentile {
 
 sub set_filter_percentile {
     my ( $self, $arg ) = @_;
-    $filter_percentile{ id $self} = _check_filter_percentile( $arg || 0);
+    $filter_percentile{ id $self} = _check_filter_percentile( $arg || 0 );
     return;
 }
 

@@ -1457,11 +1457,7 @@ sub run_convert_table {
 
     my $regions = LoadFile($table_output_file);
 
-    $regions = convert_table_for_deseq(
-        {
-            regions => $regions,
-        }
-    );
+    $regions = convert_table_for_deseq( { regions => $regions, } );
 
     my $output_file = $job->base_filename . '.out';
 

@@ -1907,11 +1907,7 @@ samtools view -h t/data/test1.bam 1 2 3 4 \
 | samtools view -bS - | samtools flagstat -
 =cut
 
-$stats = stats_all_reads(
-    {
-        bam_file => 't/data/test1.bam',
-    }
-);
+$stats = stats_all_reads( { bam_file => 't/data/test1.bam', } );
 is( $stats->{paired}, 3258, 'Paired read count' );
 is( $stats->{mapped}, 2958, 'Mapped paired read count' );
 is( $stats->{proper}, 2958, 'Properly paired read count' );
@@ -2264,18 +2260,12 @@ is( $metrics->{_all}->{duplicate_reads}, $dupe_count, 'Metrics consistent' );
 
 throws_ok {
     $count = mark_duplicates(
-        {
-            output_bam_file => $tmp_dir . '/test1.markdup.bam',
-        }
-    );
+        { output_bam_file => $tmp_dir . '/test1.markdup.bam', } );
 }
 qr/No input BAM file specified/ms, 'No input BAM file';
 throws_ok {
-    $count = mark_duplicates(
-        {
-            input_bam_file => 't/data/test1.sorted.bam',
-        }
-    );
+    $count =
+      mark_duplicates( { input_bam_file => 't/data/test1.sorted.bam', } );
 }
 qr/No output BAM file specified/ms, 'No output BAM file';
 throws_ok {

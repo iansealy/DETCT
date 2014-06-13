@@ -130,10 +130,11 @@ throws_ok { $analysis->set_deseq_script('nonexistent') }
 qr/does not exist or cannot be read/ms, 'Missing DESeq script';
 
 # Test filter percentile attribute
-is( $analysis->filter_percentile, 0, 'Get filter percentile' );
+is( $analysis->filter_percentile,         0,     'Get filter percentile' );
 is( $analysis->set_filter_percentile(40), undef, 'Set filter percentile' );
-is( $analysis->filter_percentile, 40, 'Get new filter percentile' );
-throws_ok { $analysis->set_filter_percentile(-1) } qr/Invalid filter percentile/ms,
+is( $analysis->filter_percentile,         40,    'Get new filter percentile' );
+throws_ok { $analysis->set_filter_percentile(-1) }
+qr/Invalid filter percentile/ms,
   'Invalid filter percentile';
 
 # Test output significance level attribute

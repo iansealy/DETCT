@@ -158,10 +158,7 @@ elsif ( $method eq 'picard' ) {
     );
 
     $metrics = DETCT::Misc::Picard::extract_mark_duplicates_metrics(
-        {
-            metrics_file => $output_bam_file . '.metrics',
-        }
-    );
+        { metrics_file => $output_bam_file . '.metrics', } );
     $metrics->{_all} = $metrics;
 }
 

@@ -195,8 +195,7 @@ sub extract_mark_duplicates_metrics {
                 duplicate_mapped_read_pairs => $duplicate_mapped_read_pairs,
                 optical_duplicate_mapped_read_pairs =>
                   $optical_duplicate_mapped_read_pairs,
-                duplicate_reads =>
-                  $duplicate_mapped_reads_without_mapped_mate +
+                duplicate_reads => $duplicate_mapped_reads_without_mapped_mate +
                   $duplicate_mapped_read_pairs * 2,
                 duplication_rate       => $duplication_rate,
                 estimated_library_size => $estimated_library_size,
