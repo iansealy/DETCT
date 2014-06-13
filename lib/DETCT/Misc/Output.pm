@@ -812,6 +812,7 @@ sub dump_html {
   Throws      : If analysis is missing
                 If table file is missing
                 If table format is missing or invalid or HTML
+                If sample not found in table
   Comments    : None
 
 =cut
@@ -861,6 +862,13 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
             $normalised_count_ordinal_for{$1} = $ordinal;
         }
         $ordinal++;
+    }
+
+    # Check all samples have count column
+    foreach my $sample (@samples) {
+        if ( !exists $count_ordinal_for{ $sample->name } ) {
+            confess sprintf 'Sample (%s) unknown in table', $sample->name;
+        }
     }
 
     # Parse rows into regions
