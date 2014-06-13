@@ -1150,11 +1150,12 @@ sub run_run_deseq {
 
     my $regions_ref = run_deseq(
         {
-            dir          => $job->base_filename,
-            regions      => \%regions,
-            samples      => $self->analysis->get_all_samples(),
-            r_binary     => $self->analysis->r_binary,
-            deseq_script => $self->analysis->deseq_script,
+            dir               => $job->base_filename,
+            regions           => \%regions,
+            samples           => $self->analysis->get_all_samples(),
+            r_binary          => $self->analysis->r_binary,
+            deseq_script      => $self->analysis->deseq_script,
+            filter_percentile => $self->analysis->filter_percentile,
         }
     );
 

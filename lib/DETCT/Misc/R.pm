@@ -85,11 +85,12 @@ our @EXPORT_OK = qw(
                     ... (regions)
                 ]
   Parameters  : Hashref {
-                    dir          => String (the working directory),
-                    regions      => Hashref (of arrayrefs of regions),
-                    samples      => Arrayref (of samples)
-                    r_binary     => String (the R binary),
-                    deseq_script => String (the DESeq script),
+                    dir               => String (the working directory),
+                    regions           => Hashref (of arrayrefs of regions),
+                    samples           => Arrayref (of samples)
+                    r_binary          => String (the R binary),
+                    deseq_script      => String (the DESeq script),
+                    filter_percentile => Int (the filter percentile) or undef,
                 }
   Throws      : If directory is missing
                 If regions are missing
@@ -167,12 +168,13 @@ sub run_deseq {
     my $size_factors_file =
       File::Spec->catfile( $arg_ref->{dir}, 'size_factors.txt' );
     my $qc_pdf_file = File::Spec->catfile( $arg_ref->{dir}, 'qc.pdf' );
+    my $filter_percentile = $arg_ref->{filter_percentile};
     my $stdout_file = File::Spec->catfile( $arg_ref->{dir}, 'deseq.o' );
     my $stderr_file = File::Spec->catfile( $arg_ref->{dir}, 'deseq.e' );
 
     my $cmd = join q{ }, $arg_ref->{r_binary}, '--slave', '--args',
       $input_file, $samples_file, $output_file, $size_factors_file,
-      $qc_pdf_file, '<', $arg_ref->{deseq_script};
+      $qc_pdf_file, $filter_percentile, '<', $arg_ref->{deseq_script};
     $cmd .= ' 1>' . $stdout_file;
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";

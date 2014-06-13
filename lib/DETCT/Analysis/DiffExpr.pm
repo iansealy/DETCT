@@ -41,6 +41,7 @@ private hmm_sig_level      => my %hmm_sig_level;         # e.g. 0.001
 private hmm_binary         => my %hmm_binary;            # e.g. chiphmmnew
 private r_binary           => my %r_binary;              # e.g. R
 private deseq_script       => my %deseq_script;          # e.g. ~/run_deseq.R
+private filter_percentile  => my %filter_percentile;     # e.g. 40
 private output_sig_level   => my %output_sig_level;      # e.g. 0.05
 private table_file         => my %table_file;            # e.g. all.tsv
 private table_format       => my %table_format;          # e.g. tsv
@@ -74,6 +75,7 @@ private table_format       => my %table_format;          # e.g. tsv
                     hmm_binary         => String,
                     r_binary           => String,
                     deseq_script       => String,
+                    filter_percentile  => Int,
                     output_sig_level   => Float,
                     table_file         => String,
                     table_format       => String,
@@ -104,6 +106,7 @@ sub new {
     $self->set_hmm_binary( $arg_ref->{hmm_binary} );
     $self->set_r_binary( $arg_ref->{r_binary} );
     $self->set_deseq_script( $arg_ref->{deseq_script} );
+    $self->set_filter_percentile( $arg_ref->{filter_percentile} );
     $self->set_output_sig_level( $arg_ref->{output_sig_level} );
     $self->set_table_file( $arg_ref->{table_file} );
     $self->set_table_format( $arg_ref->{table_format} );
@@ -145,6 +148,7 @@ sub new_from_yaml {
     $self->set_hmm_binary( $yaml->[0]->{hmm_binary} );
     $self->set_r_binary( $yaml->[0]->{r_binary} );
     $self->set_deseq_script( $yaml->[0]->{deseq_script} );
+    $self->set_filter_percentile( $yaml->[0]->{filter_percentile} );
     $self->set_output_sig_level( $yaml->[0]->{output_sig_level} );
     $self->set_table_file( $yaml->[0]->{table_file} );
     $self->set_table_format( $yaml->[0]->{table_format} );
@@ -569,6 +573,53 @@ sub _check_deseq_script {
     return $deseq_script if defined $deseq_script && -r $deseq_script;
     confess 'No DESeq script specified' if !defined $deseq_script;
     confess "DESeq script ($deseq_script) does not exist or cannot be read";
+}
+
+=method filter_percentile
+
+  Usage       : my $filter_percentile = $analysis->filter_percentile;
+  Purpose     : Getter for filter percentile attribute
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub filter_percentile {
+    my ($self) = @_;
+    return $filter_percentile{ id $self};
+}
+
+=method set_filter_percentile
+
+  Usage       : $analysis->set_filter_percentile(40);
+  Purpose     : Setter for filter percentile attribute
+  Returns     : undef
+  Parameters  : +ve Int (the filter percentile)
+  Throws      : No exceptions
+  Comments    : Defaults to 0 (i.e. no filtering)
+
+=cut
+
+sub set_filter_percentile {
+    my ( $self, $arg ) = @_;
+    $filter_percentile{ id $self} = _check_filter_percentile( $arg || 0);
+    return;
+}
+
+# Usage       : $filter_percentile
+#                   = _check_filter_percentile($filter_percentile);
+# Purpose     : Check for valid filter percentile
+# Returns     : +ve Int (the valid filter percentile)
+# Parameters  : +ve Int (the filter percentile)
+# Throws      : If filter percentile is defined but not a positive integer
+# Comments    : None
+sub _check_filter_percentile {
+    my ($filter_percentile) = @_;
+    return $filter_percentile
+      if !defined $filter_percentile || $filter_percentile =~ m/\A \d+ \z/xms;
+    confess "Invalid filter percentile ($filter_percentile) specified";
 }
 
 =method output_sig_level

@@ -2,12 +2,13 @@ library(DESeq2)
 library(RColorBrewer)
 library(gplots)
 
-Args            <- commandArgs()
-countFile       <- Args[4]
-samplesFile     <- Args[5]
-outputFile      <- Args[6]
-sizeFactorsFile <- Args[7]
-qcPdfFile       <- Args[8]
+Args             <- commandArgs()
+countFile        <- Args[4]
+samplesFile      <- Args[5]
+outputFile       <- Args[6]
+sizeFactorsFile  <- Args[7]
+qcPdfFile        <- Args[8]
+filterPercentile <- as.numeric( Args[9] )
 
 # Get data and samples
 countData     <- read.table(   countFile, header=TRUE, row.names=1 )
@@ -29,6 +30,13 @@ if (numConditions != 2) {
     write.table( sizeFactors( dds ), file=sizeFactorsFile, col.names=FALSE,
         row.names=FALSE, quote=FALSE, sep="\t" )
     stop("Not two conditions")
+}
+
+# Optionally remove regions with sum of counts below the specified percentile
+if (filterPercentile) {
+    rs  <- rowSums( countData )
+    use <- (rs > quantile(rs, probs=filterPercentile/100))
+    countData <- countData[ use, ]
 }
 
 # Create DESeqDataSet (with design according to number of factors)
