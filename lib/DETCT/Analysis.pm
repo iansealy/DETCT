@@ -474,17 +474,6 @@ sub _check_ref_fasta {
     confess "Reference FASTA ($ref_fasta) cannot be read";
 }
 
-=method ensembl_host
-
-  Usage       : my $ensembl_host = $analysis->ensembl_host;
-  Purpose     : Getter for Ensembl host attribute
-  Returns     : String
-  Parameters  : None
-  Throws      : No exceptions
-  Comments    : None
-
-=cut
-
 =method fasta_index
 
   Usage       : my $fai = $analysis->fasta_index;
@@ -540,6 +529,17 @@ sub _check_fasta_index {
     confess 'Class of FASTA index (', ref $fasta_index,
       ') not Bio::DB::Sam::Fai';
 }
+
+=method ensembl_host
+
+  Usage       : my $ensembl_host = $analysis->ensembl_host;
+  Purpose     : Getter for Ensembl host attribute
+  Returns     : String
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
 
 sub ensembl_host {
     my ($self) = @_;
