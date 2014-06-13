@@ -700,7 +700,7 @@ sub table_format {
   Returns     : undef
   Parameters  : String (the table format)
   Throws      : No exceptions
-  Comments    : Defaults to native
+  Comments    : None
 
 =cut
 
