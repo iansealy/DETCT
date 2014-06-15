@@ -361,6 +361,9 @@ sub run_downsample_all_reads {
         );
         DumpFile( $output_file, \%output );
     }
+    else {
+        exit 1;
+    }
 
     return;
 }
