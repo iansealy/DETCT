@@ -152,7 +152,7 @@ sub new_from_yaml {
         $self->add_sample( $sample, 1 );    # 1 = do not validate
     }
 
-    $self->_validate();
+    $self->validate();
 
     return $self;
 }
@@ -297,7 +297,7 @@ sub add_sample {
     }
 
     if ( !defined $no_validaton ) {
-        $self->_validate();
+        $self->validate();
     }
 
     return;
@@ -378,13 +378,18 @@ sub get_all_sequences {
     return $sequence{ id $self} || [];
 }
 
-# Usage       : $analysis->_validate();
-# Purpose     : Check analysis
-# Returns     : 1
-# Parameters  : None
-# Throws      : If reference sequences don't match
-# Comments    : None
-sub _validate {
+=method validate
+
+  Usage       : $analysis->validate();
+  Purpose     : Check analysis
+  Returns     : 1
+  Parameters  : None
+  Throws      : If reference sequences don't match
+  Comments    : None
+
+=cut
+
+sub validate {
     my ($self) = @_;
 
     my @bam_files = $self->list_all_bam_files();

@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 170;
+plan tests => 174;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -136,6 +136,12 @@ is( $analysis->filter_percentile,         40,    'Get new filter percentile' );
 throws_ok { $analysis->set_filter_percentile(-1) }
 qr/Invalid filter percentile/ms,
   'Invalid filter percentile';
+
+# Test spike prefix attribute
+is( $analysis->spike_prefix,             undef,  'Get spike prefix' );
+is( $analysis->set_spike_prefix('ERCC'), undef,  'Set spike prefix' );
+is( $analysis->spike_prefix,             'ERCC', 'Get new spike prefix' );
+$analysis->set_spike_prefix();
 
 # Test output significance level attribute
 is( $analysis->output_sig_level, 0.05, 'Get output significance level' );
@@ -333,6 +339,15 @@ throws_ok {
         't/data/test_analysis_de13.yaml');
 }
 qr/use different reference/ms, 'Different reference';
+$analysis =
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de12.yaml');
+throws_ok {
+    $analysis->set_spike_prefix('ERCC');
+    $analysis->validate();
+}
+qr/not seen in BAM files/ms, 'Missing spikes';
+$analysis->set_spike_prefix('1');
+$analysis->validate();
 
 # Test summary info
 $analysis =

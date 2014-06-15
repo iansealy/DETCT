@@ -42,6 +42,7 @@ private hmm_binary         => my %hmm_binary;            # e.g. chiphmmnew
 private r_binary           => my %r_binary;              # e.g. R
 private deseq_script       => my %deseq_script;          # e.g. ~/run_deseq.R
 private filter_percentile  => my %filter_percentile;     # e.g. 40
+private spike_prefix       => my %spike_prefix;          # e.g. ERCC
 private output_sig_level   => my %output_sig_level;      # e.g. 0.05
 private table_file         => my %table_file;            # e.g. all.tsv
 private table_format       => my %table_format;          # e.g. tsv
@@ -76,6 +77,7 @@ private table_format       => my %table_format;          # e.g. tsv
                     r_binary           => String,
                     deseq_script       => String,
                     filter_percentile  => Int,
+                    spike_prefix       => String,
                     output_sig_level   => Float,
                     table_file         => String,
                     table_format       => String,
@@ -107,6 +109,7 @@ sub new {
     $self->set_r_binary( $arg_ref->{r_binary} );
     $self->set_deseq_script( $arg_ref->{deseq_script} );
     $self->set_filter_percentile( $arg_ref->{filter_percentile} );
+    $self->set_spike_prefix( $arg_ref->{spike_prefix} );
     $self->set_output_sig_level( $arg_ref->{output_sig_level} );
     $self->set_table_file( $arg_ref->{table_file} );
     $self->set_table_format( $arg_ref->{table_format} );
@@ -149,6 +152,7 @@ sub new_from_yaml {
     $self->set_r_binary( $yaml->[0]->{r_binary} );
     $self->set_deseq_script( $yaml->[0]->{deseq_script} );
     $self->set_filter_percentile( $yaml->[0]->{filter_percentile} );
+    $self->set_spike_prefix( $yaml->[0]->{spike_prefix} );
     $self->set_output_sig_level( $yaml->[0]->{output_sig_level} );
     $self->set_table_file( $yaml->[0]->{table_file} );
     $self->set_table_format( $yaml->[0]->{table_format} );
@@ -622,6 +626,39 @@ sub _check_filter_percentile {
     confess "Invalid filter percentile ($filter_percentile) specified";
 }
 
+=method spike_prefix
+
+  Usage       : my $spike_prefix = $analysis->spike_prefix;
+  Purpose     : Getter for spike prefix attribute
+  Returns     : String
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub spike_prefix {
+    my ($self) = @_;
+    return $spike_prefix{ id $self};
+}
+
+=method set_spike_prefix
+
+  Usage       : $analysis->set_spike_prefix('ERCC');
+  Purpose     : Setter for spike prefix attribute
+  Returns     : undef
+  Parameters  : String (the spike prefix)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_spike_prefix {
+    my ( $self, $arg ) = @_;
+    $spike_prefix{ id $self} = $arg;
+    return;
+}
+
 =method output_sig_level
 
   Usage       : my $output_sig_level = $analysis->output_sig_level;
@@ -772,6 +809,38 @@ sub _check_table_format {
     return $table_format
       if !defined $table_format || any { $_ eq $table_format } qw(csv tsv);
     confess "Invalid table format ($table_format) specified";
+}
+
+=method validate
+
+  Usage       : $analysis->validate();
+  Purpose     : Check analysis
+  Returns     : 1
+  Parameters  : None
+  Throws      : If reference sequences don't match
+  Comments    : None
+
+=cut
+
+sub validate {
+    my ($self) = @_;
+
+    $self->SUPER::validate();
+
+    if ( $self->spike_prefix ) {
+        my $spike      = $self->spike_prefix;
+        my $seen_spike = 0;
+        foreach my $seq ( @{ $self->get_all_sequences() } ) {
+            if ( $seq->name =~ m/^$spike/xms ) {
+                $seen_spike = 1;
+            }
+        }
+        if ( !$seen_spike ) {
+            confess "Spike prefix ($spike) not seen in BAM files";
+        }
+    }
+
+    return 1;
 }
 
 1;
