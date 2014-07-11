@@ -414,7 +414,7 @@ sub add_gene_annotation {
 
         # Data structure allows storage of annotation for multiple genebuilds,
         # but currently just delete any existing annotation
-        if ( scalar @{$region} == 16 ) {
+        if ( scalar @{$region} == 16 ) {    ## no critic (ProhibitMagicNumbers)
             pop @{$region};
         }
 
@@ -566,7 +566,7 @@ sub add_existing_gene_annotation {
 
         # Data structure allows storage of annotation for multiple genebuilds,
         # but currently just delete any existing annotation
-        if ( scalar @{$region} == 16 ) {
+        if ( scalar @{$region} == 16 ) {    ## no critic (ProhibitMagicNumbers)
             pop @{$region};
         }
 
