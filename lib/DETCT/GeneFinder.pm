@@ -412,6 +412,12 @@ sub add_gene_annotation {
         my $three_prime_strand   = $region->[7];
         ## use critic
 
+        # Data structure allows storage of annotation for multiple genebuilds,
+        # but currently just delete any existing annotation
+        if (scalar @{$region} == 16) {
+            pop @{$region};
+        }
+
         my %gene_annotation = ();
         my $genes;
         my $distance;
@@ -557,6 +563,13 @@ sub add_existing_gene_annotation {
         my $start    = $region->[1];
         my $end      = $region->[2];
         my $strand   = $region->[7];      ## no critic (ProhibitMagicNumbers)
+
+        # Data structure allows storage of annotation for multiple genebuilds,
+        # but currently just delete any existing annotation
+        if (scalar @{$region} == 16) {
+            pop @{$region};
+        }
+
         my $key = join q{:}, $seq_name, $start, $end, $strand;
         if ( exists $gene_annotation{$key} ) {
             push @{$region}, $gene_annotation{$key};
