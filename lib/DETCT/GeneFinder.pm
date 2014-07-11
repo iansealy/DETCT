@@ -30,7 +30,8 @@ use DETCT::Transcript;
 
 # Attributes:
 private slice_adaptor => my %slice_adaptor;  # Bio::EnsEMBL::DBSQL::SliceAdaptor
-private cache         => my %cache;          # Hashref
+private cache         => my %cache;          # hashref
+private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
 
 =method new
 
@@ -40,7 +41,8 @@ private cache         => my %cache;          # Hashref
   Purpose     : Constructor for gene finder objects
   Returns     : DETCT::GeneFinder
   Parameters  : Hashref {
-                    slice_adaptor => Bio::EnsEMBL::DBSQL::SliceAdaptor,
+                    slice_adaptor    => Bio::EnsEMBL::DBSQL::SliceAdaptor,
+                    skip_transcripts => Arrayref (of strings)
                 }
   Throws      : No exceptions
   Comments    : None
@@ -51,6 +53,7 @@ sub new {
     my ( $class, $arg_ref ) = @_;
     my $self = register($class);
     $self->set_slice_adaptor( $arg_ref->{slice_adaptor} );
+    $self->set_skip_transcripts( $arg_ref->{skip_transcripts} );
     return $self;
 }
 
@@ -102,6 +105,47 @@ sub _check_slice_adaptor {
     confess 'No Ensembl slice adaptor specified' if !defined $slice_adaptor;
     confess 'Class of Ensembl slice adaptor (', ref $slice_adaptor,
       ') not Bio::EnsEMBL::DBSQL::SliceAdaptor';
+}
+
+=method set_skip_transcripts
+
+  Usage       : $gene_finder->set_skip_transcripts(['ENSDART00000135768']);
+  Purpose     : Setter for skip transcripts attribute
+  Returns     : undef
+  Parameters  : Arrayref of strings (the skip transcripts) or undef
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_skip_transcripts {
+    my ( $self, $skip_transcripts ) = @_;
+
+    $skip_transcript{ id $self} = {};
+
+    foreach my $id ( @{ $skip_transcripts || [] } ) {
+        $id = DETCT::Transcript::check_stable_id($id);
+        $skip_transcript{ id $self}->{$id} = 1;
+    }
+
+    return;
+}
+
+=method is_skip_transcript
+
+  Usage       : next if $gene_finder->is_skip_transcript('ENSDART00000135768');
+  Purpose     : Check if transcript should be skipped
+  Returns     : 1 or 0
+  Parameters  : String (the transcript)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub is_skip_transcript {
+    my ( $self, $id ) = @_;
+
+    return exists $skip_transcript{ id $self}->{$id} ? 1 : 0;
 }
 
 =method get_nearest_transcripts
@@ -256,6 +300,7 @@ sub _fill_cache_from_ensembl {
         # Get 3' end position for each transcript
         my $ens_transcripts = $ens_gene->get_all_Transcripts();
         foreach my $ens_transcript ( @{$ens_transcripts} ) {
+            next if $self->is_skip_transcript( $ens_transcript->stable_id );
             my $transcript = DETCT::Transcript->new(
                 {
                     stable_id   => $ens_transcript->stable_id,

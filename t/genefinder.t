@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 95;
+plan tests => 101;
 
 use DETCT::GeneFinder;
 
@@ -73,6 +73,14 @@ throws_ok { $gene_finder->set_slice_adaptor() }
 qr/No Ensembl slice adaptor specified/ms, 'No Ensembl slice adaptor';
 throws_ok { $gene_finder->set_slice_adaptor('invalid') }
 qr/Class of Ensembl slice adaptor/ms, 'Invalid Ensembl slice adaptor';
+
+# Test skip transcripts
+is( $gene_finder->is_skip_transcript('ENSDART00000135768'),
+    0, 'ENSDART00000135768 is not skip transcript' );
+is( $gene_finder->set_skip_transcripts( ['ENSDART00000135768'] ),
+    undef, 'Add skip transcripts' );
+is( $gene_finder->is_skip_transcript('ENSDART00000135768'),
+    1, 'ENSDART00000135768 is skip transcript' );
 
 my $genes;
 my $transcripts;
@@ -248,6 +256,19 @@ is( $annotated_regions->[3]->[-1]->{$gv}->[0]->[5]->[0]->[0],
     'ENSDART00000133571', 'Transcript stable id' );
 is( $annotated_regions->[3]->[-1]->{$gv}->[0]->[5]->[0]->[1],
     'protein_coding', 'Transcript biotype' );
+
+# Check skipping transcripts
+$gene_finder = DETCT::GeneFinder->new(
+    {
+        slice_adaptor    => $slice_adaptor,
+        skip_transcripts => ['ENSDART00000133571'],
+    }
+);
+isa_ok( $gene_finder, 'DETCT::GeneFinder' );
+( $genes, $distance, $nearest_end_pos ) =
+  $gene_finder->get_nearest_genes( '1', 100, 1 );
+is( $distance,        -100_000, q{3' end is 100,000 bp upstream} );
+is( $nearest_end_pos, 100_100,  q{3' end at 100,100 bp} );
 
 # Mock genes all on one strand
 @genes = ();
