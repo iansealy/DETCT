@@ -1220,7 +1220,11 @@ sub run_add_gene_annotation {
 
     # Annotate 3' ends with genes
     my $gene_finder = DETCT::GeneFinder->new(
-        { slice_adaptor => $self->analysis->slice_adaptor, } );
+        {
+            slice_adaptor    => $self->analysis->slice_adaptor,
+            skip_transcripts => $self->analysis->get_all_skip_transcripts,
+        }
+    );
     my $annotated_regions_ref = $gene_finder->add_gene_annotation($regions);
 
     my $output_file = $job->base_filename . '.out';
@@ -1277,7 +1281,11 @@ sub run_add_existing_gene_annotation {
 
     # Add existing gene annotation
     my $gene_finder = DETCT::GeneFinder->new(
-        { slice_adaptor => $self->analysis->slice_adaptor, } );
+        {
+            slice_adaptor    => $self->analysis->slice_adaptor,
+            skip_transcripts => $self->analysis->get_all_skip_transcripts,
+        }
+    );
     my $annotated_regions_ref = $gene_finder->add_existing_gene_annotation(
         {
             regions          => $regions,
