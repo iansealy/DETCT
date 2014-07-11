@@ -46,6 +46,7 @@ private spike_prefix       => my %spike_prefix;          # e.g. ERCC
 private output_sig_level   => my %output_sig_level;      # e.g. 0.05
 private table_file         => my %table_file;            # e.g. all.tsv
 private table_format       => my %table_format;          # e.g. tsv
+private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
 
 =method new
 
@@ -156,6 +157,7 @@ sub new_from_yaml {
     $self->set_output_sig_level( $yaml->[0]->{output_sig_level} );
     $self->set_table_file( $yaml->[0]->{table_file} );
     $self->set_table_format( $yaml->[0]->{table_format} );
+    $self->add_all_skip_transcripts( $yaml->[0]->{skip_transcripts} );
 
     return $self;
 }
@@ -809,6 +811,46 @@ sub _check_table_format {
     return $table_format
       if !defined $table_format || any { $_ eq $table_format } qw(csv tsv);
     confess "Invalid table format ($table_format) specified";
+}
+
+=method add_all_skip_transcripts
+
+  Usage       : $analysis->add_all_skip_transcripts(['ENSDART00000135768']);
+  Purpose     : Add all skip transcripts to an analysis
+  Returns     : undef
+  Parameters  : Arrayref of strings (the skip transcripts) or undef
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub add_all_skip_transcripts {
+    my ( $self, $skip_transcripts ) = @_;
+
+    $skip_transcript{ id $self} = {};
+
+    foreach my $id ( @{ $skip_transcripts || [] } ) {
+        $skip_transcript{ id $self}->{$id} = 1;
+    }
+
+    return;
+}
+
+=method get_all_skip_transcripts
+
+  Usage       : $skip_transcripts = $analysis->get_all_skip_transcripts();
+  Purpose     : Get all skip transcripts of an analysis
+  Returns     : Arrayref of strings
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_all_skip_transcripts {
+    my ($self) = @_;
+
+    return [ sort keys %{ $skip_transcript{ id $self} || {} } ];
 }
 
 =method validate

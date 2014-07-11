@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 174;
+plan tests => 177;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -174,6 +174,19 @@ $analysis->set_table_format();
 # Test guessing table format from table file
 $analysis->set_table_file( $tmp_dir . '/all.tsv' );
 is( $analysis->table_format, 'tsv', 'Get guessed table format' );
+
+# Test skip transcripts
+is( scalar @{ $analysis->get_all_skip_transcripts }, 0,
+    'Get skip transcripts' );
+is(
+    $analysis->add_all_skip_transcripts(
+        [ 'ENSDART00000135768', 'ENSDART00000133385' ]
+    ),
+    undef,
+    'Add skip transcripts'
+);
+is( scalar @{ $analysis->get_all_skip_transcripts },
+    2, 'Get new skip transcripts' );
 
 # Test reference FASTA attribute
 is( $analysis->ref_fasta, undef, 'Get reference FASTA' );
