@@ -125,7 +125,7 @@ sub mark_duplicates {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-    if ( check_for_error($stderr_file) ) {
+    if ( check_for_error( $stdout_file, $stderr_file ) ) {
         confess "Couldn't run $cmd";
     }
 
@@ -285,7 +285,7 @@ sub merge {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-    if ( check_for_error($stderr_file) ) {
+    if ( check_for_error( $stdout_file, $stderr_file ) ) {
         confess "Couldn't run $cmd";
     }
 
@@ -368,7 +368,7 @@ sub bam_to_fastq {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-    if ( check_for_error($stderr_file) ) {
+    if ( check_for_error( $stdout_file, $stderr_file ) ) {
         confess "Couldn't run $cmd";
     }
 
@@ -446,7 +446,7 @@ sub fix_mate_info {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-    if ( check_for_error($stderr_file) ) {
+    if ( check_for_error( $stdout_file, $stderr_file ) ) {
         confess "Couldn't run $cmd";
     }
 
@@ -531,7 +531,7 @@ sub sort_bam {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-    if ( check_for_error($stderr_file) ) {
+    if ( check_for_error( $stdout_file, $stderr_file ) ) {
         confess "Couldn't run $cmd";
     }
 
@@ -540,21 +540,26 @@ sub sort_bam {
 
 =func check_for_error
 
-  Usage       : confess if check_for_error($stderr_file);
-  Purpose     : Check STDERR for errors
+  Usage       : confess if check_for_error($stdout_file, $stderr_file);
+  Purpose     : Check STDOUR and STDERR for errors
   Returns     : Boolean
-  Parameters  : String (the STDERR file)
+  Parameters  : String (the STDOUT file)
+                String (the STDERR file)
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub check_for_error {
-    my ($stderr_file) = @_;
+    my ( $stdout_file, $stderr_file ) = @_;
 
     my $stderr = read_file($stderr_file);
+    return 1 if $stderr =~ m/\A Error/xms;
 
-    return $stderr =~ m/\A Error/xms ? 1 : 0;
+    my $stdout = read_file($stdout_file);
+    return 1 if $stdout =~ m/insufficient \s memory/xms;
+
+    return 0;
 }
 
 1;
