@@ -557,7 +557,8 @@ sub check_for_error {
     return 1 if $stderr =~ m/\A Error/xms;
 
     my $stdout = read_file($stdout_file);
-    return 1 if $stdout =~ m/insufficient \s memory/xms;
+    return 1
+      if $stdout =~ m/\A Error/xms || $stdout =~ m/insufficient \s memory/xms;
 
     return 0;
 }
