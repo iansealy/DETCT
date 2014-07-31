@@ -39,6 +39,7 @@ private parameters    => my %parameters;       # e.g. arrayref or scalar
 private retries       => my %retries;          # e.g. 5
 private lsf_job_id    => my %lsf_job_id;       # e.g. 123
 private memory        => my %memory;           # e.g. 3000
+private queue         => my %queue;            # e.g. normal
 private status_code   => my %status_code;      # e.g. DONE
 private status_text   => my %status_text;      # e.g. Job killed by owner
 
@@ -474,6 +475,57 @@ sub _check_memory {
       if defined $memory && $memory !~ m/\A \d+ \z/xms;
 
     return $memory;
+}
+
+=method queue
+
+  Usage       : my $queue = $job->queue;
+  Purpose     : Getter for the queue attribute
+  Returns     : String (e.g. "normal")
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : Queue can be normal, long, or hugemem
+
+=cut
+
+sub queue {
+    my ($self) = @_;
+    return $queue{ id $self};
+}
+
+=method set_queue
+
+  Usage       : $job->set_queue('long');
+  Purpose     : Setter for the queue attribute
+  Returns     : undef
+  Parameters  : String (the queue)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_queue {
+    my ( $self, $arg ) = @_;
+    $queue{ id $self} = _check_queue($arg);
+    return;
+}
+
+# Usage       : $queue = _check_queue($queue);
+# Purpose     : Check for valid queue
+# Returns     : String (the valid queue)
+# Parameters  : String (the queue)
+# Throws      : If queue is not valid
+# Comments    : None
+sub _check_queue {
+    my ($queue) = @_;
+
+    return $queue
+      if defined $queue
+      && ( $queue eq 'normal'
+        || $queue eq 'long'
+        || $queue eq 'hugemem' );
+    confess 'No queue specified' if !defined $queue;
+    confess "Invalid queue ($queue) specified";
 }
 
 =method status_code

@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 53;
+plan tests => 62;
 
 use DETCT::Pipeline::Job;
 
@@ -77,6 +77,17 @@ is( $job->memory,           undef, 'Get memory' );
 is( $job->set_memory(1000), undef, 'Set memory' );
 is( $job->memory,           1000,  'Get new memory' );
 throws_ok { $job->set_memory(-1) } qr/Invalid memory/ms, 'Invalid memory';
+
+# Test queue attribute
+is( $job->queue,                undef,     'Get queue' );
+is( $job->set_queue('normal'),  undef,     'Set normal queue' );
+is( $job->queue,                'normal',  'Get normal queue' );
+is( $job->set_queue('long'),    undef,     'Set long queue' );
+is( $job->queue,                'long',    'Get long queue' );
+is( $job->set_queue('hugemem'), undef,     'Set hugemem queue' );
+is( $job->queue,                'hugemem', 'Get hugemem queue' );
+throws_ok { $job->set_queue() } qr/No queue specified/ms, 'No queue';
+throws_ok { $job->set_queue('invalid') } qr/Invalid queue/ms, 'Invalid queue';
 
 # Test retries attribute
 is( $job->retries,        undef, 'Get retries' );
