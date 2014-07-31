@@ -79,8 +79,8 @@ is( $job->memory,           1000,  'Get new memory' );
 throws_ok { $job->set_memory(-1) } qr/Invalid memory/ms, 'Invalid memory';
 
 # Test queue attribute
-is( $job->queue,                undef,     'Get queue' );
-is( $job->set_queue('normal'),  undef,     'Set normal queue' );
+is( $job->queue,                'normal',  'Get queue' );
+is( $job->set_queue(),          undef,     'Set undefined queue' );
 is( $job->queue,                'normal',  'Get normal queue' );
 is( $job->set_queue('long'),    undef,     'Set long queue' );
 is( $job->queue,                'long',    'Get long queue' );

@@ -485,13 +485,13 @@ sub _check_memory {
   Returns     : String (e.g. "normal")
   Parameters  : None
   Throws      : No exceptions
-  Comments    : Queue can be normal, long, or hugemem
+  Comments    : Queue can be normal (default), long, or hugemem
 
 =cut
 
 sub queue {
     my ($self) = @_;
-    return $queue{ id $self};
+    return $queue{ id $self} || 'normal';
 }
 
 =method set_queue
@@ -501,13 +501,13 @@ sub queue {
   Returns     : undef
   Parameters  : String (the queue)
   Throws      : No exceptions
-  Comments    : Defaults to normal
+  Comments    : None
 
 =cut
 
 sub set_queue {
     my ( $self, $arg ) = @_;
-    $queue{ id $self} = _check_queue( $arg || 'normal' );
+    $queue{ id $self} = _check_queue($arg);
     return;
 }
 
@@ -521,7 +521,7 @@ sub _check_queue {
     my ($queue) = @_;
 
     return $queue
-      if any { $_ eq $queue } qw(normal long hugemem);
+      if !defined $queue || any { $_ eq $queue } qw(normal long hugemem);
     confess "Invalid queue ($queue) specified";
 }
 
