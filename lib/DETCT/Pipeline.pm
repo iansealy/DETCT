@@ -63,6 +63,7 @@ private hash_merge       => my %hash_merge;          # Hash::Merge object
 private stage            => my %stage;               # arrayref of stages
 
 # Constants
+Readonly our $MAX_MEMORY_BEFORE_HUGEMEM => 28_000;
 Readonly our %EXTENSION_TO_KEEP => map { $_ => 1 } qw(
   csv html pdf tsv txt
 );
@@ -1347,9 +1348,18 @@ sub submit_job {
             ## use critic
         }
 
+        # Switch queue if required
+        if ( $job->memory >= $MAX_MEMORY_BEFORE_HUGEMEM ) {
+            $job->set_queue('hugemem');
+        }
+        elsif ( $job->status_text =~ m/\A RUNLIMIT /xms ) {
+            $job->set_queue('long');
+        }
+
         # bsub job
         my $bsub_stdout_file = $job->base_filename . '.bsub.o';
         my $bsub_stderr_file = $job->base_filename . '.bsub.e';
+        my $queue_clause     = sprintf q{ -q %s }, $job->queue;
         my $memory_clause = sprintf q{ -R'select[mem>%d] rusage[mem=%d]' -M%d },
           $job->memory, $job->memory,
           $job->memory * $self->memory_limit_multiplier;
@@ -1362,6 +1372,7 @@ sub submit_job {
             'bsub' . ' -oo '
           . $stdout_file . ' -eo '
           . $stderr_file
+          . $queue_clause
           . $memory_clause
           . $avoid_nodes_clause
           . $cmd . ' 1>'
@@ -1384,6 +1395,7 @@ sub submit_job {
                 id      => $id,
                 retries => $job->retries,
                 memory  => $job->memory,
+                queue   => $job->queue,
             };
             my $job_file = $job->base_filename . '.job';
             DumpFile( $job_file, $dump );

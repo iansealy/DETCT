@@ -507,7 +507,7 @@ sub queue {
 
 sub set_queue {
     my ( $self, $arg ) = @_;
-    $queue{ id $self} = _check_queue($arg || 'normal');
+    $queue{ id $self} = _check_queue( $arg || 'normal' );
     return;
 }
 
@@ -702,6 +702,10 @@ sub _set_state_from_filesystem_for_lsf {
     # Get memory requested
     my $memory = $yaml->{memory};
     $self->set_memory($memory);
+
+    # Get queue requested
+    my $queue = $yaml->{queue};
+    $self->set_queue($queue);
 
     my ( $status_code, $status_text );
 
