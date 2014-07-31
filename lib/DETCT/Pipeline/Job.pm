@@ -20,6 +20,7 @@ use Try::Tiny;
 
 use Readonly;
 use Class::InsideOut qw( private register id );
+use List::MoreUtils qw( any );
 use English qw( -no_match_vars );
 use File::ReadBackwards;
 use YAML::Tiny qw( LoadFile );
@@ -500,13 +501,13 @@ sub queue {
   Returns     : undef
   Parameters  : String (the queue)
   Throws      : No exceptions
-  Comments    : None
+  Comments    : Defaults to normal
 
 =cut
 
 sub set_queue {
     my ( $self, $arg ) = @_;
-    $queue{ id $self} = _check_queue($arg);
+    $queue{ id $self} = _check_queue($arg || 'normal');
     return;
 }
 
@@ -520,11 +521,7 @@ sub _check_queue {
     my ($queue) = @_;
 
     return $queue
-      if defined $queue
-      && ( $queue eq 'normal'
-        || $queue eq 'long'
-        || $queue eq 'hugemem' );
-    confess 'No queue specified' if !defined $queue;
+      if any { $_ eq $queue } qw(normal long hugemem);
     confess "Invalid queue ($queue) specified";
 }
 

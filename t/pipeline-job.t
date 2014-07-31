@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 62;
+plan tests => 61;
 
 use DETCT::Pipeline::Job;
 
@@ -86,7 +86,6 @@ is( $job->set_queue('long'),    undef,     'Set long queue' );
 is( $job->queue,                'long',    'Get long queue' );
 is( $job->set_queue('hugemem'), undef,     'Set hugemem queue' );
 is( $job->queue,                'hugemem', 'Get hugemem queue' );
-throws_ok { $job->set_queue() } qr/No queue specified/ms, 'No queue';
 throws_ok { $job->set_queue('invalid') } qr/Invalid queue/ms, 'Invalid queue';
 
 # Test retries attribute
