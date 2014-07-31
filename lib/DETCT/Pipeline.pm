@@ -1352,7 +1352,7 @@ sub submit_job {
         if ( $job->memory >= $MAX_MEMORY_BEFORE_HUGEMEM ) {
             $job->set_queue('hugemem');
         }
-        elsif ( $job->status_text =~ m/\A RUNLIMIT /xms ) {
+        elsif ( $job->status_text && $job->status_text =~ m/\A RUNLIMIT /xms ) {
             $job->set_queue('long');
         }
 
