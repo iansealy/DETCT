@@ -51,7 +51,7 @@ colData(dds)$condition <- factor(colData(dds)$condition,
 
 # Differential expression analysis
 dds <- DESeq(dds)
-<<<<<<< HEAD
+
 
 # LRT against intercept only nmodel
 dds <- DESeq(dds, test="LRT", full= ~ group * condition, reduced=~1) 
@@ -65,16 +65,6 @@ LRTPvalue_matrix = cbind(LRTPvalue_matrix,LRTPvalue_adj)
 out <- data.frame(LRTPvalue_matrix, row.names=rownames(res))
 write.table( out, file=outputFile, col.names=TRUE, row.names=TRUE, quote=FALSE, sep="\t" )
 write.table( sizeFactors( dds ), file=sizeFactorsFile, col.names=FALSE,row.names=FALSE, quote=FALSE, sep="\t" )
-=======
-res <- results(dds)
-
-# Write output
-out <- data.frame(pvalue=res$pvalue, padj=res$padj, row.names=rownames(res))
-write.table( out, file=outputFile, col.names=FALSE, row.names=TRUE,
-    quote=FALSE, sep="\t" )
-write.table( sizeFactors( dds ), file=sizeFactorsFile, col.names=FALSE,
-    row.names=FALSE, quote=FALSE, sep="\t" )
->>>>>>> parent of b8bcae5... displays pvalues for all the covariates in the model
 
 # Data transformations for QC
 rld <- rlogTransformation(dds, blind=TRUE)
