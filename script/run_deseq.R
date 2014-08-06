@@ -42,7 +42,7 @@ if (filterPercentile) {
 # Create DESeqDataSet (with design according to number of factors)
 dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ condition)
 if (numFactors == 2) {
-    design(dds) <- formula(~ group + condition)
+    design(dds) <- formula(~ group *condition)
 }
 
 # Ensure control level (usually "sibling") is first level (i.e. before "mutant")
