@@ -20,6 +20,7 @@ use Try::Tiny;
 
 use Readonly;
 use Class::InsideOut qw( private register id );
+use List::MoreUtils qw( any );
 use English qw( -no_match_vars );
 use File::ReadBackwards;
 use YAML::Tiny qw( LoadFile );
@@ -39,6 +40,7 @@ private parameters    => my %parameters;       # e.g. arrayref or scalar
 private retries       => my %retries;          # e.g. 5
 private lsf_job_id    => my %lsf_job_id;       # e.g. 123
 private memory        => my %memory;           # e.g. 3000
+private queue         => my %queue;            # e.g. normal
 private status_code   => my %status_code;      # e.g. DONE
 private status_text   => my %status_text;      # e.g. Job killed by owner
 
@@ -476,6 +478,53 @@ sub _check_memory {
     return $memory;
 }
 
+=method queue
+
+  Usage       : my $queue = $job->queue;
+  Purpose     : Getter for the queue attribute
+  Returns     : String (e.g. "normal")
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : Queue can be normal (default), long, or hugemem
+
+=cut
+
+sub queue {
+    my ($self) = @_;
+    return $queue{ id $self} || 'normal';
+}
+
+=method set_queue
+
+  Usage       : $job->set_queue('long');
+  Purpose     : Setter for the queue attribute
+  Returns     : undef
+  Parameters  : String (the queue)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_queue {
+    my ( $self, $arg ) = @_;
+    $queue{ id $self} = _check_queue($arg);
+    return;
+}
+
+# Usage       : $queue = _check_queue($queue);
+# Purpose     : Check for valid queue
+# Returns     : String (the valid queue)
+# Parameters  : String (the queue)
+# Throws      : If queue is not valid
+# Comments    : None
+sub _check_queue {
+    my ($queue) = @_;
+
+    return $queue
+      if !defined $queue || any { $_ eq $queue } qw(normal long hugemem);
+    confess "Invalid queue ($queue) specified";
+}
+
 =method status_code
 
   Usage       : my $status_code = $job->status_code;
@@ -653,6 +702,10 @@ sub _set_state_from_filesystem_for_lsf {
     # Get memory requested
     my $memory = $yaml->{memory};
     $self->set_memory($memory);
+
+    # Get queue requested
+    my $queue = $yaml->{queue};
+    $self->set_queue($queue);
 
     my ( $status_code, $status_text );
 
