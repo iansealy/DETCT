@@ -54,14 +54,12 @@ colData(dds)$condition <- factor(colData(dds)$condition,
 dds <- DESeq(dds)
 
 # Find the condition term (does not contain '.' and constains 'condition')
-results_names = resultsNames(dds)
+results_names=resultsNames(dds)
 non_interaction_terms = which(grepl("\\.",results_names,perl =T) == FALSE)
-condition_terms_index = which(grepl("condition",results_names) == TRUE)
-condition_terms_index = intersect(non_interaction_terms,condition_terms)
-res <- results(dds,name=results_names[condition_terms_index] )
+all_condition_terms_index = which(grepl("condition",results_names) == TRUE)
+condition_terms_index = intersect(non_interaction_terms,all_condition_terms_index)
 
 # create matrix with pvalues of all terms in the model
-
 pvalues_matrix = matrix(ncol=0,nrow=nrow(dds))
 col_names<-c();
 for (i  in 1:length(results_names) )
