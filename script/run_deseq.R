@@ -10,6 +10,7 @@ sizeFactorsFile  <- Args[7]
 qcPdfFile        <- Args[8]
 filterPercentile <- as.numeric( Args[9] )
 
+
 # Get data and samples
 countData     <- read.table(   countFile, header=TRUE, row.names=1 )
 samples       <- read.table( samplesFile, header=TRUE, row.names=1 )
@@ -42,7 +43,7 @@ if (filterPercentile) {
 # Create DESeqDataSet (with design according to number of factors)
 dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ condition)
 if (numFactors == 2) {
-    design(dds) <- formula(~ group *condition)
+    design(dds) <- formula(~ group * condition)
 }
 
 # Ensure control level (usually "sibling") is first level (i.e. before "mutant")
@@ -52,17 +53,33 @@ colData(dds)$condition <- factor(colData(dds)$condition,
 # Differential expression analysis
 dds <- DESeq(dds)
 
+# Find the condition term (does not contain '.' and constains 'condition')
+results_names = resultsNames(dds)
+non_interaction_terms = which(grepl("\\.",results_names,perl =T) == FALSE)
+condition_terms_index = which(grepl("condition",results_names) == TRUE)
+condition_terms_index = intersect(non_interaction_terms,condition_terms)
+res <- results(dds,name=results_names[condition_terms_index] )
 
-# LRT against intercept only nmodel
-dds <- DESeq(dds, test="LRT", full= ~ group * condition, reduced=~1) 
-LRTPvalue  = mcols(dds)[1:nrow(dds), ]$LRTPvalue
-LRTPvalue_adj = p.adjust(LRTPvalue, "BH")
-LRTPvalue_matrix = matrix(ncol=0,nrow=nrow(dds))
-LRTPvalue_matrix = cbind(LRTPvalue_matrix,LRTPvalue)
-LRTPvalue_matrix = cbind(LRTPvalue_matrix,LRTPvalue_adj)
+# create matrix with pvalues of all terms in the model
+
+pvalues_matrix = matrix(ncol=0,nrow=nrow(dds))
+col_names<-c();
+for (i  in 1:length(results_names) )
+{
+	equation_term = results_names[i]; 
+	results = results(dds, name= equation_term)
+	palues = as.matrix(results$pvalue)
+	padj =   as.matrix(results$padj)
+	pvalues_matrix = cbind(pvalues_matrix,palues)
+	pvalues_matrix = cbind(pvalues_matrix,padj)
+	col_names<-c(col_names,paste(equation_term,"_pvalue",sep=""),paste(equation_term,"_pvalue_adjusted",sep=""))
+}
+colnames(pvalues_matrix)=col_names;
+
+
 
 # Write output
-out <- data.frame(LRTPvalue_matrix, row.names=rownames(res))
+out <- data.frame(pvalues_matrix, row.names=rownames(res))
 write.table( out, file=outputFile, col.names=TRUE, row.names=TRUE, quote=FALSE, sep="\t" )
 write.table( sizeFactors( dds ), file=sizeFactorsFile, col.names=FALSE,row.names=FALSE, quote=FALSE, sep="\t" )
 
