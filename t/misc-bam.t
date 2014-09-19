@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 404;
+plan tests => 408;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -27,6 +27,7 @@ use DETCT::Misc::BAM qw(
   downsample_by_tag
   downsample_all_reads
   mark_duplicates
+  filter_by_tag
 );
 
 use File::Temp qw( tempdir );
@@ -2277,6 +2278,54 @@ throws_ok {
     );
 }
 qr/Read names do not match/ms, 'BAM file not sorted by read name';
+
+# Filter by tag
+# Should be 1672 NNNNBGAGGC reads according to:
+
+=for comment
+samtools view t/data/test1.bam | awk '{ print $1 }' \
+| grep -c GAGGC$
+=cut
+
+filter_by_tag(
+    {
+        source_bam_file => 't/data/test1.bam',
+        target_bam_file => $tmp_dir . '/test1.NNNNBGAGGC.filtered.bam',
+        tags            => ['NNNNBGAGGC'],
+    }
+);
+
+( $read1_count, $read2_count ) =
+  count_reads_1_and_2( $tmp_dir . '/test1.NNNNBGAGGC.filtered.bam' );
+is( $read1_count + $read2_count, 1672, 'Filter by tag NNNNBGAGGC' );
+
+throws_ok {
+    filter_by_tag(
+        {
+            target_bam_file => $tmp_dir . '/test1.NNNNBGAGGC.filtered.bam',
+            tags            => ['NNNNBGAGGC'],
+        }
+    );
+}
+qr/No source BAM file specified/ms, 'No source BAM file';
+throws_ok {
+    filter_by_tag(
+        {
+            source_bam_file => 't/data/test1.bam',
+            tags            => ['NNNNBGAGGC'],
+        }
+    );
+}
+qr/No target BAM file specified/ms, 'No target BAM file';
+throws_ok {
+    filter_by_tag(
+        {
+            source_bam_file => 't/data/test1.bam',
+            target_bam_file => $tmp_dir . '/test1.NNNNBGAGGC.filtered.bam',
+        }
+    );
+}
+qr/No tags specified/ms, 'No tags';
 
 # Count reads 1 and 2
 sub count_reads_1_and_2 {

@@ -44,6 +44,7 @@ our @EXPORT_OK = qw(
   downsample_by_tag
   downsample_all_reads
   mark_duplicates
+  filter_by_tag
 );
 
 =head1 SYNOPSIS
@@ -2190,6 +2191,55 @@ sub _estimate_library_size {
     }
 
     return int( $c * ( $lo + $hi ) / 2 );
+}
+
+=func filter_by_tag
+
+  Usage       : DETCT::Misc::BAM::filter_by_tag( {
+                    source_bam_file => $bam_file,
+                    target_bam_file => $new_bam_file,
+                    tags            => ['NNNNBGAGGC', 'NNNNBAGAAG'],
+                } );
+  Purpose     : Filter a BAM file to only include specific tags
+  Returns     : undef
+  Parameters  : Hashref {
+                    source_bam_file => String (the original BAM file)
+                    target_bam_file => String (the filtered BAM file)
+                    tags            => Arrayref of strings (the tags)
+                }
+  Throws      : If source BAM file is missing
+                If target BAM file is missing
+                If tags are missing
+  Comments    : None
+
+=cut
+
+sub filter_by_tag {
+    my ($arg_ref) = @_;
+
+    confess 'No source BAM file specified'
+      if !defined $arg_ref->{source_bam_file};
+    confess 'No target BAM file specified'
+      if !defined $arg_ref->{target_bam_file};
+    confess 'No tags specified' if !defined $arg_ref->{tags};
+
+    my @tags = @{ $arg_ref->{tags} };
+
+    # Convert tags to regular expressions
+    my %re_for = DETCT::Misc::Tag::convert_tag_to_regexp(@tags);
+
+    # Open source and target and write header to target
+    my $bam_in  = Bio::DB::Bam->open( $arg_ref->{source_bam_file}, q{r} );
+    my $bam_out = Bio::DB::Bam->open( $arg_ref->{target_bam_file}, q{w} );
+    $bam_out->header_write( $bam_in->header );
+
+    # Get all reads
+    while ( my $alignment = $bam_in->read1 ) {
+        next if !matched_tag( $alignment, \%re_for );
+        $bam_out->write1($alignment);
+    }
+
+    return;
 }
 
 =func matched_tag
