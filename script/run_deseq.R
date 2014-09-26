@@ -50,7 +50,7 @@ colData(dds)$condition <- factor(colData(dds)$condition,
     levels=rev(levels(colData(dds)$condition)))
 
 # Differential expression analysis
-dds <- DESeq(dds)
+dds <- DESeq(dds) # estimateSizeFactors, estimateDispersions, nbinomWaldTest
 res <- results(dds)
 
 # Write output

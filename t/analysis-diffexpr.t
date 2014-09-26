@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 177;
+plan tests => 181;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -142,6 +142,14 @@ is( $analysis->spike_prefix,             undef,  'Get spike prefix' );
 is( $analysis->set_spike_prefix('ERCC'), undef,  'Set spike prefix' );
 is( $analysis->spike_prefix,             'ERCC', 'Get new spike prefix' );
 $analysis->set_spike_prefix();
+
+# Test normalisation method attribute
+is( $analysis->normalisation_method, 'deseq', 'Get normalisation method' );
+is( $analysis->set_normalisation_method('spike'),
+    undef, 'Set normalisation method' );
+is( $analysis->normalisation_method, 'spike', 'Get new normalisation method' );
+throws_ok { $analysis->set_normalisation_method('invalid') }
+qr/Invalid normalisation method/ms, 'Invalid normalisation method';
 
 # Test output significance level attribute
 is( $analysis->output_sig_level, 0.05, 'Get output significance level' );

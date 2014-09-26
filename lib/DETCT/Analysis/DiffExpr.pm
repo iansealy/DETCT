@@ -32,20 +32,21 @@ use YAML::Tiny;
 =cut
 
 # Attributes:
-private read1_length       => my %read1_length;          # e.g. 30
-private read2_length       => my %read2_length;          # e.g. 54
-private mismatch_threshold => my %mismatch_threshold;    # e.g. 2
-private bin_size           => my %bin_size;              # e.g. 100
-private peak_buffer_width  => my %peak_buffer_width;     # e.g. 100
-private hmm_sig_level      => my %hmm_sig_level;         # e.g. 0.001
-private hmm_binary         => my %hmm_binary;            # e.g. chiphmmnew
-private r_binary           => my %r_binary;              # e.g. R
-private deseq_script       => my %deseq_script;          # e.g. ~/run_deseq.R
-private filter_percentile  => my %filter_percentile;     # e.g. 40
-private spike_prefix       => my %spike_prefix;          # e.g. ERCC
-private output_sig_level   => my %output_sig_level;      # e.g. 0.05
-private table_file         => my %table_file;            # e.g. all.tsv
-private table_format       => my %table_format;          # e.g. tsv
+private read1_length         => my %read1_length;           # e.g. 30
+private read2_length         => my %read2_length;           # e.g. 54
+private mismatch_threshold   => my %mismatch_threshold;     # e.g. 2
+private bin_size             => my %bin_size;               # e.g. 100
+private peak_buffer_width    => my %peak_buffer_width;      # e.g. 100
+private hmm_sig_level        => my %hmm_sig_level;          # e.g. 0.001
+private hmm_binary           => my %hmm_binary;             # e.g. chiphmmnew
+private r_binary             => my %r_binary;               # e.g. R
+private deseq_script         => my %deseq_script;           # e.g. ~/run_deseq.R
+private filter_percentile    => my %filter_percentile;      # e.g. 40
+private spike_prefix         => my %spike_prefix;           # e.g. ERCC
+private normalisation_method => my %normalisation_method;   # e.g. spike
+private output_sig_level     => my %output_sig_level;       # e.g. 0.05
+private table_file           => my %table_file;             # e.g. all.tsv
+private table_format         => my %table_format;           # e.g. tsv
 private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
 
 =method new
@@ -67,30 +68,31 @@ private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
   Purpose     : Constructor for analysis objects
   Returns     : DETCT::Analysis::DiffExpr
   Parameters  : Hashref {
-                    name               => String,
-                    read1_length       => Int,
-                    read2_length       => Int,
-                    mismatch_threshold => Int,
-                    bin_size           => Int,
-                    peak_buffer_width  => Int,
-                    hmm_sig_level      => Float,
-                    hmm_binary         => String,
-                    r_binary           => String,
-                    deseq_script       => String,
-                    filter_percentile  => Int,
-                    spike_prefix       => String,
-                    output_sig_level   => Float,
-                    table_file         => String,
-                    table_format       => String,
-                    ref_fasta          => String or undef,
-                    ensembl_host       => String or undef,
-                    ensembl_port       => Int or undef,
-                    ensembl_user       => String or undef,
-                    ensembl_pass       => String or undef,
-                    ensembl_name       => String or undef,
-                    ensembl_species    => String or undef,
-                    chunk_total        => Int,
-                    test_chunk         => Int or undef,
+                    name                 => String,
+                    read1_length         => Int,
+                    read2_length         => Int,
+                    mismatch_threshold   => Int,
+                    bin_size             => Int,
+                    peak_buffer_width    => Int,
+                    hmm_sig_level        => Float,
+                    hmm_binary           => String,
+                    r_binary             => String,
+                    deseq_script         => String,
+                    filter_percentile    => Int,
+                    spike_prefix         => String,
+                    normalisation_method => String,
+                    output_sig_level     => Float,
+                    table_file           => String,
+                    table_format         => String,
+                    ref_fasta            => String or undef,
+                    ensembl_host         => String or undef,
+                    ensembl_port         => Int or undef,
+                    ensembl_user         => String or undef,
+                    ensembl_pass         => String or undef,
+                    ensembl_name         => String or undef,
+                    ensembl_species      => String or undef,
+                    chunk_total          => Int,
+                    test_chunk           => Int or undef,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -111,6 +113,7 @@ sub new {
     $self->set_deseq_script( $arg_ref->{deseq_script} );
     $self->set_filter_percentile( $arg_ref->{filter_percentile} );
     $self->set_spike_prefix( $arg_ref->{spike_prefix} );
+    $self->set_normalisation_method( $arg_ref->{normalisation_method} );
     $self->set_output_sig_level( $arg_ref->{output_sig_level} );
     $self->set_table_file( $arg_ref->{table_file} );
     $self->set_table_format( $arg_ref->{table_format} );
@@ -154,6 +157,7 @@ sub new_from_yaml {
     $self->set_deseq_script( $yaml->[0]->{deseq_script} );
     $self->set_filter_percentile( $yaml->[0]->{filter_percentile} );
     $self->set_spike_prefix( $yaml->[0]->{spike_prefix} );
+    $self->set_normalisation_method( $yaml->[0]->{normalisation_method} );
     $self->set_output_sig_level( $yaml->[0]->{output_sig_level} );
     $self->set_table_file( $yaml->[0]->{table_file} );
     $self->set_table_format( $yaml->[0]->{table_format} );
@@ -659,6 +663,53 @@ sub set_spike_prefix {
     my ( $self, $arg ) = @_;
     $spike_prefix{ id $self} = $arg;
     return;
+}
+
+=method normalisation_method
+
+  Usage       : my $normalisation_method = $analysis->normalisation_method;
+  Purpose     : Getter for normalisation method attribute
+  Returns     : String ('deseq', 'spike' or 'none')
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : Defaults to 'deseq'
+
+=cut
+
+sub normalisation_method {
+    my ($self) = @_;
+    return $normalisation_method{ id $self} || 'deseq';
+}
+
+=method set_normalisation_method
+
+  Usage       : $analysis->set_normalisation_method('spike');
+  Purpose     : Setter for normalisation method attribute
+  Returns     : undef
+  Parameters  : String (the normalisation method)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_normalisation_method {
+    my ( $self, $arg ) = @_;
+    $normalisation_method{ id $self} = _check_normalisation_method($arg);
+    return;
+}
+
+# Usage       : $normalisation_method = _check_normalisation_method($normalisation_method);
+# Purpose     : Check for valid normalisation method
+# Returns     : String (the valid normalisation method)
+# Parameters  : String (the normalisation method)
+# Throws      : If normalisation method is defined but invalid
+# Comments    : None
+sub _check_normalisation_method {
+    my ($normalisation_method) = @_;
+    return $normalisation_method
+      if !defined $normalisation_method
+      || any { $_ eq $normalisation_method } qw(deseq spike none);
+    confess "Invalid normalisation method ($normalisation_method) specified";
 }
 
 =method output_sig_level
