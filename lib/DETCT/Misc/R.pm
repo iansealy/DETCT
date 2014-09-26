@@ -85,12 +85,14 @@ our @EXPORT_OK = qw(
                     ... (regions)
                 ]
   Parameters  : Hashref {
-                    dir               => String (the working directory),
-                    regions           => Hashref (of arrayrefs of regions),
-                    samples           => Arrayref (of samples)
-                    r_binary          => String (the R binary),
-                    deseq_script      => String (the DESeq script),
-                    filter_percentile => Int (the filter percentile) or undef,
+                    dir                  => String (the working directory),
+                    regions              => Hashref (of arrayrefs of regions),
+                    samples              => Arrayref (of samples)
+                    r_binary             => String (the R binary),
+                    deseq_script         => String (the DESeq script),
+                    filter_percentile    => Int (the filter percentile) or undef,
+                    spike_prefix         => String (the spike prefix) or undef,
+                    normalisation_method => String (the normalisation method),
                 }
   Throws      : If directory is missing
                 If regions are missing
@@ -110,6 +112,8 @@ sub run_deseq {
     confess 'No samples specified'      if !defined $arg_ref->{samples};
     confess 'No R binary specified'     if !defined $arg_ref->{r_binary};
     confess 'No DESeq script specified' if !defined $arg_ref->{deseq_script};
+
+    my $normalisation_method = $arg_ref->{normalisation_method};
 
     # Get conditions and groups
     my @samples = @{ $arg_ref->{samples} };
@@ -174,7 +178,8 @@ sub run_deseq {
 
     my $cmd = join q{ }, $arg_ref->{r_binary}, '--slave', '--args',
       $input_file, $samples_file, $output_file, $size_factors_file,
-      $qc_pdf_file, $filter_percentile, '<', $arg_ref->{deseq_script};
+      $qc_pdf_file, $filter_percentile, $normalisation_method, '<',
+      $arg_ref->{deseq_script};
     $cmd .= ' 1>' . $stdout_file;
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";

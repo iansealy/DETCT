@@ -2,13 +2,14 @@ library(DESeq2)
 library(RColorBrewer)
 library(gplots)
 
-Args             <- commandArgs()
-countFile        <- Args[4]
-samplesFile      <- Args[5]
-outputFile       <- Args[6]
-sizeFactorsFile  <- Args[7]
-qcPdfFile        <- Args[8]
-filterPercentile <- as.numeric( Args[9] )
+Args                <- commandArgs()
+countFile           <- Args[4]
+samplesFile         <- Args[5]
+outputFile          <- Args[6]
+sizeFactorsFile     <- Args[7]
+qcPdfFile           <- Args[8]
+filterPercentile    <- as.numeric( Args[9] )
+normalisationMethod <- Args[10]
 
 # Get data and samples
 countData     <- read.table(   countFile, header=TRUE, row.names=1 )
@@ -26,6 +27,9 @@ if (numConditions != 2) {
     dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ 1)
     write.table( c(), file=outputFile, col.names=FALSE, row.names=FALSE,
         quote=FALSE, sep="\t" )
+    if (normalisationMethod == "none") {
+        sizeFactors(dds) <- rep.int(1, ncol(countData))
+    }
     dds <- estimateSizeFactors(dds)
     write.table( sizeFactors( dds ), file=sizeFactorsFile, col.names=FALSE,
         row.names=FALSE, quote=FALSE, sep="\t" )
@@ -48,6 +52,11 @@ if (numFactors == 2) {
 # Ensure control level (usually "sibling") is first level (i.e. before "mutant")
 colData(dds)$condition <- factor(colData(dds)$condition,
     levels=rev(levels(colData(dds)$condition)))
+
+# No normalisation?
+if (normalisationMethod == "none") {
+    sizeFactors(dds) <- rep.int(1, ncol(countData))
+}
 
 # Differential expression analysis
 dds <- DESeq(dds) # estimateSizeFactors, estimateDispersions, nbinomWaldTest
