@@ -104,7 +104,7 @@ our @EXPORT_OK = qw(
 
 =cut
 
-sub run_deseq {
+sub run_deseq {    ## no critic (ProhibitExcessComplexity)
     my ($arg_ref) = @_;
 
     confess 'No directory specified'    if !defined $arg_ref->{dir};
@@ -113,7 +113,11 @@ sub run_deseq {
     confess 'No R binary specified'     if !defined $arg_ref->{r_binary};
     confess 'No DESeq script specified' if !defined $arg_ref->{deseq_script};
 
+    # Normalise based on spikes?
     my $normalisation_method = $arg_ref->{normalisation_method};
+    my $spike_prefix         = $arg_ref->{spike_prefix};
+    confess 'No spike prefix specified'
+      if $normalisation_method eq 'spike' && !$spike_prefix;
 
     # Get conditions and groups
     my @samples = @{ $arg_ref->{samples} };
@@ -128,25 +132,18 @@ sub run_deseq {
 
     # Write regions to input file
     my $input_file = File::Spec->catfile( $arg_ref->{dir}, 'input.txt' );
+    my $spike_input_file =
+      File::Spec->catfile( $arg_ref->{dir}, 'spike_input.txt' );
     my @sample_names = map { $_->name } @samples;
-    ## no critic (RequireBriefOpen)
-    open my $input_fh, '>', $input_file;
-    write_or_die( $input_fh, ( join "\t", q{}, @sample_names ), "\n" );
-    foreach my $seq_name ( nsort( keys %{ $arg_ref->{regions} } ) ) {
-        foreach my $region ( @{ $arg_ref->{regions}->{$seq_name} } ) {
-            my $counts = $region->[-1];
-            my $start  = $region->[0];
-            my $end    = $region->[1];
-            ## no critic (ProhibitMagicNumbers)
-            my $strand = $region->[6];
-            ## use critic
-            my $region_text = join q{:}, $seq_name, $start, $end, $strand;
-            write_or_die( $input_fh, ( join "\t", $region_text, @{$counts} ),
-                "\n" );
-        }
+    if ( $normalisation_method ne 'spike' ) {
+        write_deseq_input( $input_file, \@sample_names, $arg_ref->{regions} );
     }
-    close $input_fh;
-    ## use critic
+    else {
+        write_deseq_input( $input_file, \@sample_names, $arg_ref->{regions},
+            $spike_prefix, 0 );
+        write_deseq_input( $spike_input_file, \@sample_names,
+            $arg_ref->{regions}, $spike_prefix, 1 );
+    }
 
     # Write samples to input file
     my $samples_file = File::Spec->catfile( $arg_ref->{dir}, 'samples.txt' );
@@ -178,8 +175,8 @@ sub run_deseq {
 
     my $cmd = join q{ }, $arg_ref->{r_binary}, '--slave', '--args',
       $input_file, $samples_file, $output_file, $size_factors_file,
-      $qc_pdf_file, $filter_percentile, $normalisation_method, '<',
-      $arg_ref->{deseq_script};
+      $qc_pdf_file, $filter_percentile, $normalisation_method,
+      $spike_input_file, '<', $arg_ref->{deseq_script};
     $cmd .= ' 1>' . $stdout_file;
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
@@ -252,6 +249,51 @@ sub run_deseq {
     }
 
     return \@output;
+}
+
+=func write_deseq_input
+
+  Usage       : write_deseq_input( 'input.txt', $sample_names, $regions );
+  Purpose     : Write DESeq input to a file
+  Returns     : undef
+  Parameters  : String (the input filename)
+                Arrayref of strings (the sample names)
+                Hashref (of arrayrefs of regions)
+                String (the spike prefix) or undef
+                Boolean (whether to match spike prefix) or undef
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub write_deseq_input {
+    my ( $input_file, $sample_names, $regions, $spike_prefix, $match_prefix ) =
+      @_;
+
+    ## no critic (RequireBriefOpen)
+    open my $input_fh, '>', $input_file;
+    write_or_die( $input_fh, ( join "\t", q{}, @{$sample_names} ), "\n" );
+    foreach my $seq_name ( nsort( keys %{$regions} ) ) {
+        next
+          if $spike_prefix
+          && ( ( $match_prefix && $seq_name !~ m/\A $spike_prefix /xms )
+            || ( !$match_prefix && $seq_name =~ m/\A $spike_prefix /xms ) );
+        foreach my $region ( @{ $regions->{$seq_name} } ) {
+            my $counts = $region->[-1];
+            my $start  = $region->[0];
+            my $end    = $region->[1];
+            ## no critic (ProhibitMagicNumbers)
+            my $strand = $region->[6];
+            ## use critic
+            my $region_text = join q{:}, $seq_name, $start, $end, $strand;
+            write_or_die( $input_fh, ( join "\t", $region_text, @{$counts} ),
+                "\n" );
+        }
+    }
+    close $input_fh;
+    ## use critic
+
+    return;
 }
 
 =func condition_prefix

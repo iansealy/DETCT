@@ -10,12 +10,16 @@ sizeFactorsFile     <- Args[7]
 qcPdfFile           <- Args[8]
 filterPercentile    <- as.numeric( Args[9] )
 normalisationMethod <- Args[10]
+spikeCountFile      <- Args[11]
 
 # Get data and samples
 countData     <- read.table(   countFile, header=TRUE, row.names=1 )
 samples       <- read.table( samplesFile, header=TRUE, row.names=1 )
 numFactors    <- ncol( samples )
 numConditions <- nlevels( samples$condition )
+if (normalisationMethod == "spike") {
+    spikeCountData <- read.table( spikeCountFile, header=TRUE, row.names=1 )
+}
 
 # Can only handle one or two factors
 if (numFactors > 2) {
@@ -29,6 +33,11 @@ if (numConditions != 2) {
         quote=FALSE, sep="\t" )
     if (normalisationMethod == "none") {
         sizeFactors(dds) <- rep.int(1, ncol(countData))
+    } else if (normalisationMethod == "spike") {
+        spikedds <- DESeqDataSetFromMatrix(spikeCountData, samples,
+            design = ~ 1)
+        spikedds <- estimateSizeFactors(spikedds)
+        sizeFactors(dds) <- sizeFactors(spikedds)
     }
     dds <- estimateSizeFactors(dds)
     write.table( sizeFactors( dds ), file=sizeFactorsFile, col.names=FALSE,
@@ -53,9 +62,13 @@ if (numFactors == 2) {
 colData(dds)$condition <- factor(colData(dds)$condition,
     levels=rev(levels(colData(dds)$condition)))
 
-# No normalisation?
+# Non-standard type of normalisation?
 if (normalisationMethod == "none") {
     sizeFactors(dds) <- rep.int(1, ncol(countData))
+} else if (normalisationMethod == "spike") {
+    spikedds <- DESeqDataSetFromMatrix(spikeCountData, samples, design = ~ 1)
+    spikedds <- estimateSizeFactors(spikedds)
+    sizeFactors(dds) <- sizeFactors(spikedds)
 }
 
 # Differential expression analysis
