@@ -73,7 +73,12 @@ if (normalisationMethod == "none") {
 
 # Differential expression analysis
 dds <- DESeq(dds) # estimateSizeFactors, estimateDispersions, nbinomWaldTest
-res <- results(dds)
+if (filterPercentile) {
+    # Don't need independent filtering if already filtered
+    res <- results(dds, independentFiltering=FALSE)
+} else {
+    res <- results(dds)
+}
 
 # Write output
 out <- data.frame(pvalue=res$pvalue, padj=res$padj, row.names=rownames(res))
