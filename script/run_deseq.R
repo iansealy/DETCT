@@ -128,8 +128,10 @@ plotDispEsts(dds)
 
 # Plot optimisation of independent filtering using mean of normalised counts
 # See "3.6 Independent filtering of results" of DESeq2 vignette
-plot(attr(res, "filterNumRej"), type="b", xlab="quantile",
-    ylab="number of rejections")
+if (!filterPercentile) {
+    plot(attr(res, "filterNumRej"), type="b", xlab="quantile",
+        ylab="number of rejections")
+}
 
 # Plot p-value over mean of counts
 plot(res$baseMean+1, -log10(res$pvalue), log="x",
