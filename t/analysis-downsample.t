@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 143;
+plan tests => 148;
 
 use DETCT::Analysis::Downsample;
 
@@ -272,6 +272,18 @@ is( $analysis->is_skip_sequence('4'),           1, '4 is skip sequence' );
 is( scalar @{ $analysis->get_all_sequences() }, 5, '5 sequences' );
 $analysis->add_all_sequences('t/data/test1.bam');
 is( scalar @{ $analysis->get_all_sequences() }, 3, '3 sequences' );
+
+# Test Ensembl database types
+is( scalar @{ $analysis->get_all_ensembl_db_types },
+    1, 'Get Ensembl database types' );
+is( $analysis->get_all_ensembl_db_types->[0],
+    'core', 'Get 1st Ensembl database type' );
+is( $analysis->add_all_ensembl_db_types( [ 'core', 'otherfeatures' ] ),
+    undef, 'Add Ensembl database types' );
+is( scalar @{ $analysis->get_all_ensembl_db_types },
+    2, 'Get new Ensembl database types' );
+is( $analysis->get_all_ensembl_db_types->[1],
+    'otherfeatures', 'Get 2nd Ensembl database type' );
 
 # Test constructing from YAML
 $analysis = DETCT::Analysis::Downsample->new_from_yaml(

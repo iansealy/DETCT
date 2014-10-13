@@ -47,15 +47,17 @@ private ensembl_user  => my %ensembl_user;   # e.g. anonymous
 private ensembl_pass  => my %ensembl_pass;   # e.g. secret
 private ensembl_name  => my %ensembl_name;   # e.g. zv9_core
 private ensembl_species => my %ensembl_species;    # e.g. danio_rerio
+private ensembl_db_type => my %ensembl_db_type;    # arrayref of database types
 private slice_adaptor => my %slice_adaptor; # Bio::EnsEMBL::DBSQL::SliceAdaptor
 private chunk_total   => my %chunk_total;   # e.g. 20
 private chunk         => my %chunk;         # arrayref of arrayrefs of sequences
 private test_chunk    => my %test_chunk;    # e.g. 1
 
 # Constants
-Readonly our $MAX_NAME_LENGTH      => 128;
-Readonly our $DEFAULT_ENSEMBL_HOST => 'ensembldb.ensembl.org';
-Readonly our $DEFAULT_ENSEMBL_USER => 'anonymous';
+Readonly our $MAX_NAME_LENGTH         => 128;
+Readonly our $DEFAULT_ENSEMBL_HOST    => 'ensembldb.ensembl.org';
+Readonly our $DEFAULT_ENSEMBL_USER    => 'anonymous';
+Readonly our $DEFAULT_ENSEMBL_DB_TYPE => 'core';
 
 =method new
 
@@ -133,6 +135,8 @@ sub new_from_yaml {
     $self->set_ensembl_species( $yaml->[0]->{ensembl_species} );
     $self->set_chunk_total( $yaml->[0]->{chunk_total} );
     $self->set_test_chunk( $yaml->[0]->{test_chunk} );
+
+    $self->add_all_ensembl_db_types( $yaml->[0]->{ensembl_db_types} );
 
     # Need to add skip sequences before adding samples because add_sample()
     # calls add_all_sequences()
@@ -744,6 +748,48 @@ sub set_ensembl_species {
     my ( $self, $arg ) = @_;
     $ensembl_species{ id $self} = $arg;
     return;
+}
+
+=method add_all_ensembl_db_types
+
+  Usage       : $analysis->add_all_ensembl_db_types(['core', 'otherfeatures']);
+  Purpose     : Add all Ensembl database types to an analysis
+  Returns     : undef
+  Parameters  : Arrayref of strings (the Ensembl database types) or undef
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub add_all_ensembl_db_types {
+    my ( $self, $ensembl_db_types ) = @_;
+
+    $ensembl_db_type{ id $self} = {};
+
+    foreach my $ensembl_db_type ( @{ $ensembl_db_types || [] } ) {
+        $ensembl_db_type{ id $self}->{$ensembl_db_type} = 1;
+    }
+
+    return;
+}
+
+=method get_all_ensembl_db_types
+
+  Usage       : $ensembl_db_types = $analysis->get_all_ensembl_db_types();
+  Purpose     : Get all Ensembl database types of an analysis
+  Returns     : Arrayref of strings
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_all_ensembl_db_types {
+    my ($self) = @_;
+
+    return [
+        sort keys %{ $ensembl_db_type{ id $self}
+              || { $DEFAULT_ENSEMBL_DB_TYPE => 1 } } ];
 }
 
 =method slice_adaptor
