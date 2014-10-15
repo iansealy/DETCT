@@ -164,7 +164,13 @@ sub is_skip_transcript {
 
 sub ensembl_db_types {
     my ($self) = @_;
-    return [ sort keys %{ $ensembl_db_type{ id $self} } || [undef] ];
+
+    my @ensembl_db_types = sort keys %{ $ensembl_db_type{ id $self} };
+    if ( !@ensembl_db_types ) {
+        @ensembl_db_types = (undef);
+    }
+
+    return \@ensembl_db_types;
 }
 
 =method set_ensembl_db_types
