@@ -1225,6 +1225,7 @@ sub run_add_gene_annotation {
         {
             slice_adaptor    => $self->analysis->slice_adaptor,
             skip_transcripts => $self->analysis->get_all_skip_transcripts,
+            ensembl_db_types => $self->analysis->get_all_ensembl_db_types,
         }
     );
     my $annotated_regions_ref = $gene_finder->add_gene_annotation($regions);
@@ -1286,6 +1287,7 @@ sub run_add_existing_gene_annotation {
         {
             slice_adaptor    => $self->analysis->slice_adaptor,
             skip_transcripts => $self->analysis->get_all_skip_transcripts,
+            ensembl_db_types => $self->analysis->get_all_ensembl_db_types,
         }
     );
     my $annotated_regions_ref = $gene_finder->add_existing_gene_annotation(

@@ -32,6 +32,7 @@ use DETCT::Transcript;
 private slice_adaptor => my %slice_adaptor;  # Bio::EnsEMBL::DBSQL::SliceAdaptor
 private cache         => my %cache;          # hashref
 private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
+private ensembl_db_type => my %ensembl_db_type; # hashref of database types
 
 =method new
 
@@ -43,6 +44,7 @@ private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
   Parameters  : Hashref {
                     slice_adaptor    => Bio::EnsEMBL::DBSQL::SliceAdaptor,
                     skip_transcripts => Arrayref (of strings)
+                    ensembl_db_types => Arrayref (of strings)
                 }
   Throws      : No exceptions
   Comments    : None
@@ -54,6 +56,7 @@ sub new {
     my $self = register($class);
     $self->set_slice_adaptor( $arg_ref->{slice_adaptor} );
     $self->set_skip_transcripts( $arg_ref->{skip_transcripts} );
+    $self->set_ensembl_db_types( $arg_ref->{ensembl_db_types} );
     return $self;
 }
 
@@ -146,6 +149,45 @@ sub is_skip_transcript {
     my ( $self, $id ) = @_;
 
     return exists $skip_transcript{ id $self}->{$id} ? 1 : 0;
+}
+
+=method ensembl_db_types
+
+  Usage       : my $ensembl_db_types = $gene_finder->ensembl_db_types;
+  Purpose     : Getter for Ensembl database types attribute
+  Returns     : Arrayref of strings
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub ensembl_db_types {
+    my ($self) = @_;
+    return [ sort keys %{ $ensembl_db_type{ id $self} } || [undef] ];
+}
+
+=method set_ensembl_db_types
+
+  Usage       : $gene_finder->set_ensembl_db_types(['core', 'otherfeatures']);
+  Purpose     : Setter for Ensembl database types attribute
+  Returns     : undef
+  Parameters  : Arrayref of strings (the Ensembl database types) or undef
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_ensembl_db_types {
+    my ( $self, $ensembl_db_types ) = @_;
+
+    $ensembl_db_type{ id $self} = {};
+
+    foreach my $ensembl_db_type ( @{ $ensembl_db_types || [] } ) {
+        $ensembl_db_type{ id $self}->{$ensembl_db_type} = 1;
+    }
+
+    return;
 }
 
 =method get_nearest_transcripts
@@ -281,47 +323,49 @@ sub _fill_cache_from_ensembl {
     require Bio::EnsEMBL::ApiVersion;
     my $genebuild_version = 'e' . Bio::EnsEMBL::ApiVersion::software_version();
 
-    my $ens_genes = $slice->get_all_Genes( undef, undef, 1 ); # Plus transcripts
-    foreach my $ens_gene ( @{$ens_genes} ) {
-        my $gene = DETCT::Gene->new(
-            {
-                genebuild_version => $genebuild_version,
-                stable_id         => $ens_gene->stable_id,
-                name              => $ens_gene->external_name,
-                description       => $ens_gene->description,
-                biotype           => $ens_gene->biotype,
-                seq_name          => $seq_name,
-                start             => $ens_gene->seq_region_start,
-                end               => $ens_gene->seq_region_end,
-                strand            => $ens_gene->seq_region_strand,
-            }
-        );
-
-        # Get 3' end position for each transcript
-        my $ens_transcripts = $ens_gene->get_all_Transcripts();
-        foreach my $ens_transcript ( @{$ens_transcripts} ) {
-            next if $self->is_skip_transcript( $ens_transcript->stable_id );
-            my $transcript = DETCT::Transcript->new(
+    foreach my $ensembl_db_type ( @{ $self->ensembl_db_types } ) {
+        my $ens_genes = $slice->get_all_Genes( undef, $ensembl_db_type, 1 );
+        foreach my $ens_gene ( @{$ens_genes} ) {
+            my $gene = DETCT::Gene->new(
                 {
-                    stable_id   => $ens_transcript->stable_id,
-                    name        => $ens_transcript->external_name,
-                    description => $ens_transcript->description,
-                    biotype     => $ens_transcript->biotype,
-                    seq_name    => $seq_name,
-                    start       => $ens_transcript->seq_region_start,
-                    end         => $ens_transcript->seq_region_end,
-                    strand      => $ens_transcript->seq_region_strand,
-                    gene        => $gene,
+                    genebuild_version => $genebuild_version,
+                    stable_id         => $ens_gene->stable_id,
+                    name              => $ens_gene->external_name,
+                    description       => $ens_gene->description,
+                    biotype           => $ens_gene->biotype,
+                    seq_name          => $seq_name,
+                    start             => $ens_gene->seq_region_start,
+                    end               => $ens_gene->seq_region_end,
+                    strand            => $ens_gene->seq_region_strand,
                 }
             );
-            $gene->add_transcript($transcript);
 
-            my $pos =
-                $ens_transcript->seq_region_strand == 1
-              ? $ens_transcript->seq_region_end
-              : $ens_transcript->seq_region_start;
+            # Get 3' end position for each transcript
+            my $ens_transcripts = $ens_gene->get_all_Transcripts();
+            foreach my $ens_transcript ( @{$ens_transcripts} ) {
+                next if $self->is_skip_transcript( $ens_transcript->stable_id );
+                my $transcript = DETCT::Transcript->new(
+                    {
+                        stable_id   => $ens_transcript->stable_id,
+                        name        => $ens_transcript->external_name,
+                        description => $ens_transcript->description,
+                        biotype     => $ens_transcript->biotype,
+                        seq_name    => $seq_name,
+                        start       => $ens_transcript->seq_region_start,
+                        end         => $ens_transcript->seq_region_end,
+                        strand      => $ens_transcript->seq_region_strand,
+                        gene        => $gene,
+                    }
+                );
+                $gene->add_transcript($transcript);
 
-            push @{ $cache{ id $self}->{$seq_name}->{$pos} }, $transcript;
+                my $pos =
+                    $ens_transcript->seq_region_strand == 1
+                  ? $ens_transcript->seq_region_end
+                  : $ens_transcript->seq_region_start;
+
+                push @{ $cache{ id $self}->{$seq_name}->{$pos} }, $transcript;
+            }
         }
     }
 
