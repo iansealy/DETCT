@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 101;
+plan tests => 105;
 
 use DETCT::GeneFinder;
 
@@ -350,3 +350,43 @@ $annotated_regions = $gene_finder->add_gene_annotation($regions);
 
 is( scalar keys %{ $annotated_regions->[0]->[-1] },
     0, 'No genes on reverse strand' );
+
+# Check Ensembl database types
+
+# Mock slice
+$slice = Test::MockObject->new();
+$slice->set_always( 'get_all_Genes', \@genes );
+
+# Mock slice adaptor
+$slice_adaptor = Test::MockObject->new();
+$slice_adaptor->set_isa('Bio::EnsEMBL::DBSQL::SliceAdaptor');
+$slice_adaptor->set_always( 'fetch_by_region', $slice );
+
+my $args;
+
+$gene_finder = DETCT::GeneFinder->new( { slice_adaptor => $slice_adaptor, } );
+$annotated_regions = $gene_finder->add_gene_annotation($regions);
+( undef, $args ) = $slice->next_call;
+is( $args->[2], undef, 'No Ensembl database type' );
+
+$gene_finder = DETCT::GeneFinder->new(
+    {
+        slice_adaptor    => $slice_adaptor,
+        ensembl_db_types => ['core'],
+    }
+);
+$annotated_regions = $gene_finder->add_gene_annotation($regions);
+( undef, $args ) = $slice->next_call;
+is( $args->[2], 'core', 'Core Ensembl database type' );
+
+$gene_finder = DETCT::GeneFinder->new(
+    {
+        slice_adaptor    => $slice_adaptor,
+        ensembl_db_types => [ 'core', 'otherfeatures' ],
+    }
+);
+$annotated_regions = $gene_finder->add_gene_annotation($regions);
+( undef, $args ) = $slice->next_call;
+is( $args->[2], 'core', 'Core Ensembl database type' );
+( undef, $args ) = $slice->next_call;
+is( $args->[2], 'otherfeatures', 'OtherFeatures Ensembl database type' );
