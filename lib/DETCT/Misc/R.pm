@@ -232,7 +232,8 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
             push @{$region}, \@normalised_counts;
 
             # Add p value and adjusted p value
-            push @{$region}, $pval_for{$region_text}, $padj_for{$region_text};
+            push @{$region}, $pval_for{$region_text} || 'NA',
+              $padj_for{$region_text} || 'NA';
 
             # Add condition fold change
             push @{$region},
