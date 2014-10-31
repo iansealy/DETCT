@@ -38,8 +38,9 @@ if (numConditions != 2) {
             design = ~ 1)
         spikedds <- estimateSizeFactors(spikedds)
         sizeFactors(dds) <- sizeFactors(spikedds)
+    } else {
+        dds <- estimateSizeFactors(dds)
     }
-    dds <- estimateSizeFactors(dds)
     write.table( sizeFactors( dds ), file=sizeFactorsFile, col.names=FALSE,
         row.names=FALSE, quote=FALSE, sep="\t" )
     stop("Not two conditions")
