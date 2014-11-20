@@ -169,11 +169,11 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
         my ($read1_nm)    = get_nm();
         my ($read2_nm)    = get_nm();
 
-        # Rarely generate 50 to 99 real duplicates to simulate peaks
+        # Rarely generate 500 to 999 real duplicates to simulate peaks
         ## no critic (ProhibitMagicNumbers)
         my $num_real_duplicates = 0;
         if ( rand $read_pair_count < 2 ) {
-            $num_real_duplicates = int( rand 50 ) + 50;
+            $num_real_duplicates = int( rand 500 ) + 500;
         }
         ## use critic
 
