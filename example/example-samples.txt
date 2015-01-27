@@ -1,0 +1,7 @@
+	condition	group
+zmp_ph1_1m	mutant	group1
+zmp_ph1_1s	sibling	group1
+zmp_ph1_2m	mutant	group2
+zmp_ph1_2s	sibling	group2
+zmp_ph1_3m	mutant	group3
+zmp_ph1_3s	sibling	group3
