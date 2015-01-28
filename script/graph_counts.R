@@ -38,7 +38,7 @@ for (i in 1:nrow(data)) {
     title(xlab="")
     title(ylab="Normalised Counts")
     legend("topright", inset=c(0, -0.1), levels(samples$condition), pch=21,
-           pt.bg=colours)
+           pt.bg=1:length(levels(samples$condition)))
 }
 
 graphics.off()
