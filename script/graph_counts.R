@@ -31,7 +31,7 @@ for (i in 1:nrow(data)) {
     plot(as.numeric(counts), axes=FALSE, ann=FALSE, pch=21, bg=colours)
     axis(1, at=1:length(labels), lab=labels, las=2)
     axis(2)
-    title(main=sprintf("%d:%d-%d %s\n%.2f",
+    title(main=sprintf("%s:%d-%d %s\n%.2f",
                        data[i,"Chr"], data[i,"Region.start"],
                        data[i,"Region.end"], data[i,"Gene.name"],
                        data[i,"Adjusted.p.value"]))
