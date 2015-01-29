@@ -29,7 +29,7 @@ for (i in 1:nrow(data)) {
     counts <- data[i, grepl(".normalised.count$", names(data)) ]
     par(mar=c(8.1, 4.1, 4.1, 2.1), xpd=TRUE)
     plot(as.numeric(counts), axes=FALSE, ann=FALSE, pch=21, bg=colours)
-    axis(1, at=1:length(labels), lab=labels, las=2)
+    axis(1, at=1:length(labels), lab=labels, las=2, cex.axis=0.5)
     axis(2)
     title(main=sprintf("%s:%d-%d %s\n%.2f",
                        data[i,"Chr"], data[i,"Region.start"],
