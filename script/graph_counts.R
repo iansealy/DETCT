@@ -10,6 +10,7 @@ if (grepl("csv$", dataFile)) {
     data <- read.csv(dataFile, header=TRUE)
 } else if (grepl("tsv$", dataFile)) {
     data <- read.delim(dataFile, header=TRUE)
+    colnames(data)[1] = "Chr" # X.Chr -> Chr
 } else {
     stop(sprintf("Can't read %s file", dataFile))
 }
