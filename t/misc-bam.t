@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 408;
+plan tests => 413;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -190,6 +190,7 @@ throws_ok {
     count_tags(
         {
             mismatch_threshold => 2,
+            mapq_threshold     => 0,
             seq_name           => '1',
             tags               => ['NNNNBGAGGC'],
         }
@@ -199,9 +200,10 @@ qr/No BAM file specified/ms, 'No BAM file';
 throws_ok {
     count_tags(
         {
-            bam_file => 't/data/test1.bam',
-            seq_name => '1',
-            tags     => ['NNNNBGAGGC'],
+            bam_file       => 't/data/test1.bam',
+            mapq_threshold => 0,
+            seq_name       => '1',
+            tags           => ['NNNNBGAGGC'],
         }
     );
 }
@@ -211,6 +213,18 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 2,
+            seq_name           => '1',
+            tags               => ['NNNNBGAGGC'],
+        }
+    );
+}
+qr/No MAPQ threshold specified/ms, 'No MAPQ threshold';
+throws_ok {
+    count_tags(
+        {
+            bam_file           => 't/data/test1.bam',
+            mismatch_threshold => 2,
+            mapq_threshold     => 0,
             tags               => ['NNNNBGAGGC'],
         }
     );
@@ -221,6 +235,7 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 2,
+            mapq_threshold     => 0,
             seq_name           => '1',
         }
     );
@@ -241,6 +256,7 @@ $count = count_tags(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 100,
+        mapq_threshold     => 0,
         seq_name           => '1',
         tags               => ['NNNNBGAGGC'],
     }
@@ -260,6 +276,7 @@ $count = count_tags(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 100,
+        mapq_threshold     => 0,
         seq_name           => '1',
         start              => 1000,
         tags               => ['NNNNBGAGGC'],
@@ -280,6 +297,7 @@ $count = count_tags(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 100,
+        mapq_threshold     => 0,
         seq_name           => '1',
         start              => 1,
         end                => 1000,
@@ -302,6 +320,7 @@ $count = count_tags(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
+        mapq_threshold     => 0,
         seq_name           => '1',
         tags               => ['NNNNBGAGGC'],
     }
@@ -314,6 +333,7 @@ throws_ok {
     bin_reads(
         {
             mismatch_threshold => 2,
+            mapq_threshold     => 0,
             bin_size           => 100,
             seq_name           => '1',
             tags               => ['NNNNBGAGGC'],
@@ -324,10 +344,11 @@ qr/No BAM file specified/ms, 'No BAM file';
 throws_ok {
     bin_reads(
         {
-            bam_file => 't/data/test1.bam',
-            bin_size => 100,
-            seq_name => '1',
-            tags     => ['NNNNBGAGGC'],
+            bam_file       => 't/data/test1.bam',
+            mapq_threshold => 0,
+            bin_size       => 100,
+            seq_name       => '1',
+            tags           => ['NNNNBGAGGC'],
         }
     );
 }
@@ -337,6 +358,19 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 2,
+            bin_size           => 100,
+            seq_name           => '1',
+            tags               => ['NNNNBGAGGC'],
+        }
+    );
+}
+qr/No MAPQ threshold specified/ms, 'No MAPQ threshold';
+throws_ok {
+    bin_reads(
+        {
+            bam_file           => 't/data/test1.bam',
+            mismatch_threshold => 2,
+            mapq_threshold     => 0,
             seq_name           => '1',
             tags               => ['NNNNBGAGGC'],
         }
@@ -348,6 +382,7 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 2,
+            mapq_threshold     => 0,
             bin_size           => 100,
             tags               => ['NNNNBGAGGC'],
         }
@@ -359,6 +394,7 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 2,
+            mapq_threshold     => 0,
             bin_size           => 100,
             seq_name           => '1',
         }
@@ -391,6 +427,7 @@ $count = bin_reads(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
+        mapq_threshold     => 0,
         bin_size           => 100,
         seq_name           => '2',
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -406,6 +443,7 @@ $count = bin_reads(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
+        mapq_threshold     => 0,
         bin_size           => 100,
         seq_name           => '1',
         tags               => ['NNNNTTTTTT'],
@@ -419,6 +457,7 @@ throws_ok {
     get_read_peaks(
         {
             mismatch_threshold => 0,
+            mapq_threshold     => 0,
             peak_buffer_width  => 100,
             seq_name           => '1',
             tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -430,6 +469,7 @@ throws_ok {
     get_read_peaks(
         {
             bam_file          => 't/data/test1.bam',
+            mapq_threshold    => 0,
             peak_buffer_width => 100,
             seq_name          => '1',
             tags              => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -442,6 +482,19 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 0,
+            peak_buffer_width  => 100,
+            seq_name           => '1',
+            tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
+        }
+    );
+}
+qr/No MAPQ threshold specified/ms, 'No MAPQ threshold';
+throws_ok {
+    get_read_peaks(
+        {
+            bam_file           => 't/data/test1.bam',
+            mismatch_threshold => 0,
+            mapq_threshold     => 0,
             seq_name           => '1',
             tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
         }
@@ -453,6 +506,7 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 0,
+            mapq_threshold     => 0,
             peak_buffer_width  => 100,
             tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
         }
@@ -464,6 +518,7 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 0,
+            mapq_threshold     => 0,
             peak_buffer_width  => 100,
             seq_name           => '1',
         }
@@ -506,6 +561,7 @@ $peaks = get_read_peaks(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
+        mapq_threshold     => 0,
         peak_buffer_width  => 100,
         seq_name           => '2',
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -571,6 +627,7 @@ $peaks = get_read_peaks(
     {
         bam_file           => 't/data/test2.bam',
         mismatch_threshold => 0,
+        mapq_threshold     => 0,
         peak_buffer_width  => 100,
         seq_name           => '1',
         tags               => [ 'NNNNBCAGAG', 'NNNNBGCACG' ],
@@ -607,6 +664,7 @@ $peaks = get_read_peaks(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
+        mapq_threshold     => 0,
         peak_buffer_width  => 100,
         seq_name           => '1',
         tags               => ['NNNNTTTTTT'],
@@ -621,6 +679,7 @@ throws_ok {
     get_three_prime_ends(
         {
             mismatch_threshold => 0,
+            mapq_threshold     => 0,
             seq_name           => '1',
             strand             => 1,
             tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -632,11 +691,12 @@ qr/No BAM file specified/ms, 'No BAM file';
 throws_ok {
     get_three_prime_ends(
         {
-            bam_file => 't/data/test1.bam',
-            seq_name => '1',
-            strand   => 1,
-            tags     => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
-            regions  => [ [ 1, 1000, 10, -10 ] ],
+            bam_file       => 't/data/test1.bam',
+            mapq_threshold => 0,
+            seq_name       => '1',
+            strand         => 1,
+            tags           => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
+            regions        => [ [ 1, 1000, 10, -10 ] ],
         }
     );
 }
@@ -646,6 +706,20 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 0,
+            seq_name           => '1',
+            strand             => 1,
+            tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
+            regions            => [ [ 1, 1000, 10, -10 ] ],
+        }
+    );
+}
+qr/No MAPQ threshold specified/ms, 'No MAPQ threshold';
+throws_ok {
+    get_three_prime_ends(
+        {
+            bam_file           => 't/data/test1.bam',
+            mismatch_threshold => 0,
+            mapq_threshold     => 0,
             strand             => 1,
             tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
             regions            => [ [ 1, 1000, 10, -10 ] ],
@@ -658,6 +732,7 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 0,
+            mapq_threshold     => 0,
             seq_name           => '1',
             tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
             regions            => [ [ 1, 1000, 10, -10 ] ],
@@ -670,6 +745,7 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 0,
+            mapq_threshold     => 0,
             seq_name           => '1',
             strand             => 1,
             regions            => [ [ 1, 1000, 10, -10 ] ],
@@ -682,6 +758,7 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 0,
+            mapq_threshold     => 0,
             seq_name           => '1',
             strand             => 1,
             tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -725,6 +802,7 @@ $three_prime_ends = get_three_prime_ends(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
+        mapq_threshold     => 0,
         seq_name           => '1',
         strand             => 1,
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -749,6 +827,7 @@ $three_prime_ends = get_three_prime_ends(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
+        mapq_threshold     => 0,
         seq_name           => '1',
         strand             => -1,
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -774,6 +853,7 @@ $three_prime_ends = get_three_prime_ends(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
+        mapq_threshold     => 0,
         seq_name           => '1',
         strand             => 1,
         tags               => ['NNNNTTTTTT'],
@@ -789,6 +869,7 @@ $three_prime_ends = get_three_prime_ends(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
+        mapq_threshold     => 0,
         seq_name           => '1',
         strand             => 1,
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -1343,6 +1424,7 @@ throws_ok {
     count_reads(
         {
             mismatch_threshold => 2,
+            mapq_threshold     => 0,
             seq_name           => '1',
             regions => [ [ 1000, 2000, 10, -10, '1', 2000, 1, 10 ], ],
             tags    => ['NNNNBGAGGC'],
@@ -1353,10 +1435,11 @@ qr/No BAM file specified/ms, 'No BAM file';
 throws_ok {
     count_reads(
         {
-            bam_file => 't/data/test1.bam',
-            seq_name => '1',
-            regions  => [ [ 1000, 2000, 10, -10, '1', 2000, 1, 10 ], ],
-            tags     => ['NNNNBGAGGC'],
+            bam_file       => 't/data/test1.bam',
+            mapq_threshold => 0,
+            seq_name       => '1',
+            regions        => [ [ 1000, 2000, 10, -10, '1', 2000, 1, 10 ], ],
+            tags           => ['NNNNBGAGGC'],
         }
     );
 }
@@ -1365,7 +1448,20 @@ throws_ok {
     count_reads(
         {
             bam_file           => 't/data/test1.bam',
+            mismatch_threshold => 0,
+            seq_name           => '1',
+            regions => [ [ 1000, 2000, 10, -10, '1', 2000, 1, 10 ], ],
+            tags    => ['NNNNBGAGGC'],
+        }
+    );
+}
+qr/No MAPQ threshold specified/ms, 'No MAPQ threshold';
+throws_ok {
+    count_reads(
+        {
+            bam_file           => 't/data/test1.bam',
             mismatch_threshold => 2,
+            mapq_threshold     => 0,
             regions => [ [ 1000, 2000, 10, -10, '1', 2000, 1, 10 ], ],
             tags    => ['NNNNBGAGGC'],
         }
@@ -1377,6 +1473,7 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 2,
+            mapq_threshold     => 0,
             seq_name           => '1',
             tags               => ['NNNNBGAGGC'],
         }
@@ -1388,6 +1485,7 @@ throws_ok {
         {
             bam_file           => 't/data/test1.bam',
             mismatch_threshold => 0,
+            mapq_threshold     => 0,
             seq_name           => '1',
             regions            => [ [ 1, 2000, 10, -10, '1', 2000, 1, 10 ], ],
         }
@@ -1408,6 +1506,7 @@ $three_prime_ends = count_reads(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
+        mapq_threshold     => 0,
         seq_name           => '1',
         regions            => [ [ 1, 2000, 10, -10, '1', 2000, 1, 10 ], ],
         tags               => ['NNNNBGAGGC'],

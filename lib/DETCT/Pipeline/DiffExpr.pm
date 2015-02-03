@@ -126,6 +126,7 @@ sub run_count_tags {
             {
                 bam_file           => $bam_file,
                 mismatch_threshold => $self->analysis->mismatch_threshold,
+                mapq_threshold     => $self->analysis->mapq_threshold,
                 seq_name           => $seq->name,
                 tags               => \@tags,
             }
@@ -182,6 +183,7 @@ sub run_bin_reads {
             {
                 bam_file           => $bam_file,
                 mismatch_threshold => $self->analysis->mismatch_threshold,
+                mapq_threshold     => $self->analysis->mapq_threshold,
                 bin_size           => $self->analysis->bin_size,
                 seq_name           => $seq->name,
                 tags               => \@tags,
@@ -238,6 +240,7 @@ sub run_get_read_peaks {
             {
                 bam_file           => $bam_file,
                 mismatch_threshold => $self->analysis->mismatch_threshold,
+                mapq_threshold     => $self->analysis->mapq_threshold,
                 peak_buffer_width  => $self->analysis->peak_buffer_width,
                 seq_name           => $seq->name,
                 tags               => \@tags,
@@ -673,6 +676,7 @@ sub run_get_three_prime_ends {
                 {
                     bam_file           => $bam_file,
                     mismatch_threshold => $self->analysis->mismatch_threshold,
+                    mapq_threshold     => $self->analysis->mapq_threshold,
                     seq_name           => $seq->name,
                     strand             => $strand,
                     tags               => \@tags,
@@ -986,6 +990,7 @@ sub run_count_reads {
             {
                 bam_file           => $bam_file,
                 mismatch_threshold => $self->analysis->mismatch_threshold,
+                mapq_threshold     => $self->analysis->mapq_threshold,
                 seq_name           => $seq->name,
                 regions            => $regions->{ $seq->name },
                 tags               => \@tags,

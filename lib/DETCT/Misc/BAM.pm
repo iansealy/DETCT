@@ -162,6 +162,7 @@ sub get_sequence {
   Usage       : my $count_ref = DETCT::Misc::BAM::count_tags( {
                     bam_file           => $bam_file,
                     mismatch_threshold => 2,
+                    mapq_threshold     => 10,
                     seq_name           => '1',
                     start              => 1,
                     end                => 1000,
@@ -176,6 +177,7 @@ sub get_sequence {
   Parameters  : Hashref {
                     bam_file           => String (the BAM file)
                     mismatch_threshold => Int (the mismatch threshold)
+                    mapq_threshold     => Int (the MAPQ threshold)
                     seq_name           => String (the sequence name)
                     start              => Int (the start) or undef
                     end                => Int (the end) or undef
@@ -183,6 +185,7 @@ sub get_sequence {
                 }
   Throws      : If BAM file is missing
                 If mismatch threshold is missing
+                If MAPQ threshold is missing
                 If tags are missing
   Comments    : None
 
@@ -194,6 +197,8 @@ sub count_tags {
     confess 'No BAM file specified' if !defined $arg_ref->{bam_file};
     confess 'No mismatch threshold specified'
       if !defined $arg_ref->{mismatch_threshold};
+    confess 'No MAPQ threshold specified'
+      if !defined $arg_ref->{mapq_threshold};
     confess 'No sequence name specified' if !defined $arg_ref->{seq_name};
     confess 'No tags specified'          if !defined $arg_ref->{tags};
 
@@ -219,6 +224,7 @@ sub count_tags {
         return if !is_read2($alignment);
         return if is_duplicate($alignment);
         return if $alignment->unmapped;
+        return if $alignment->qual < $arg_ref->{mapq_threshold};
         return
           if above_mismatch_threshold( $alignment,
             $arg_ref->{mismatch_threshold} );
@@ -260,6 +266,7 @@ sub count_tags {
   Usage       : my $bin_ref = DETCT::Misc::BAM::bin_reads( {
                     bam_file           => $bam_file,
                     mismatch_threshold => 2,
+                    mapq_threshold     => 10,
                     bin_size           => 100,
                     seq_name           => '1',
                     tags               => ['NNNNBGAGGC', 'NNNNBAGAAG'],
@@ -273,12 +280,14 @@ sub count_tags {
   Parameters  : Hashref {
                     bam_file           => String (the BAM file)
                     mismatch_threshold => Int (the mismatch threshold)
+                    mapq_threshold     => Int (the MAPQ threshold)
                     bin_size           => Int (the bin size)
                     seq_name           => String (the sequence name)
                     tags               => Arrayref of strings (the tags)
                 }
   Throws      : If BAM file is missing
                 If mismatch threshold is missing
+                If MAPQ threshold is missing
                 If bin size is missing
                 If sequence name is missing
                 If tags are missing
@@ -292,6 +301,8 @@ sub bin_reads {
     confess 'No BAM file specified' if !defined $arg_ref->{bam_file};
     confess 'No mismatch threshold specified'
       if !defined $arg_ref->{mismatch_threshold};
+    confess 'No MAPQ threshold specified'
+      if !defined $arg_ref->{mapq_threshold};
     confess 'No bin size specified'      if !defined $arg_ref->{bin_size};
     confess 'No sequence name specified' if !defined $arg_ref->{seq_name};
     confess 'No tags specified'          if !defined $arg_ref->{tags};
@@ -314,6 +325,7 @@ sub bin_reads {
         return if !is_read2($alignment);
         return if is_duplicate($alignment);
         return if $alignment->unmapped;
+        return if $alignment->qual < $arg_ref->{mapq_threshold};
         return
           if above_mismatch_threshold( $alignment,
             $arg_ref->{mismatch_threshold} );
@@ -340,6 +352,7 @@ sub bin_reads {
   Usage       : my $peaks_ref = DETCT::Misc::BAM::get_read_peaks( {
                     bam_file           => $bam_file,
                     mismatch_threshold => 2,
+                    mapq_threshold     => 10,
                     peak_buffer_width  => 100,
                     seq_name           => '1',
                     tags               => ['NNNNBGAGGC', 'NNNNBAGAAG'],
@@ -360,12 +373,14 @@ sub bin_reads {
   Parameters  : Hashref {
                     bam_file           => String (the BAM file)
                     mismatch_threshold => Int (the mismatch threshold)
+                    mapq_threshold     => Int (the MAPQ threshold)
                     peak_buffer_width  => Int (the peak buffer size),
                     seq_name           => String (the sequence name)
                     tags               => Arrayref of strings (the tags)
                 }
   Throws      : If BAM file is missing
                 If mismatch threshold is missing
+                If MAPQ threshold is missing
                 If peak buffer width is missing
                 If sequence name is missing
                 If tags are missing
@@ -379,6 +394,8 @@ sub get_read_peaks {
     confess 'No BAM file specified' if !defined $arg_ref->{bam_file};
     confess 'No mismatch threshold specified'
       if !defined $arg_ref->{mismatch_threshold};
+    confess 'No MAPQ threshold specified'
+      if !defined $arg_ref->{mapq_threshold};
     confess 'No peak buffer width specified'
       if !defined $arg_ref->{peak_buffer_width};
     confess 'No sequence name specified' if !defined $arg_ref->{seq_name};
@@ -410,6 +427,7 @@ sub get_read_peaks {
         return if !is_read2($alignment);
         return if is_duplicate($alignment);
         return if $alignment->unmapped;
+        return if $alignment->qual < $arg_ref->{mapq_threshold};
         return
           if above_mismatch_threshold( $alignment,
             $arg_ref->{mismatch_threshold} );
@@ -476,6 +494,7 @@ sub get_read_peaks {
   Usage       : my $three_prime_ref = DETCT::Misc::BAM::get_three_prime_ends( {
                     bam_file           => $bam_file,
                     mismatch_threshold => 2,
+                    mapq_threshold     => 10,
                     seq_name           => '1',
                     strand             => 1,
                     tags               => ['NNNNBGAGGC', 'NNNNBAGAAG'],
@@ -505,6 +524,7 @@ sub get_read_peaks {
   Parameters  : Hashref {
                     bam_file           => String (the BAM file)
                     mismatch_threshold => Int (the mismatch threshold)
+                    mapq_threshold     => Int (the MAPQ threshold)
                     seq_name           => String (the sequence name)
                     strand             => Int ( 1 or -1 ) (the 3' end strand)
                     tags               => Arrayref of strings (the tags)
@@ -512,6 +532,7 @@ sub get_read_peaks {
                 }
   Throws      : If BAM file is missing
                 If mismatch threshold is missing
+                If MAPQ threshold is missing
                 If sequence name is missing
                 If strand is missing
                 If tags are missing
@@ -524,12 +545,14 @@ sub get_read_peaks {
 
 =cut
 
-sub get_three_prime_ends {
+sub get_three_prime_ends {    ## no critic (ProhibitExcessComplexity)
     my ($arg_ref) = @_;
 
     confess 'No BAM file specified' if !defined $arg_ref->{bam_file};
     confess 'No mismatch threshold specified'
       if !defined $arg_ref->{mismatch_threshold};
+    confess 'No MAPQ threshold specified'
+      if !defined $arg_ref->{mapq_threshold};
     confess 'No sequence name specified' if !defined $arg_ref->{seq_name};
     confess 'No strand specified'        if !defined $arg_ref->{strand};
     confess 'No tags specified'          if !defined $arg_ref->{tags};
@@ -566,6 +589,12 @@ sub get_three_prime_ends {
 
             # next if $alignment->unmapped; # Not needed; always mapped
             next if $alignment->munmapped;    # Want read 1 mapped too
+            next if $alignment->qual < $arg_ref->{mapq_threshold};
+
+            # Want read 1 to be above MAPQ threshold too
+            next
+              if defined $alignment->aux_get('MQ')
+              && $alignment->aux_get('MQ') < $arg_ref->{mapq_threshold};
             next
               if above_mismatch_threshold( $alignment,
                 $arg_ref->{mismatch_threshold} );
@@ -992,6 +1021,7 @@ sub _sort_three_prime_end {
   Usage       : my $count_ref = DETCT::Misc::BAM::count_reads( {
                     bam_file           => $bam_file,
                     mismatch_threshold => 2,
+                    mapq_threshold     => 10,
                     seq_name           => '1',
                     regions            => $regions_ary_ref,
                     tags               => ['NNNNBGAGGC', 'NNNNBAGAAG'],
@@ -1017,6 +1047,7 @@ sub _sort_three_prime_end {
   Parameters  : Hashref {
                     bam_file           => String (the BAM file)
                     mismatch_threshold => Int (the mismatch threshold)
+                    mapq_threshold     => Int (the MAPQ threshold)
                     seq_name           => String (the sequence name) or undef
                     regions            => Arrayref (of regions)
                     tags               => Arrayref of strings (the tags)
@@ -1038,6 +1069,8 @@ sub count_reads {
     confess 'No BAM file specified' if !defined $arg_ref->{bam_file};
     confess 'No mismatch threshold specified'
       if !defined $arg_ref->{mismatch_threshold};
+    confess 'No MAPQ threshold specified'
+      if !defined $arg_ref->{mapq_threshold};
     confess 'No sequence name specified' if !defined $arg_ref->{seq_name};
     confess 'No regions specified'       if !defined $arg_ref->{regions};
     confess 'No tags specified'          if !defined $arg_ref->{tags};
@@ -1074,6 +1107,7 @@ sub count_reads {
             next if is_duplicate($alignment);
 
             #next if $alignment->unmapped; # Not needed; always mapped
+            next if $alignment->qual < $arg_ref->{mapq_threshold};
             next
               if above_mismatch_threshold( $alignment,
                 $arg_ref->{mismatch_threshold} );
