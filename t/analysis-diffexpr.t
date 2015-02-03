@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 186;
+plan tests => 190;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -78,6 +78,13 @@ throws_ok { $analysis->set_mismatch_threshold() }
 qr/No mismatch threshold specified/ms, 'No mismatch threshold';
 throws_ok { $analysis->set_mismatch_threshold(-1) }
 qr/Invalid mismatch threshold/ms, 'Invalid mismatch threshold';
+
+# Test MAPQ threshold attribute
+is( $analysis->mapq_threshold,         0,     'Get MAPQ threshold' );
+is( $analysis->set_mapq_threshold(10), undef, 'Set MAPQ threshold' );
+is( $analysis->mapq_threshold,         10,    'Get new MAPQ threshold' );
+throws_ok { $analysis->set_mapq_threshold(-1) } qr/Invalid MAPQ threshold/ms,
+  'Invalid MAPQ threshold';
 
 # Test bin size attribute
 is( $analysis->bin_size,          100,   'Get bin size' );

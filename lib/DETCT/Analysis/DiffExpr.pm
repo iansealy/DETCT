@@ -35,6 +35,7 @@ use YAML::Tiny;
 private read1_length         => my %read1_length;           # e.g. 30
 private read2_length         => my %read2_length;           # e.g. 54
 private mismatch_threshold   => my %mismatch_threshold;     # e.g. 2
+private mapq_threshold       => my %mapq_threshold;         # e.g. 10
 private bin_size             => my %bin_size;               # e.g. 100
 private peak_buffer_width    => my %peak_buffer_width;      # e.g. 100
 private hmm_sig_level        => my %hmm_sig_level;          # e.g. 0.001
@@ -56,6 +57,7 @@ private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
                     read1_length       => 30,
                     read2_length       => 54,
                     mismatch_threshold => 2,
+                    mapq_threshold     => 10,
                     bin_size           => 100,
                     peak_buffer_width  => 100,
                     hmm_sig_level      => 0.001,
@@ -72,6 +74,7 @@ private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
                     read1_length         => Int,
                     read2_length         => Int,
                     mismatch_threshold   => Int,
+                    mapq_threshold       => Int,
                     bin_size             => Int,
                     peak_buffer_width    => Int,
                     hmm_sig_level        => Float,
@@ -105,6 +108,7 @@ sub new {
     $self->set_read1_length( $arg_ref->{read1_length} );
     $self->set_read2_length( $arg_ref->{read2_length} );
     $self->set_mismatch_threshold( $arg_ref->{mismatch_threshold} );
+    $self->set_mapq_threshold( $arg_ref->{mapq_threshold} );
     $self->set_bin_size( $arg_ref->{bin_size} );
     $self->set_peak_buffer_width( $arg_ref->{peak_buffer_width} );
     $self->set_hmm_sig_level( $arg_ref->{hmm_sig_level} );
@@ -149,6 +153,7 @@ sub new_from_yaml {
     $self->set_read1_length( $yaml->[0]->{read1_length} );
     $self->set_read2_length( $yaml->[0]->{read2_length} );
     $self->set_mismatch_threshold( $yaml->[0]->{mismatch_threshold} );
+    $self->set_mapq_threshold( $yaml->[0]->{mapq_threshold} );
     $self->set_bin_size( $yaml->[0]->{bin_size} );
     $self->set_peak_buffer_width( $yaml->[0]->{peak_buffer_width} );
     $self->set_hmm_sig_level( $yaml->[0]->{hmm_sig_level} );
@@ -306,6 +311,52 @@ sub _check_mismatch_threshold {
       if defined $mismatch_threshold && $mismatch_threshold =~ m/\A \d+ \z/xms;
     confess 'No mismatch threshold specified' if !defined $mismatch_threshold;
     confess "Invalid mismatch threshold ($mismatch_threshold) specified";
+}
+
+=method mapq_threshold
+
+  Usage       : my $mapq_threshold = $analysis->mapq_threshold;
+  Purpose     : Getter for MAPQ threshold attribute
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : Defaults to 0
+
+=cut
+
+sub mapq_threshold {
+    my ($self) = @_;
+    return $mapq_threshold{ id $self} || 0;
+}
+
+=method set_mapq_threshold
+
+  Usage       : $analysis->set_mapq_threshold(20);
+  Purpose     : Setter for MAPQ threshold attribute
+  Returns     : undef
+  Parameters  : +ve Int (the MAPQ threshold)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_mapq_threshold {
+    my ( $self, $arg ) = @_;
+    $mapq_threshold{ id $self} = _check_mapq_threshold($arg);
+    return;
+}
+
+# Usage       : $mapq_threshold = _check_mapq_threshold($mapq_threshold);
+# Purpose     : Check for valid MAPQ threshold
+# Returns     : +ve Int (the valid MAPQ threshold)
+# Parameters  : +ve Int (the MAPQ threshold)
+# Throws      : If MAPQ threshold is missing or not a positive integer
+# Comments    : None
+sub _check_mapq_threshold {
+    my ($mapq_threshold) = @_;
+    return $mapq_threshold
+      if !defined $mapq_threshold || $mapq_threshold =~ m/\A \d+ \z/xms;
+    confess "Invalid MAPQ threshold ($mapq_threshold) specified";
 }
 
 =method bin_size
