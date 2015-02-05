@@ -37,13 +37,13 @@ use Bio::DB::Sam;
 
 Test random BAM files can be regenerated using:
 
-perl -Ilib script/make_test_sam.pl --seed 10 --seq_region_count 5 \
+perl -Ilib script/make_test_sam.pl --seed 1 --seq_region_count 5 \
 --seq_region_max_length 10_000 --read_pair_count 100 \
 --read_tags NNNNBGAGGC NNNNBAGAAG | samtools view -bS - | samtools sort - test1
-perl -Ilib script/make_test_sam.pl --seed 10 --seq_region_count 5 \
+perl -Ilib script/make_test_sam.pl --seed 1 --seq_region_count 5 \
 --seq_region_max_length 10_000 --read_pair_count 100 \
 --read_tags NNNNBCAGAG NNNNBGCACG | samtools view -bS - | samtools sort - test2
-perl -Ilib script/make_test_sam.pl --seed 20 --seq_region_count 5 \
+perl -Ilib script/make_test_sam.pl --seed 2 --seq_region_count 5 \
 --seq_region_max_length 10_000 --read_pair_count 100 \
 --read_tags NNNNBCGCAA NNNNBCAAGA | samtools view -bS - | samtools sort - test3
 ls *.bam | xargs -n1 samtools index
@@ -55,9 +55,9 @@ Some numbers in tests below will then need updating. Code to generate numbers
 
 Test random FASTA files can be regenerated using:
 
-perl -Ilib script/make_test_fasta.pl --seed 10 --seq_region_count 5 \
+perl -Ilib script/make_test_fasta.pl --seed 1 --seq_region_count 5 \
 --seq_region_max_length 10_000 > test12.fa
-perl -Ilib script/make_test_fasta.pl --seed 20 --seq_region_count 5 \
+perl -Ilib script/make_test_fasta.pl --seed 2 --seq_region_count 5 \
 --seq_region_max_length 10_000 > test3.fa
 ls *.fa | xargs -n1 samtools faidx
 mv test* t/data/
