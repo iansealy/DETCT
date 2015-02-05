@@ -310,7 +310,7 @@ sub alignment_line {
 
     # Optional fields
     if ( exists $data{opt} ) {
-        foreach my $tag_type ( keys %{ $data{opt} } ) {
+        foreach my $tag_type ( sort keys %{ $data{opt} } ) {
             my $value = $data{opt}->{$tag_type};
             my ( $tag, $type ) = split /:/xms, $tag_type;
 
