@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 413;
+plan tests => 415;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -351,6 +351,29 @@ $count = count_tags(
 is( scalar keys %{$count},                 1,     '1 tag' );
 is( scalar keys %{ $count->{NNNNBGAGGC} }, $TAGS, 'Random tags' );
 
+# Check tag counts returned with high MAPQ threshold
+# Get number of random tags using:
+
+=for comment
+samtools view -f 128 -F 1028 -q 10 t/data/test1.bam 1 \
+| awk '{ print $1 }' \
+| sed -e 's/.*#//' | grep GAGGC$ | sort -u | wc -l
+=cut
+
+$TAGS = 295;
+
+$count = count_tags(
+    {
+        bam_file           => 't/data/test1.bam',
+        mismatch_threshold => 100,
+        mapq_threshold     => 10,
+        seq_name           => '1',
+        tags               => ['NNNNBGAGGC'],
+    }
+);
+is( scalar keys %{$count},                 1,     '1 tag' );
+is( scalar keys %{ $count->{NNNNBGAGGC} }, $TAGS, 'Random tags' );
+
 # Check binning reads required parameters
 throws_ok {
     bin_reads(
@@ -429,32 +452,32 @@ qr/No tags specified/ms, 'No tags';
 # Get number of bins on forward strand using:
 
 =for comment
-samtools view -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+samtools view -F 1044 -q 10 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print ($4 - 1) / 100 "\t" ($4 + 53 - 1) / 100 }' \
 | sed -e 's/\.[0-9]*//g' \
 | awk '{ if ($1 == $2) print $1; else print $1 "\n" $2 }' \
 | sort | uniq -c | wc -l
 =cut
 
-my $FWD_BINS = 12;
+my $FWD_BINS = 7;
 
 # Get number of bins on reverse strand using:
 
 =for comment
-samtools view -f 16 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+samtools view -f 16 -F 1028 -q 10 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print ($4 - 1) / 100 "\t" ($4 + 53 - 1) / 100 }' \
 | sed -e 's/\.[0-9]*//g' \
 | awk '{ if ($1 == $2) print $1; else print $1 "\n" $2 }' \
 | sort | uniq -c | wc -l
 =cut
 
-my $REV_BINS = 10;
+my $REV_BINS = 8;
 
 $count = bin_reads(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
-        mapq_threshold     => 0,
+        mapq_threshold     => 10,
         bin_size           => 100,
         seq_name           => '2',
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -470,7 +493,7 @@ $count = bin_reads(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
-        mapq_threshold     => 0,
+        mapq_threshold     => 10,
         bin_size           => 100,
         seq_name           => '1',
         tags               => ['NNNNTTTTTT'],
@@ -559,52 +582,52 @@ my $peaks;
 # Get first peak (start, end and number of reads) on forward strand using:
 
 =for comment
-samtools view -f 128 -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+samtools view -f 128 -F 1044 -q 10 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -10
 =cut
 
 my $FWD_FIRST_START = 61;
-my $FWD_FIRST_END   = 867;
-my $FWD_FIRST_READS = 9;
+my $FWD_FIRST_END   = 114;
+my $FWD_FIRST_READS = 1;
 
 # Get last peak (start, end and number of reads) on forward strand using:
 
 =for comment
-samtools view -f 128 -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+samtools view -f 128 -F 1044 -q 10 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -10
 =cut
 
-my $FWD_LAST_START = 1021;
-my $FWD_LAST_END   = 1264;
-my $FWD_LAST_READS = 5;
+my $FWD_LAST_START = 1178;
+my $FWD_LAST_END   = 1231;
+my $FWD_LAST_READS = 1;
 
 # Get first peak (start, end and number of reads) on reverse strand using:
 
 =for comment
-samtools view -f 144 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+samtools view -f 144 -F 1028 -q 10 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -10
 =cut
 
-my $REV_FIRST_START = 858;
-my $REV_FIRST_END   = 911;
-my $REV_FIRST_READS = 1;
+my $REV_FIRST_START = 1145;
+my $REV_FIRST_END   = 1328;
+my $REV_FIRST_READS = 4;
 
 # Get last peak (start, end and number of reads) on reverse strand using:
 
 =for comment
-samtools view -f 144 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
+samtools view -f 144 -F 1028 -q 10 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -10
 =cut
 
-my $REV_LAST_START = 1636;
+my $REV_LAST_START = 1992;
 my $REV_LAST_END   = 2087;
-my $REV_LAST_READS = 7;
+my $REV_LAST_READS = 2;
 
 $peaks = get_read_peaks(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
-        mapq_threshold     => 0,
+        mapq_threshold     => 10,
         peak_buffer_width  => 100,
         seq_name           => '2',
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -641,29 +664,29 @@ is( $peaks->{'2'}->{'-1'}->[-1]->[2],
 # Get first peak (start, end and number of reads) on forward strand using:
 
 =for comment
-samtools view -f 128 -F 1044 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
+samtools view -f 128 -F 1044 -q 10 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -10
 =cut
 
-$FWD_FIRST_START = 2;
+$FWD_FIRST_START = 170;
 $FWD_FIRST_END   = 466;
-$FWD_FIRST_READS = 7;
+$FWD_FIRST_READS = 4;
 
 # Get last peak (start, end and number of reads) on forward strand using:
 
 =for comment
-samtools view -f 128 -F 1044 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
+samtools view -f 128 -F 1044 -q 10 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -10
 =cut
 
 $FWD_LAST_START = 2221;
-$FWD_LAST_END   = 2350;
-$FWD_LAST_READS = 2;
+$FWD_LAST_END   = 2274;
+$FWD_LAST_READS = 1;
 
 # Get first peak (start, end and number of reads) on reverse strand using:
 
 =for comment
-samtools view -f 144 -F 1028 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
+samtools view -f 144 -F 1028 -q 10 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -10
 =cut
 
@@ -674,7 +697,7 @@ $REV_FIRST_READS = 1;
 # Get last peak (start, end and number of reads) on reverse strand using:
 
 =for comment
-samtools view -f 144 -F 1028 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
+samtools view -f 144 -F 1028 -q 10 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -10
 =cut
 
@@ -686,7 +709,7 @@ $peaks = get_read_peaks(
     {
         bam_file           => 't/data/test2.bam',
         mismatch_threshold => 0,
-        mapq_threshold     => 0,
+        mapq_threshold     => 10,
         peak_buffer_width  => 100,
         seq_name           => '1',
         tags               => [ 'NNNNBCAGAG', 'NNNNBGCACG' ],
@@ -833,36 +856,36 @@ my $three_prime_ends;
 # Get number of forward strand 3' ends using:
 
 =for comment
-samtools view -f 128 -F 1052 t/data/test1.bam 1:1-2000 \
-| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 + 29 ":1" }' | sort -u | wc -l
+samtools view -f 128 -F 1052 -q 10 t/data/test1.bam 1:1-2000 \
+| grep NM:i:0 | grep 54M | grep 'MQ:i:[0-9][0-9]' | awk '{ print "1:" $8 + 29 ":1" }' | sort -u | wc -l
 =cut
 
-my $FWD_ENDS = 11;
+my $FWD_ENDS = 2;
 
 # Get number of reverse strand 3' ends using:
 
 =for comment
-samtools view -f 144 -F 1036 t/data/test1.bam 1:1-2000 \
-| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }' | sort -u | wc -l
+samtools view -f 144 -F 1036 -q 10 t/data/test1.bam 1:1-2000 \
+| grep NM:i:0 | grep 54M | grep 'MQ:i:[0-9][0-9]' | awk '{ print "1:" $8 ":-1" }' | sort -u | wc -l
 =cut
 
-my $REV_ENDS = 9;
+my $REV_ENDS = 5;
 
 # Get a forward strand 3' end (chromosome:position:strand) using:
 
 =for comment
-samtools view -f 128 -F 1052 t/data/test1.bam 1:1-2000 \
-| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 + 29 ":1" }' | sort | uniq -c \
+samtools view -f 128 -F 1052 -q 10 t/data/test1.bam 1:1-2000 \
+| grep NM:i:0 | grep 54M | grep 'MQ:i:[0-9][0-9]' | awk '{ print "1:" $8 + 29 ":1" }' | sort | uniq -c \
 | head -1 | awk '{ print $2 }'
 =cut
 
-my $FWD_END = '1:1314:1';
+my $FWD_END = '1:2423:1';
 
 # Get a reverse strand 3' end (chromosome:position:strand) using:
 
 =for comment
-samtools view -f 144 -F 1036 t/data/test1.bam 1:1-2000 \
-| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }' | sort | uniq -c \
+samtools view -f 144 -F 1036 -q 10 t/data/test1.bam 1:1-2000 \
+| grep NM:i:0 | grep 54M | grep 'MQ:i:[0-9][0-9]' | awk '{ print "1:" $8 ":-1" }' | sort | uniq -c \
 | head -1 | awk '{ print $2 }'
 =cut
 
@@ -872,7 +895,7 @@ $three_prime_ends = get_three_prime_ends(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
-        mapq_threshold     => 0,
+        mapq_threshold     => 10,
         seq_name           => '1',
         strand             => 1,
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -897,7 +920,7 @@ $three_prime_ends = get_three_prime_ends(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
-        mapq_threshold     => 0,
+        mapq_threshold     => 10,
         seq_name           => '1',
         strand             => -1,
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
@@ -1567,18 +1590,18 @@ qr/No tags specified/ms, 'No tags';
 # Get number of reads using:
 
 =for comment
-samtools view -f 128 -F 1044 t/data/test1.bam 1:1-2000 \
+samtools view -f 128 -F 1044 -q 10 t/data/test1.bam 1:1-2000 \
 | grep 54M | grep NM:i:0 | awk '{ print $1 }' \
 | sed -e 's/.*#//' | grep GAGGC$ | wc -l
 =cut
 
-my $READS = 351;
+my $READS = 3;
 
 $three_prime_ends = count_reads(
     {
         bam_file           => 't/data/test1.bam',
         mismatch_threshold => 0,
-        mapq_threshold     => 0,
+        mapq_threshold     => 10,
         seq_name           => '1',
         regions            => [ [ 1, 2000, 10, -10, '1', 2000, 1, 10 ], ],
         tags               => ['NNNNBGAGGC'],
