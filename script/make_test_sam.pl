@@ -162,8 +162,15 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
         my ( $read1_flag, $read2_flag ) = get_flag( $read1_pos, $read2_pos );
         my ( $read1_tlen, $read2_tlen ) =
           get_tlen( $read1_pos, $read2_pos, $read1_length, $read2_length );
-        ( $read1_flag, $read2_flag, $read1_pos, $read2_pos ) =
-          get_unmapped( $read1_flag, $read2_flag, $read1_pos, $read2_pos );
+        my ( $read1_mapq, $read2_mapq, $read1_mq, $read2_mq ) = get_mapq();
+        (
+            $read1_flag, $read2_flag, $read1_pos, $read2_pos,
+            $read1_mapq, $read2_mapq, $read1_mq,  $read2_mq
+          )
+          = get_unmapped(
+            $read1_flag, $read2_flag, $read1_pos, $read2_pos,
+            $read1_mapq, $read2_mapq, $read1_mq,  $read2_mq
+          );
         my ($read1_cigar) = get_cigar($read1_length);
         my ($read2_cigar) = get_cigar($read2_length);
         my ($read1_nm)    = get_nm();
@@ -192,7 +199,7 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
                     flag  => $read1_flag,
                     rname => $seq_region,
                     pos   => $read1_pos,
-                    mapq  => 255,
+                    mapq  => $read1_mapq,
                     cigar => $read1_cigar,
                     rnext => q{=},
                     pnext => $read2_pos,
@@ -202,6 +209,7 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
                     opt   => {
                         'NM:i' => $read1_nm,
                         'RG:Z' => q{1},
+                        @{$read1_mq},
                     },
                 )
             );
@@ -213,7 +221,7 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
                     flag  => $read2_flag,
                     rname => $seq_region,
                     pos   => $read2_pos,
-                    mapq  => 255,
+                    mapq  => $read2_mapq,
                     cigar => $read2_cigar,
                     rnext => q{=},
                     pnext => $read1_pos,
@@ -223,6 +231,7 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
                     opt   => {
                         'NM:i' => $read2_nm,
                         'RG:Z' => q{1},
+                        @{$read2_mq},
                     },
                 )
             );
@@ -448,9 +457,31 @@ sub get_tlen {
     return $read1_tlen, $read2_tlen;
 }
 
+# Get MAPQ for both reads
+sub get_mapq {
+    my ( $read1_mapq, $read2_mapq, @read1_mq, @read2_mq );
+
+    ## no critic (ProhibitMagicNumbers)
+    $read1_mapq = int rand 20;
+    $read2_mapq = int rand 20;
+    ## use critic
+
+    if ($read2_mapq) {
+        push @read1_mq, 'MQ:i', $read2_mapq;
+    }
+    if ($read1_mapq) {
+        push @read2_mq, 'MQ:i', $read1_mapq;
+    }
+
+    return $read1_mapq, $read2_mapq, \@read1_mq, \@read2_mq;
+}
+
 # Adjust flags and positions if a read is unmapped
-sub get_unmapped {
-    my ( $read1_flag, $read2_flag, $read1_pos, $read2_pos ) = @_;
+sub get_unmapped {    ## no critic (ProhibitManyArgs)
+    my (
+        $read1_flag, $read2_flag, $read1_pos, $read2_pos,
+        $read1_mapq, $read2_mapq, $read1_mq,  $read2_mq
+    ) = @_;
 
     if ( rand() < $CHANCE_UNMAPPED ) {
         $read1_flag = $read1_flag ^ $DETCT::Misc::BAM::Flag::PROPER_PAIR;
@@ -460,16 +491,21 @@ sub get_unmapped {
             $read1_flag = $read1_flag | $DETCT::Misc::BAM::Flag::READ_UNMAPPED;
             $read2_flag = $read2_flag | $DETCT::Misc::BAM::Flag::MATE_UNMAPPED;
             $read1_pos  = $read2_pos;
+            $read1_mapq = 0;
+            $read2_mq   = [];
         }
         else {
             # Read 2 unmapped
             $read2_flag = $read2_flag | $DETCT::Misc::BAM::Flag::READ_UNMAPPED;
             $read1_flag = $read1_flag | $DETCT::Misc::BAM::Flag::MATE_UNMAPPED;
             $read2_pos  = $read1_pos;
+            $read2_mapq = 0;
+            $read1_mq   = [];
         }
     }
 
-    return $read1_flag, $read2_flag, $read1_pos, $read2_pos;
+    return $read1_flag, $read2_flag, $read1_pos, $read2_pos, $read1_mapq,
+      $read2_mapq, $read1_mq, $read2_mq;
 }
 
 # Get sequence (just random)
