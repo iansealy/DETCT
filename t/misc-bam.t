@@ -100,7 +100,7 @@ is( $bam_length{2}, 7958, 'Chr 2 length' );
 is( $bam_length{3}, 4808, 'Chr 3 length' );
 
 # Check getting sequence from test FASTA file
-# First 10 bp of chromosome 1 should be CCAGGCGCGG according to:
+# Get first 10 bp of chromosome 1 using:
 
 =for comment
 head -2 t/data/test12.fa
@@ -245,7 +245,7 @@ qr/No tags specified/ms, 'No tags';
 my $count;
 
 # Check tag counts returned by chromosome 1 of test BAM file
-# Should be 143 random tags according to:
+# Get number of random tags using:
 
 =for comment
 samtools view -f 128 -F 1028 t/data/test1.bam 1 | awk '{ print $1 }' \
@@ -265,7 +265,7 @@ is( scalar keys %{$count},                 1,   '1 tag' );
 is( scalar keys %{ $count->{NNNNBGAGGC} }, 143, '143 random tags' );
 
 # Check tag counts returned in 1000 bp onwards of chromosome 1 of test BAM file
-# Should be 141 random tags according to:
+# Get number of random tags using:
 
 =for comment
 samtools view -f 128 -F 1028 t/data/test1.bam 1:1000 | awk '{ print $1 }' \
@@ -286,7 +286,7 @@ is( scalar keys %{$count},                 1,   '1 tag' );
 is( scalar keys %{ $count->{NNNNBGAGGC} }, 141, '141 random tags' );
 
 # Check tag counts returned in first 1000 bp of chromosome 1 of test BAM file
-# Should be 3 random tags according to:
+# Get number of random tags using:
 
 =for comment
 samtools view -f 128 -F 1028 t/data/test1.bam 1:1-1000 | awk '{ print $1 }' \
@@ -308,7 +308,7 @@ is( scalar keys %{$count},                 1, '1 tag' );
 is( scalar keys %{ $count->{NNNNBGAGGC} }, 3, '3 random tags' );
 
 # Check tag counts returned with low mismatch threshold
-# Should be 52 random tags according to:
+# Get number of random tags using:
 
 =for comment
 samtools view -f 128 -F 1028 t/data/test1.bam 1 | grep NM:i:0 \
@@ -403,7 +403,7 @@ throws_ok {
 qr/No tags specified/ms, 'No tags';
 
 # Check read bins returned by test BAM file
-# Should be 20 bins on forward strand according to:
+# Get number of bins on forward strand using:
 
 =for comment
 samtools view -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
@@ -413,7 +413,7 @@ samtools view -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | sort | uniq -c | wc -l
 =cut
 
-# And 16 bins on reverse strand according to:
+# Get number of bins on reverse strand using:
 
 =for comment
 samtools view -f 16 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
@@ -529,28 +529,28 @@ qr/No tags specified/ms, 'No tags';
 my $peaks;
 
 # Check read peaks returned by test BAM file
-# First peak on forward strand should be 223 - 405 (2 reads) according to:
+# Get first peak (start, end and number of reads) on forward strand using:
 
 =for comment
 samtools view -f 128 -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -4
 =cut
 
-# Last peak on forward strand should be 6387 - 6440 (1 read) according to:
+# Get last peak (start, end and number of reads) on forward strand using:
 
 =for comment
 samtools view -f 128 -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -4
 =cut
 
-# First peak on reverse strand should be 3205 - 3258 (1 read) according to:
+# Get first peak (start, end and number of reads) on reverse strand using:
 
 =for comment
 samtools view -f 144 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -4
 =cut
 
-# Last peak on reverse strand should be 7558 - 7611 (1 read) according to:
+# Get last peak (start, end and number of reads) on reverse strand using:
 
 =for comment
 samtools view -f 144 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
@@ -595,28 +595,28 @@ is( $peaks->{'2'}->{'-1'}->[-1]->[2],
     1, 'Last peak read count on reverse strand' );
 
 # Check read peaks returned by test BAM file
-# First peak on forward strand should be 8 - 61 (1 read) according to:
+# Get first peak (start, end and number of reads) on forward strand using:
 
 =for comment
 samtools view -f 128 -F 1044 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -4
 =cut
 
-# Last peak on forward strand should be 5805 - 5858 (1 read) according to:
+# Get last peak (start, end and number of reads) on forward strand using:
 
 =for comment
 samtools view -f 128 -F 1044 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -4
 =cut
 
-# First peak on reverse strand should be 1210 - 1263 (1 read) according to:
+# Get first peak (start, end and number of reads) on reverse strand using:
 
 =for comment
 samtools view -f 144 -F 1028 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -4
 =cut
 
-# Last peak on reverse strand should be 7969 - 8022 (1 read) according to:
+# Get last peak (start, end and number of reads) on reverse strand using:
 
 =for comment
 samtools view -f 144 -F 1028 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
@@ -770,32 +770,34 @@ qr/No regions specified/ms, 'No regions';
 my $three_prime_ends;
 
 # Check 3' ends returned in first 2000 bp of chromosome 1 of test BAM file
-# Should be 3 forward strand 3' ends according to:
+# Get number of forward strand 3' ends using:
 
 =for comment
 samtools view -f 128 -F 1052 t/data/test1.bam 1:1-2000 \
 | grep NM:i:0 | grep 54M | awk '{ print "1:" $8 + 29 ":1" }' | sort -u | wc -l
 =cut
 
-# Should be 1 reverse strand 3' ends according to:
+# Get number of reverse strand 3' ends using:
 
 =for comment
 samtools view -f 144 -F 1036 t/data/test1.bam 1:1-2000 \
 | grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }' | sort -u | wc -l
 =cut
 
-# One forward strand 3' end should be 1:1194:1 with 1 read according to:
+# Get a forward strand 3' end (chromosome:position:strand) using:
 
 =for comment
 samtools view -f 128 -F 1052 t/data/test1.bam 1:1-2000 \
-| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 + 29 ":1" }' | sort | uniq -c
+| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 + 29 ":1" }' | sort | uniq -c \
+head -1 | awk '{ print $2 }'
 =cut
 
-# One reverse strand 3' end should be 1:1038:-1 with 1 read according to:
+# Get a reverse strand 3' end (chromosome:position:strand) using:
 
 =for comment
 samtools view -f 144 -F 1036 t/data/test1.bam 1:1-2000 \
-| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }' | sort | uniq -c
+| grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }' | sort | uniq -c \
+head -1 | awk '{ print $2 }'
 =cut
 
 $three_prime_ends = get_three_prime_ends(
@@ -1494,7 +1496,7 @@ throws_ok {
 qr/No tags specified/ms, 'No tags';
 
 # Check read counts returned by test BAM file
-# Should be 1 read according to:
+# Get number of reads using:
 
 =for comment
 samtools view -f 128 -F 1044 t/data/test1.bam 1:1-2000 \
@@ -1953,20 +1955,24 @@ is( $read_counts->{'1'}->[0]->[8]->[1],        20, '20 reads' );
 my $stats;
 
 # Stats by tag
-# Should be 1672 paired reads, 1514 mapped paired reads and 1514 properly paired
-# reads according to:
+# Get number of paired reads, mapped paired reads and properly paired reads
+# using:
 
 =for comment
 samtools view -h t/data/test1.bam | grep -E '^@SQ|#.....GAGGC' \
-| samtools view -bS - | samtools flagstat -
+| samtools view -bS - | samtools flagstat - \
+| grep -E '(paired in|and mate mapped|properly)' | awk '{ print $1 }' \
+| paste - - - | awk '{ print $1, $3, $2 }'
 =cut
 
-# Without sequence 5, should be 1516 paired reads, 1370 mapped paired reads and
-# 1370 properly paired reads according to:
+# Get number of paired reads, mapped paired reads and properly paired reads
+# without sequencing 5 using:
 
 =for comment
 samtools view -h t/data/test1.bam 1 2 3 4 | grep -E '^@SQ|#.....GAGGC' \
-| samtools view -bS - | samtools flagstat -
+| samtools view -bS - | samtools flagstat - \
+| grep -E '(paired in|and mate mapped|properly)' | awk '{ print $1 }' \
+| paste - - - | awk '{ print $1, $3, $2 }'
 =cut
 
 $stats = stats_by_tag(
@@ -1991,20 +1997,24 @@ is( $stats->{NNNNBGAGGC}->{mapped}, 1370, 'Mapped paired read count' );
 is( $stats->{NNNNBGAGGC}->{proper}, 1370, 'Properly paired read count' );
 
 # Stats for all reads
-# Should be 3258 paired reads, 2958 mapped paired reads and 2958 properly paired
-# reads according to:
+# Get number of paired reads, mapped paired reads and properly paired reads
+# using:
 
 =for comment
 samtools view -h t/data/test1.bam \
-| samtools view -bS - | samtools flagstat -
+| samtools view -bS - | samtools flagstat - \
+| grep -E '(paired in|and mate mapped|properly)' | awk '{ print $1 }' \
+| paste - - - | awk '{ print $1, $3, $2 }'
 =cut
 
-# Without sequence 5, should be 2964 paired reads, 2684 mapped paired reads and
-# 2684 properly paired reads according to:
+# Get number of paired reads, mapped paired reads and properly paired reads
+# without sequencing 5 using:
 
 =for comment
 samtools view -h t/data/test1.bam 1 2 3 4 \
-| samtools view -bS - | samtools flagstat -
+| samtools view -bS - | samtools flagstat - \
+| grep -E '(paired in|and mate mapped|properly)' | awk '{ print $1 }' \
+| paste - - - | awk '{ print $1, $3, $2 }'
 =cut
 
 $stats = stats_all_reads( { bam_file => 't/data/test1.bam', } );
@@ -2379,7 +2389,7 @@ throws_ok {
 qr/Read names do not match/ms, 'BAM file not sorted by read name';
 
 # Filter by tag
-# Should be 1672 NNNNBGAGGC reads according to:
+# Get number of NNNNBGAGGC reads using:
 
 =for comment
 samtools view t/data/test1.bam | awk '{ print $1 }' \
