@@ -106,6 +106,9 @@ is( $bam_length{3}, 4808, 'Chr 3 length' );
 head -2 t/data/test12.fa
 =cut
 
+my $FWD_SEQ = 'CCAGGCGCGG';
+my $REV_SEQ = 'CCGCGCCTGG';
+
 throws_ok {
     get_sequence(
         {
@@ -171,8 +174,8 @@ $seq = get_sequence(
         strand    => 1,
     }
 );
-is( length $seq, 10,           'Subsequence length' );
-is( $seq,        'CCAGGCGCGG', 'Subsequence' );
+is( length $seq, 10,       'Subsequence length' );
+is( $seq,        $FWD_SEQ, 'Subsequence' );
 $seq = get_sequence(
     {
         ref_fasta => 't/data/test12.fa',
@@ -182,8 +185,8 @@ $seq = get_sequence(
         strand    => -1,
     }
 );
-is( length $seq, 10,           'Reverse complement subsequence length' );
-is( $seq,        'CCGCGCCTGG', 'Reverse complement subsequence' );
+is( length $seq, 10,       'Reverse complement subsequence length' );
+is( $seq,        $REV_SEQ, 'Reverse complement subsequence' );
 
 # Check counting tags required parameters
 throws_ok {
@@ -243,6 +246,7 @@ throws_ok {
 qr/No tags specified/ms, 'No tags';
 
 my $count;
+my $TAGS;
 
 # Check tag counts returned by chromosome 1 of test BAM file
 # Get number of random tags using:
@@ -251,6 +255,8 @@ my $count;
 samtools view -f 128 -F 1028 t/data/test1.bam 1 | awk '{ print $1 }' \
 | sed -e 's/.*#//' | grep GAGGC$ | sort -u | wc -l
 =cut
+
+$TAGS = 143;
 
 $count = count_tags(
     {
@@ -261,8 +267,8 @@ $count = count_tags(
         tags               => ['NNNNBGAGGC'],
     }
 );
-is( scalar keys %{$count},                 1,   '1 tag' );
-is( scalar keys %{ $count->{NNNNBGAGGC} }, 143, '143 random tags' );
+is( scalar keys %{$count},                 1,     '1 tag' );
+is( scalar keys %{ $count->{NNNNBGAGGC} }, $TAGS, 'Random tags' );
 
 # Check tag counts returned in 1000 bp onwards of chromosome 1 of test BAM file
 # Get number of random tags using:
@@ -271,6 +277,8 @@ is( scalar keys %{ $count->{NNNNBGAGGC} }, 143, '143 random tags' );
 samtools view -f 128 -F 1028 t/data/test1.bam 1:1000 | awk '{ print $1 }' \
 | sed -e 's/.*#//' | grep GAGGC$ | sort -u | wc -l
 =cut
+
+$TAGS = 141;
 
 $count = count_tags(
     {
@@ -282,8 +290,8 @@ $count = count_tags(
         tags               => ['NNNNBGAGGC'],
     }
 );
-is( scalar keys %{$count},                 1,   '1 tag' );
-is( scalar keys %{ $count->{NNNNBGAGGC} }, 141, '141 random tags' );
+is( scalar keys %{$count},                 1,     '1 tag' );
+is( scalar keys %{ $count->{NNNNBGAGGC} }, $TAGS, 'Random tags' );
 
 # Check tag counts returned in first 1000 bp of chromosome 1 of test BAM file
 # Get number of random tags using:
@@ -292,6 +300,8 @@ is( scalar keys %{ $count->{NNNNBGAGGC} }, 141, '141 random tags' );
 samtools view -f 128 -F 1028 t/data/test1.bam 1:1-1000 | awk '{ print $1 }' \
 | sed -e 's/.*#//' | grep GAGGC$ | sort -u | wc -l
 =cut
+
+$TAGS = 3;
 
 $count = count_tags(
     {
@@ -304,8 +314,8 @@ $count = count_tags(
         tags               => ['NNNNBGAGGC'],
     }
 );
-is( scalar keys %{$count},                 1, '1 tag' );
-is( scalar keys %{ $count->{NNNNBGAGGC} }, 3, '3 random tags' );
+is( scalar keys %{$count},                 1,     '1 tag' );
+is( scalar keys %{ $count->{NNNNBGAGGC} }, $TAGS, 'Random tags' );
 
 # Check tag counts returned with low mismatch threshold
 # Get number of random tags using:
@@ -316,6 +326,8 @@ samtools view -f 128 -F 1028 t/data/test1.bam 1 | grep NM:i:0 \
 | sed -e 's/.*#//' | grep GAGGC$ | sort -u | wc -l
 =cut
 
+$TAGS = 52;
+
 $count = count_tags(
     {
         bam_file           => 't/data/test1.bam',
@@ -325,8 +337,8 @@ $count = count_tags(
         tags               => ['NNNNBGAGGC'],
     }
 );
-is( scalar keys %{$count},                 1,  '1 tag' );
-is( scalar keys %{ $count->{NNNNBGAGGC} }, 52, '52 random tags' );
+is( scalar keys %{$count},                 1,     '1 tag' );
+is( scalar keys %{ $count->{NNNNBGAGGC} }, $TAGS, 'Random tags' );
 
 # Check binning reads required parameters
 throws_ok {
@@ -413,6 +425,8 @@ samtools view -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | sort | uniq -c | wc -l
 =cut
 
+my $FWD_BINS = 20;
+
 # Get number of bins on reverse strand using:
 
 =for comment
@@ -422,6 +436,8 @@ samtools view -f 16 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ if ($1 == $2) print $1; else print $1 "\n" $2 }' \
 | sort | uniq -c | wc -l
 =cut
+
+my $REV_BINS = 16;
 
 $count = bin_reads(
     {
@@ -433,10 +449,10 @@ $count = bin_reads(
         tags               => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
     }
 );
-is( scalar keys %{$count},                  1,  '1 sequence' );
-is( scalar keys %{ $count->{'2'} },         2,  '2 strands' );
-is( scalar keys %{ $count->{'2'}->{'1'} },  20, '20 forward strand bins' );
-is( scalar keys %{ $count->{'2'}->{'-1'} }, 16, '16 reverse strand bins' );
+is( scalar keys %{$count},                  1,         '1 sequence' );
+is( scalar keys %{ $count->{'2'} },         2,         '2 strands' );
+is( scalar keys %{ $count->{'2'}->{'1'} },  $FWD_BINS, 'Forward strand bins' );
+is( scalar keys %{ $count->{'2'}->{'-1'} }, $REV_BINS, 'Reverse strand bins' );
 
 # Check read bins returned with non-existent tag
 $count = bin_reads(
@@ -536,12 +552,20 @@ samtools view -f 128 -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -4
 =cut
 
+my $FWD_FIRST_START = 223;
+my $FWD_FIRST_END   = 405;
+my $FWD_FIRST_READS = 2;
+
 # Get last peak (start, end and number of reads) on forward strand using:
 
 =for comment
 samtools view -f 128 -F 1044 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -4
 =cut
+
+my $FWD_LAST_START = 6387;
+my $FWD_LAST_END   = 6440;
+my $FWD_LAST_READS = 1;
 
 # Get first peak (start, end and number of reads) on reverse strand using:
 
@@ -550,12 +574,20 @@ samtools view -f 144 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -4
 =cut
 
+my $REV_FIRST_START = 3205;
+my $REV_FIRST_END   = 3258;
+my $REV_FIRST_READS = 1;
+
 # Get last peak (start, end and number of reads) on reverse strand using:
 
 =for comment
 samtools view -f 144 -F 1028 t/data/test1.bam 2 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -4
 =cut
+
+my $REV_LAST_START = 7558;
+my $REV_LAST_END   = 7611;
+my $REV_LAST_READS = 1;
 
 $peaks = get_read_peaks(
     {
@@ -570,29 +602,29 @@ $peaks = get_read_peaks(
 is( scalar keys %{$peaks},          1, '1 sequence' );
 is( scalar keys %{ $peaks->{'2'} }, 2, '2 strands' );
 is( $peaks->{'2'}->{'1'}->[0]->[0],
-    223, 'Start of first peak on forward strand' );
+    $FWD_FIRST_START, 'Start of first peak on forward strand' );
 is( $peaks->{'2'}->{'1'}->[0]->[1],
-    405, 'End of first peak on forward strand' );
+    $FWD_FIRST_END, 'End of first peak on forward strand' );
 is( $peaks->{'2'}->{'1'}->[0]->[2],
-    2, 'First peak read count on forward strand' );
+    $FWD_FIRST_READS, 'First peak read count on forward strand' );
 is( $peaks->{'2'}->{'1'}->[-1]->[0],
-    6387, 'Start of last peak on forward strand' );
+    $FWD_LAST_START, 'Start of last peak on forward strand' );
 is( $peaks->{'2'}->{'1'}->[-1]->[1],
-    6440, 'End of last peak on forward strand' );
+    $FWD_LAST_END, 'End of last peak on forward strand' );
 is( $peaks->{'2'}->{'1'}->[-1]->[2],
-    1, 'Last peak read count on forward strand' );
+    $FWD_LAST_READS, 'Last peak read count on forward strand' );
 is( $peaks->{'2'}->{'-1'}->[0]->[0],
-    3205, 'Start of first peak on reverse strand' );
+    $REV_FIRST_START, 'Start of first peak on reverse strand' );
 is( $peaks->{'2'}->{'-1'}->[0]->[1],
-    3258, 'End of first peak on reverse strand' );
+    $REV_FIRST_END, 'End of first peak on reverse strand' );
 is( $peaks->{'2'}->{'-1'}->[0]->[2],
-    1, 'First peak read count on reverse strand' );
+    $REV_FIRST_READS, 'First peak read count on reverse strand' );
 is( $peaks->{'2'}->{'-1'}->[-1]->[0],
-    7558, 'Start of last peak on reverse strand' );
+    $REV_LAST_START, 'Start of last peak on reverse strand' );
 is( $peaks->{'2'}->{'-1'}->[-1]->[1],
-    7611, 'End of last peak on reverse strand' );
+    $REV_LAST_END, 'End of last peak on reverse strand' );
 is( $peaks->{'2'}->{'-1'}->[-1]->[2],
-    1, 'Last peak read count on reverse strand' );
+    $REV_LAST_READS, 'Last peak read count on reverse strand' );
 
 # Check read peaks returned by test BAM file
 # Get first peak (start, end and number of reads) on forward strand using:
@@ -602,12 +634,20 @@ samtools view -f 128 -F 1044 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -4
 =cut
 
+$FWD_FIRST_START = 8;
+$FWD_FIRST_END   = 61;
+$FWD_FIRST_READS = 1;
+
 # Get last peak (start, end and number of reads) on forward strand using:
 
 =for comment
 samtools view -f 128 -F 1044 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -4
 =cut
+
+$FWD_LAST_START = 5805;
+$FWD_LAST_END   = 5858;
+$FWD_LAST_READS = 1;
 
 # Get first peak (start, end and number of reads) on reverse strand using:
 
@@ -616,12 +656,20 @@ samtools view -f 144 -F 1028 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | head -4
 =cut
 
+$REV_FIRST_START = 1210;
+$REV_FIRST_END   = 1263;
+$REV_FIRST_READS = 1;
+
 # Get last peak (start, end and number of reads) on reverse strand using:
 
 =for comment
 samtools view -f 144 -F 1028 t/data/test2.bam 1 | grep 54M | grep NM:i:0 \
 | awk '{ print $4 "\t" $4 + 53 }' | tail -4
 =cut
+
+$REV_LAST_START = 7969;
+$REV_LAST_END   = 8022;
+$REV_LAST_READS = 1;
 
 $peaks = get_read_peaks(
     {
@@ -635,29 +683,30 @@ $peaks = get_read_peaks(
 );
 is( scalar keys %{$peaks},          1, '1 sequence' );
 is( scalar keys %{ $peaks->{'1'} }, 2, '2 strands' );
-is( $peaks->{'1'}->{'1'}->[0]->[0], 8,
-    'Start of first peak on forward strand' );
-is( $peaks->{'1'}->{'1'}->[0]->[1], 61, 'End of first peak on forward strand' );
+is( $peaks->{'1'}->{'1'}->[0]->[0],
+    $FWD_FIRST_START, 'Start of first peak on forward strand' );
+is( $peaks->{'1'}->{'1'}->[0]->[1],
+    $FWD_FIRST_END, 'End of first peak on forward strand' );
 is( $peaks->{'1'}->{'1'}->[0]->[2],
-    1, 'First peak read count on forward strand' );
+    $FWD_FIRST_READS, 'First peak read count on forward strand' );
 is( $peaks->{'1'}->{'1'}->[-1]->[0],
-    5805, 'Start of last peak on forward strand' );
+    $FWD_LAST_START, 'Start of last peak on forward strand' );
 is( $peaks->{'1'}->{'1'}->[-1]->[1],
-    5858, 'End of last peak on forward strand' );
+    $FWD_LAST_END, 'End of last peak on forward strand' );
 is( $peaks->{'1'}->{'1'}->[-1]->[2],
-    1, 'Last peak read count on forward strand' );
+    $FWD_LAST_READS, 'Last peak read count on forward strand' );
 is( $peaks->{'1'}->{'-1'}->[0]->[0],
-    1210, 'Start of first peak on reverse strand' );
+    $REV_FIRST_START, 'Start of first peak on reverse strand' );
 is( $peaks->{'1'}->{'-1'}->[0]->[1],
-    1263, 'End of first peak on reverse strand' );
+    $REV_FIRST_END, 'End of first peak on reverse strand' );
 is( $peaks->{'1'}->{'-1'}->[0]->[2],
-    1, 'First peak read count on reverse strand' );
+    $REV_FIRST_READS, 'First peak read count on reverse strand' );
 is( $peaks->{'1'}->{'-1'}->[-1]->[0],
-    7969, 'Start of last peak on reverse strand' );
+    $REV_LAST_START, 'Start of last peak on reverse strand' );
 is( $peaks->{'1'}->{'-1'}->[-1]->[1],
-    8022, 'End of last peak on reverse strand' );
+    $REV_LAST_END, 'End of last peak on reverse strand' );
 is( $peaks->{'1'}->{'-1'}->[-1]->[2],
-    1, 'Last peak read count on reverse strand' );
+    $REV_LAST_READS, 'Last peak read count on reverse strand' );
 
 # Check read peaks returned with non-existent tag
 $peaks = get_read_peaks(
@@ -777,12 +826,16 @@ samtools view -f 128 -F 1052 t/data/test1.bam 1:1-2000 \
 | grep NM:i:0 | grep 54M | awk '{ print "1:" $8 + 29 ":1" }' | sort -u | wc -l
 =cut
 
+my $FWD_ENDS = 3;
+
 # Get number of reverse strand 3' ends using:
 
 =for comment
 samtools view -f 144 -F 1036 t/data/test1.bam 1:1-2000 \
 | grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }' | sort -u | wc -l
 =cut
+
+my $REV_ENDS = 1;
 
 # Get a forward strand 3' end (chromosome:position:strand) using:
 
@@ -792,6 +845,8 @@ samtools view -f 128 -F 1052 t/data/test1.bam 1:1-2000 \
 head -1 | awk '{ print $2 }'
 =cut
 
+my $FWD_END = '1:3801:1';
+
 # Get a reverse strand 3' end (chromosome:position:strand) using:
 
 =for comment
@@ -799,6 +854,8 @@ samtools view -f 144 -F 1036 t/data/test1.bam 1:1-2000 \
 | grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }' | sort | uniq -c \
 head -1 | awk '{ print $2 }'
 =cut
+
+my $REV_END = '1:427:-1';
 
 $three_prime_ends = get_three_prime_ends(
     {
@@ -814,12 +871,12 @@ $three_prime_ends = get_three_prime_ends(
 is( scalar keys %{$three_prime_ends},     1, '1 sequence' );
 is( scalar @{ $three_prime_ends->{'1'} }, 1, '1 region' );
 is( scalar @{ $three_prime_ends->{'1'}->[0]->[5] },
-    3, q{3 forward strand 3' ends} );
+    $FWD_ENDS, q{Forward strand 3' ends} );
 my $got_forward = 0;
 foreach my $three_prime_end ( @{ $three_prime_ends->{'1'}->[0]->[5] } ) {
     my ( $seq, $pos, $strand, $read_count ) = @{$three_prime_end};
     my $string_form = join q{:}, $seq, $pos, $strand;
-    if ( $string_form eq '1:3801:1' ) {
+    if ( $string_form eq $FWD_END ) {
         $got_forward = 1;
     }
 }
@@ -839,12 +896,12 @@ $three_prime_ends = get_three_prime_ends(
 is( scalar keys %{$three_prime_ends},     1, '1 sequence' );
 is( scalar @{ $three_prime_ends->{'1'} }, 1, '1 region' );
 is( scalar @{ $three_prime_ends->{'1'}->[0]->[5] },
-    1, q{1 reverse strand 3' end} );
+    $REV_ENDS, q{Reverse strand 3' ends} );
 my $got_reverse = 0;
 foreach my $three_prime_end ( @{ $three_prime_ends->{'1'}->[0]->[5] } ) {
     my ( $seq, $pos, $strand, $read_count ) = @{$three_prime_end};
     my $string_form = join q{:}, $seq, $pos, $strand;
-    if ( $string_form eq '1:427:-1' ) {
+    if ( $string_form eq $REV_END ) {
         $got_reverse = 1;
     }
 }
@@ -1504,6 +1561,8 @@ samtools view -f 128 -F 1044 t/data/test1.bam 1:1-2000 \
 | sed -e 's/.*#//' | grep GAGGC$ | wc -l
 =cut
 
+my $READS = 1;
+
 $three_prime_ends = count_reads(
     {
         bam_file           => 't/data/test1.bam',
@@ -1524,8 +1583,8 @@ is( $three_prime_ends->{'1'}->[0]->[4],   '1',  q{3' end sequence} );
 is( $three_prime_ends->{'1'}->[0]->[5],   2000, q{3' end position} );
 is( $three_prime_ends->{'1'}->[0]->[6],   1,    q{3' end strand} );
 is( $three_prime_ends->{'1'}->[0]->[7],   10,   q{3' end read count} );
-is( scalar keys %{ $three_prime_ends->{'1'}->[0]->[8] }, 1, '1 tag' );
-is( $three_prime_ends->{'1'}->[0]->[8]->{NNNNBGAGGC},    1, '1 read' );
+is( scalar keys %{ $three_prime_ends->{'1'}->[0]->[8] }, 1,      '1 tag' );
+is( $three_prime_ends->{'1'}->[0]->[8]->{NNNNBGAGGC},    $READS, 'Reads' );
 
 # Mock sample objects
 my $sample1 = Test::MockObject->new();
@@ -1965,6 +2024,10 @@ samtools view -h t/data/test1.bam | grep -E '^@SQ|#.....GAGGC' \
 | paste - - - | awk '{ print $1, $3, $2 }'
 =cut
 
+my $PAIRED_WITH_5 = 1672;
+my $MAPPED_WITH_5 = 1514;
+my $PROPER_WITH_5 = 1514;
+
 # Get number of paired reads, mapped paired reads and properly paired reads
 # without sequencing 5 using:
 
@@ -1975,15 +2038,21 @@ samtools view -h t/data/test1.bam 1 2 3 4 | grep -E '^@SQ|#.....GAGGC' \
 | paste - - - | awk '{ print $1, $3, $2 }'
 =cut
 
+my $PAIRED_WITHOUT_5 = 1516;
+my $MAPPED_WITHOUT_5 = 1370;
+my $PROPER_WITHOUT_5 = 1370;
+
 $stats = stats_by_tag(
     {
         bam_file => 't/data/test1.bam',
         tags     => ['NNNNBGAGGC'],
     }
 );
-is( $stats->{NNNNBGAGGC}->{paired}, 1672, 'Paired read count' );
-is( $stats->{NNNNBGAGGC}->{mapped}, 1514, 'Mapped paired read count' );
-is( $stats->{NNNNBGAGGC}->{proper}, 1514, 'Properly paired read count' );
+is( $stats->{NNNNBGAGGC}->{paired}, $PAIRED_WITH_5, 'Paired read count' );
+is( $stats->{NNNNBGAGGC}->{mapped}, $MAPPED_WITH_5,
+    'Mapped paired read count' );
+is( $stats->{NNNNBGAGGC}->{proper},
+    $PROPER_WITH_5, 'Properly paired read count' );
 
 $stats = stats_by_tag(
     {
@@ -1992,9 +2061,11 @@ $stats = stats_by_tag(
         skip_sequences => ['5'],
     }
 );
-is( $stats->{NNNNBGAGGC}->{paired}, 1516, 'Paired read count' );
-is( $stats->{NNNNBGAGGC}->{mapped}, 1370, 'Mapped paired read count' );
-is( $stats->{NNNNBGAGGC}->{proper}, 1370, 'Properly paired read count' );
+is( $stats->{NNNNBGAGGC}->{paired}, $PAIRED_WITHOUT_5, 'Paired read count' );
+is( $stats->{NNNNBGAGGC}->{mapped},
+    $MAPPED_WITHOUT_5, 'Mapped paired read count' );
+is( $stats->{NNNNBGAGGC}->{proper},
+    $PROPER_WITHOUT_5, 'Properly paired read count' );
 
 # Stats for all reads
 # Get number of paired reads, mapped paired reads and properly paired reads
@@ -2007,6 +2078,10 @@ samtools view -h t/data/test1.bam \
 | paste - - - | awk '{ print $1, $3, $2 }'
 =cut
 
+$PAIRED_WITH_5 = 3258;
+$MAPPED_WITH_5 = 2958;
+$PROPER_WITH_5 = 2958;
+
 # Get number of paired reads, mapped paired reads and properly paired reads
 # without sequencing 5 using:
 
@@ -2017,10 +2092,14 @@ samtools view -h t/data/test1.bam 1 2 3 4 \
 | paste - - - | awk '{ print $1, $3, $2 }'
 =cut
 
+$PAIRED_WITHOUT_5 = 2964;
+$MAPPED_WITHOUT_5 = 2684;
+$PROPER_WITHOUT_5 = 2684;
+
 $stats = stats_all_reads( { bam_file => 't/data/test1.bam', } );
-is( $stats->{paired}, 3258, 'Paired read count' );
-is( $stats->{mapped}, 2958, 'Mapped paired read count' );
-is( $stats->{proper}, 2958, 'Properly paired read count' );
+is( $stats->{paired}, $PAIRED_WITH_5, 'Paired read count' );
+is( $stats->{mapped}, $MAPPED_WITH_5, 'Mapped paired read count' );
+is( $stats->{proper}, $PROPER_WITH_5, 'Properly paired read count' );
 
 $stats = stats_all_reads(
     {
@@ -2028,9 +2107,9 @@ $stats = stats_all_reads(
         skip_sequences => ['5'],
     }
 );
-is( $stats->{paired}, 2964, 'Paired read count' );
-is( $stats->{mapped}, 2684, 'Mapped paired read count' );
-is( $stats->{proper}, 2684, 'Properly paired read count' );
+is( $stats->{paired}, $PAIRED_WITHOUT_5, 'Paired read count' );
+is( $stats->{mapped}, $MAPPED_WITHOUT_5, 'Mapped paired read count' );
+is( $stats->{proper}, $PROPER_WITHOUT_5, 'Properly paired read count' );
 
 # Downsample by tag
 
@@ -2396,6 +2475,8 @@ samtools view t/data/test1.bam | awk '{ print $1 }' \
 | grep -c GAGGC$
 =cut
 
+$READS = 1672;
+
 filter_by_tag(
     {
         source_bam_file => 't/data/test1.bam',
@@ -2406,7 +2487,7 @@ filter_by_tag(
 
 ( $read1_count, $read2_count ) =
   count_reads_1_and_2( $tmp_dir . '/test1.NNNNBGAGGC.filtered.bam' );
-is( $read1_count + $read2_count, 1672, 'Filter by tag NNNNBGAGGC' );
+is( $read1_count + $read2_count, $READS, 'Filter by tag NNNNBGAGGC' );
 
 throws_ok {
     filter_by_tag(
