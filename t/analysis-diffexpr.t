@@ -289,14 +289,16 @@ throws_ok { $analysis->add_sample('invalid') } qr/Class of sample/ms,
   'Invalid sample';
 
 # Test total bp, sequences and chunks after adding samples
-# Should be 31404 bp according to:
+# Get total bp using:
 
 =for comment
 samtools view -H t/data/test1.bam | sed -e 's/.*LN://' \
 | awk '{ sum += $1 } END { print sum }'
 =cut
 
-is( $analysis->total_bp, 31404, 'Total bp with sequences' );
+my $TOTAL_BP = 22193;
+
+is( $analysis->total_bp, $TOTAL_BP, 'Total bp with sequences' );
 $sequences = $analysis->get_all_sequences();
 is( scalar @{$sequences}, 5, '5 sequences' );
 $chunks = $analysis->get_all_chunks();
