@@ -842,7 +842,7 @@ my $REV_ENDS = 1;
 =for comment
 samtools view -f 128 -F 1052 t/data/test1.bam 1:1-2000 \
 | grep NM:i:0 | grep 54M | awk '{ print "1:" $8 + 29 ":1" }' | sort | uniq -c \
-head -1 | awk '{ print $2 }'
+| head -1 | awk '{ print $2 }'
 =cut
 
 my $FWD_END = '1:3801:1';
@@ -852,7 +852,7 @@ my $FWD_END = '1:3801:1';
 =for comment
 samtools view -f 144 -F 1036 t/data/test1.bam 1:1-2000 \
 | grep NM:i:0 | grep 54M | awk '{ print "1:" $8 ":-1" }' | sort | uniq -c \
-head -1 | awk '{ print $2 }'
+| head -1 | awk '{ print $2 }'
 =cut
 
 my $REV_END = '1:427:-1';
