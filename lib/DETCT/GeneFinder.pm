@@ -21,6 +21,7 @@ use Try::Tiny;
 use Class::InsideOut qw( private register id );
 use DETCT::Gene;
 use DETCT::Transcript;
+use Data::Dumper;
 
 =head1 SYNOPSIS
 
@@ -350,12 +351,19 @@ sub _fill_cache_from_ensembl {
             my $ens_transcripts = $ens_gene->get_all_Transcripts();
             foreach my $ens_transcript ( @{$ens_transcripts} ) {
                 next if $self->is_skip_transcript( $ens_transcript->stable_id );
+                my $ens_transcript_attributes ="";
+                foreach my $transcript_attribute( @{ $ens_transcript->get_all_Attributes }){
+                # add information for these 3 ensembl transcript attribute types 
+                 if($transcript_attribute->code=~/appris|genecode_basic|tsl/i){
+                  $ens_transcript_attributes .= ":" . $transcript_attribute->code;
+                 }
+                }
                 my $transcript = DETCT::Transcript->new(
                     {
                         stable_id   => $ens_transcript->stable_id,
                         name        => $ens_transcript->external_name,
                         description => $ens_transcript->description,
-                        biotype     => $ens_transcript->biotype,
+                        biotype     => $ens_transcript->biotype . $ens_transcript_attributes,
                         seq_name    => $seq_name,
                         start       => $ens_transcript->seq_region_start,
                         end         => $ens_transcript->seq_region_end,

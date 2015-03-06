@@ -17,6 +17,7 @@ use strict;
 use autodie;
 use Carp;
 use Try::Tiny;
+use Data::Dumper;
 
 use Readonly;
 use Class::InsideOut qw( private register id );
@@ -31,7 +32,7 @@ use Class::InsideOut qw( private register id );
 private stable_id   => my %stable_id;      # e.g. ENSDART00000133571
 private name        => my %name;           # e.g. cxc64-001
 private description => my %description;    # e.g. CXC chemokine 64...
-private biotype     => my %biotype;        # e.g. protein_coding
+private biotype     => my %biotype;        # e.g. protein_coding - can be overloaded with transcript attribute information (e.g. protein_coding:gencode_basic:tsl1:appris_pi)
 private seq_name    => my %seq_name;       # e.g. 5
 private start       => my %start;          # e.g. 40352744
 private end         => my %end;            # e.g. 40354399
@@ -44,12 +45,12 @@ Readonly our $MAX_NAME_LENGTH => 128;
 =method new
 
   Usage       : my $transcript = DETCT::Transcript->new( {
-                    stable_id => 'ENSDART00000133571',
-                    biotype   => 'protein_coding',
-                    seq_name  => '5',
-                    start     => 40352744,
-                    end       => 40354399,
-                    strand    => 1,
+                    stable_id   => 'ENSDART00000133571',
+                    biotype     => 'protein_coding',
+                    seq_name    => '5',
+                    start       => 40352744,
+                    end         => 40354399,
+                    strand      => 1,
                 } );
   Purpose     : Constructor for transcript objects
   Returns     : DETCT::Transcript
@@ -263,7 +264,7 @@ sub set_biotype {
 
 sub check_biotype {
     my ($biotype) = @_;
-    return $biotype if defined $biotype && $biotype =~ m/\A \w+ \z/xms;
+    return $biotype if defined $biotype && $biotype =~ m/\A \w[\w\:]+\w \z/xms;
     confess 'No biotype specified' if !defined $biotype;
     confess "Invalid biotype ($biotype) specified";
 }
