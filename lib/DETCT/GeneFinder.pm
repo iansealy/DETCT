@@ -21,7 +21,6 @@ use Try::Tiny;
 use Class::InsideOut qw( private register id );
 use DETCT::Gene;
 use DETCT::Transcript;
-use Data::Dumper;
 
 =head1 SYNOPSIS
 
@@ -354,7 +353,7 @@ sub _fill_cache_from_ensembl {
                 my $ens_transcript_attributes ="";
                 foreach my $transcript_attribute( @{ $ens_transcript->get_all_Attributes }){
                 # add information for these 3 ensembl transcript attribute types 
-                 if($transcript_attribute->code=~/appris|genecode_basic|tsl/i){
+                 if($transcript_attribute->code=~m/appris|genecode_basic|tsl/i){
                   $ens_transcript_attributes .= ":" . $transcript_attribute->code;
                  }
                 }

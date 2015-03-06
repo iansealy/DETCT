@@ -17,7 +17,6 @@ use strict;
 use autodie;
 use Carp;
 use Try::Tiny;
-use Data::Dumper;
 
 use Readonly;
 use Class::InsideOut qw( private register id );
