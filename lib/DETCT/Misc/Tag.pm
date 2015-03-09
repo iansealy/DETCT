@@ -38,9 +38,6 @@ our @EXPORT_OK = qw(
                     fastq_read1_input     => $fastq_read1_input,
                     fastq_read2_input     => $fastq_read2_input,
                     fastq_output_prefix   => $fastq_output_prefix,
-                    read1_required_length => $read1_required_length,
-                    read2_required_length => $read2_required_length,
-                    polyt_trim_length     => $polyt_trim_length,
                     polyt_min_length      => $polyt_min_length,
                     read_tags             => \@read_tags,
                 } );
@@ -50,9 +47,7 @@ our @EXPORT_OK = qw(
                     fastq_read1_input     => String (read 1 FASTQ file),
                     fastq_read2_input     => String (read 2 FASTQ file),
                     fastq_output_prefix   => String (prefix for output FASTQs),
-                    read1_required_length => Int (required length of read 1),
-                    read2_required_length => Int (required length of read 2),
-                    polyt_trim_length     => Int (polyT length to be trimmed),
+                    quality_threshold     => Int (threshold to trim 3' bases),
                     polyt_min_length      => Int (min Ts to define polyT),
                     read_tags             => Arrayref (of read tags),
                     no_pair_suffix        => Boolean or undef,
@@ -69,12 +64,8 @@ sub detag_trim_fastq {
     # Assume all tags are same length
     my $tag_length = length $arg_ref->{read_tags}[0];
 
-    my $min_polyt = q{T} x $arg_ref->{polyt_min_length};
-    my $polyt_re = qr/$min_polyt/xms;    # Regexp for polyT matching
-
-    my $read1_required_length = $arg_ref->{read1_required_length};
-    my $read2_required_length = $arg_ref->{read2_required_length};
-    my $polyt_trim_length     = $arg_ref->{polyt_trim_length};
+    # Default to no quality trimming
+    my $quality_threshold = $arg_ref->{quality_threshold} || 0;
 
     # Convert tags to regular expressions
     my @read_tags  = @{ $arg_ref->{read_tags} };
@@ -126,24 +117,17 @@ sub detag_trim_fastq {
               . "($read1_id_no_suffix does not match $read2_id_no_suffix)";
         }
 
-        # Trim reads to specified length if necessary
-        my $read1_pre_detag_length =
-          $read1_required_length + $tag_length + $polyt_trim_length;
-        if ( length $read1_seq > $read1_pre_detag_length ) {
-            $read1_seq  = substr $read1_seq,  0, $read1_pre_detag_length;
-            $read1_qual = substr $read1_qual, 0, $read1_pre_detag_length;
-        }
-        if ( length $read2_seq > $read2_required_length ) {
-            $read2_seq  = substr $read2_seq,  0, $read2_required_length;
-            $read2_qual = substr $read2_qual, 0, $read2_required_length;
-        }
+        # Trim 3' end for quality
+        ( $read1_seq, $read1_qual ) =
+          trim_for_quality( $read1_seq, $read1_qual, $quality_threshold );
+        ( $read2_seq, $read2_qual ) =
+          trim_for_quality( $read2_seq, $read2_qual, $quality_threshold );
 
-        # Get tag and putative polyT from read 1
-        my $tag_in_read = substr $read1_seq, 0, $tag_length;
-        my $polyt_seq = substr $read1_seq, $tag_length, $polyt_trim_length;
-        if ( $arg_ref->{treat_n_in_polyt_as_t} ) {
-            $polyt_seq =~ s/N/T/xmsg;
-        }
+        # Get tag and remaining sequence (separated by polyT) from read 1
+        my $polyt_bases = $arg_ref->{treat_n_in_polyt_as_t} ? 'TN' : q{T};
+        my ( $tag_in_read, $seq_after_polyt ) =
+          split /[$polyt_bases]{$arg_ref->{polyt_min_length},}/xms, $read1_seq,
+          2;
 
         # Default tag to add to id if no match
         my $tag_for_id = q{X} x $tag_length;
@@ -151,16 +135,16 @@ sub detag_trim_fastq {
 
         # Make sure a tag matches and polyT is present
       TAG: foreach my $tag ( $prev_tag, sort keys %re_tag_for ) {
+            last TAG if !$seq_after_polyt;    # No polyT
             my $regexps = $re_tag_for{$tag};
             foreach my $re ( @{$regexps} ) {
-                if ( $tag_in_read =~ $re && $polyt_seq =~ $polyt_re ) {
+                if ( $tag_in_read =~ $re ) {
                     $tag_for_id = $tag_in_read;
                     $tag_found  = $tag;
-                    substr $read1_seq, 0, $tag_length + $polyt_trim_length, q{};
-                    substr $read1_qual, 0, $tag_length + $polyt_trim_length,
-                      q{};
-                    $prev_tag = $tag;
-                    last TAG;    # Skip rest if got a match
+                    $read1_seq  = $seq_after_polyt;
+                    $read1_qual = substr $read1_qual, -length $read1_seq;
+                    $prev_tag   = $tag;
+                    last TAG;                 # Skip rest if got a match
                 }
             }
         }
@@ -232,6 +216,50 @@ sub _close_output_fhs {
     return;
 }
 
+=func trim_for_quality
+
+  Usage       : ($seq, $qual) = trim_for_quality($seq, $qual, $threshold);
+  Purpose     : Trim 3' bases generally below quality threshold
+  Returns     : String (the trimmed bases)
+                String (the trimmed qualities)
+  Parameters  : String (the bases)
+                String (the qualities)
+                Int (the quality threshold)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub trim_for_quality {
+    my ( $seq, $qual, $threshold ) = @_;
+
+    # If last base isn't below threshold then don't trim
+    return $seq, $qual if ord( substr $qual, -1, 1 ) >= $threshold;
+
+    # Convert quality to list of Phred scores with threshold substracted
+    my @scores = map { ord($_) - $threshold } reverse split //xms, $qual;
+
+    # Sum scores and find position of minimum sum before sum goes positive
+    my $sum             = 0;
+    my $min_sum         = 0;
+    my $bases_to_remove = 0;
+    my $pos             = 0;
+    foreach my $score (@scores) {
+        $pos++;
+        $sum += $score;
+        last if $sum >= 0;
+        if ( $sum < $min_sum ) {
+            $min_sum         = $sum;
+            $bases_to_remove = $pos;
+        }
+    }
+
+    substr $seq,  -$bases_to_remove, $bases_to_remove, q{};
+    substr $qual, -$bases_to_remove, $bases_to_remove, q{};
+
+    return $seq, $qual;
+}
+
 =func convert_tag_to_regexp
 
   Usage       : %re_for = convert_tag_to_regexp( 'NNNNBGAGGC', 'NNNNBAGAAG' );
@@ -263,8 +291,16 @@ sub convert_tag_to_regexp {
             }
         }
 
+        # Add or remove initial base from each tag
+        my @mislength_tags = @mismatch_tags;
+        foreach my $mismatch_tag (@mismatch_tags) {
+            my $shorter_tag = substr $mismatch_tag, 1;
+            push @mislength_tags, $shorter_tag;
+            push @mislength_tags, q{N} . $mismatch_tag;
+        }
+
         # Convert IUPAC codes to AGCT (or N)
-        foreach my $re (@mismatch_tags) {
+        foreach my $re (@mislength_tags) {
             $re =~ s/N/[NAGCT]/xmsg;    # Random bases can be called as N
             $re =~ s/B/[GCT]/xmsg;
             $re =~ s/D/[AGT]/xmsg;

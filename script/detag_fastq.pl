@@ -34,10 +34,8 @@ use DETCT::Misc::Tag;
 my $fastq_read1_input;
 my $fastq_read2_input;
 my $fastq_output_prefix;
-my $read1_required_length = 30;
-my $read2_required_length = 54;
-my $polyt_trim_length     = 14;
-my $polyt_min_length      = 10;
+my $quality_threshold = 2;
+my $polyt_min_length  = 10;
 my @read_tags;
 my $no_pair_suffix        = 0;
 my $treat_n_in_polyt_as_t = 0;
@@ -52,9 +50,7 @@ DETCT::Misc::Tag::detag_trim_fastq(
         fastq_read1_input     => $fastq_read1_input,
         fastq_read2_input     => $fastq_read2_input,
         fastq_output_prefix   => $fastq_output_prefix,
-        read1_required_length => $read1_required_length,
-        read2_required_length => $read2_required_length,
-        polyt_trim_length     => $polyt_trim_length,
+        quality_threshold     => $quality_threshold,
         polyt_min_length      => $polyt_min_length,
         read_tags             => \@read_tags,
         no_pair_suffix        => $no_pair_suffix,
@@ -67,18 +63,16 @@ sub get_and_check_options {
 
     # Get options
     GetOptions(
-        'fastq_read1_input=s'     => \$fastq_read1_input,
-        'fastq_read2_input=s'     => \$fastq_read2_input,
-        'fastq_output_prefix=s'   => \$fastq_output_prefix,
-        'read1_required_length=i' => \$read1_required_length,
-        'read2_required_length=i' => \$read2_required_length,
-        'polyt_trim_length=i'     => \$polyt_trim_length,
-        'polyt_min_length=i'      => \$polyt_min_length,
-        'read_tags=s@{1,}'        => \@read_tags,
-        'no_pair_suffix'          => \$no_pair_suffix,
-        'treat_n_in_polyt_as_t'   => \$treat_n_in_polyt_as_t,
-        'help'                    => \$help,
-        'man'                     => \$man,
+        'fastq_read1_input=s'   => \$fastq_read1_input,
+        'fastq_read2_input=s'   => \$fastq_read2_input,
+        'fastq_output_prefix=s' => \$fastq_output_prefix,
+        'quality_threshold=i'   => \$quality_threshold,
+        'polyt_min_length=i'    => \$polyt_min_length,
+        'read_tags=s@{1,}'      => \@read_tags,
+        'no_pair_suffix'        => \$no_pair_suffix,
+        'treat_n_in_polyt_as_t' => \$treat_n_in_polyt_as_t,
+        'help'                  => \$help,
+        'man'                   => \$man,
     ) or pod2usage(2);
 
     # Documentation
@@ -112,9 +106,7 @@ sub get_and_check_options {
         [--fastq_read1_input file]
         [--fastq_read2_input file]
         [--fastq_output_prefix prefix]
-        [--read1_required_length int]
-        [--read2_required_length int]
-        [--polyt_trim_length int]
+        [--quality_threshold int]
         [--polyt_min_length int]
         [--read_tags tags...]
         [--no_pair_suffix]
@@ -138,17 +130,9 @@ Input FASTQ file for read 2.
 
 Prefix for output FASTQ files.
 
-=item B<--read1_required_length INT>
+=item B<--quality_threshold INT>
 
-Length of read 1 after detagging and optional trimming.
-
-=item B<--read2_required_length INT>
-
-Length of read 2 after detagging and optional trimming.
-
-=item B<--polyt_trim_length INT>
-
-Length of (largely) polyT to be trimmed.
+Quality threshold below which 3' bases are generally trimmed.
 
 =item B<--polyt_min_length INT>
 
