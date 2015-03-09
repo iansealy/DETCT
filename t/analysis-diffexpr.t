@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 190;
+plan tests => 194;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -157,6 +157,13 @@ is( $analysis->set_normalisation_method('spike'),
 is( $analysis->normalisation_method, 'spike', 'Get new normalisation method' );
 throws_ok { $analysis->set_normalisation_method('invalid') }
 qr/Invalid normalisation method/ms, 'Invalid normalisation method';
+
+# Test DESeq model attribute
+is( $analysis->deseq_model,                    'additive', 'Get DESeq model' );
+is( $analysis->set_deseq_model('interaction'), undef,      'Set DESeq model' );
+is( $analysis->deseq_model, 'interaction', 'Get new DESeq model' );
+throws_ok { $analysis->set_deseq_model('invalid') } qr/Invalid DESeq model/ms,
+  'Invalid DESeq model';
 
 # Test output significance level attribute
 is( $analysis->output_sig_level, 0.05, 'Get output significance level' );
