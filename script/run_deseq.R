@@ -10,7 +10,8 @@ sizeFactorsFile     <- Args[7]
 qcPdfFile           <- Args[8]
 filterPercentile    <- as.numeric( Args[9] )
 normalisationMethod <- Args[10]
-spikeCountFile      <- Args[11]
+deseqModel          <- Args[11]
+spikeCountFile      <- Args[12]
 
 # Get data and samples
 countData     <- read.table(   countFile, header=TRUE, row.names=1 )
@@ -56,7 +57,11 @@ if (filterPercentile) {
 # Create DESeqDataSet (with design according to number of factors)
 dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ condition)
 if (numFactors == 2) {
-    design(dds) <- formula(~ group + condition)
+    if (deseqModel == "interaction") {
+        design(dds) <- formula(~ group + condition + group:condition)
+    } else {
+        design(dds) <- formula(~ group + condition)
+    }
 }
 
 # Ensure control level (usually "sibling") is first level (i.e. before "mutant")
