@@ -128,7 +128,7 @@ foreach my $analysis_yaml (@analysis_yamls) {
     my @log = map { "$_\n" } $pipeline->input_overview;
     push @log, "\nYAML analysis config file:\n\n", read_file($analysis_yaml);
     push @log, "\nYAML stages config file:\n\n",   read_file($stages_yaml);
-    $pipeline->write_log_file( 'de.log', @log );
+    $pipeline->write_log_file( $pipeline_type . '.log', @log );
 
     push @pipelines, $pipeline;
 }
