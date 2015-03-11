@@ -354,7 +354,7 @@ sub _fill_cache_from_ensembl {
                 foreach my $transcript_attribute( @{ $ens_transcript->get_all_Attributes || [] }){
                 # add information for these 3 ensembl transcript attribute types 
                  if($transcript_attribute->code=~m/appris|genecode_basic|tsl/ixms){
-                  $ens_transcript_attributes .= ":$transcript_attribute->code";
+                  $ens_transcript_attributes .= q{:} . $transcript_attribute->code;
                  }
                 }
                 $trans_biotype = 
