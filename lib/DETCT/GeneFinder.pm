@@ -401,8 +401,9 @@ sub _append_transcript_attributes {
         foreach my $attrib_key ( keys %chosen_attributes ) {
             if ( $transcript_attribute->code =~ /$attrib_key/ixms ) {
                 if ( $transcript_attribute->code =~ /tsl/ixms ) {
-                    $chosen_attributes{$attrib_key} .=
-                      $transcript_attribute->value;
+                    my ($tsl_value) =
+                      $transcript_attribute->value =~ /(\w+)/xms;
+                    $chosen_attributes{$attrib_key} .= $tsl_value;
                 }
                 else {
                     $chosen_attributes{$attrib_key} .=
