@@ -81,9 +81,10 @@ if (normalisationMethod == "none") {
 dds <- DESeq(dds) # estimateSizeFactors, estimateDispersions, nbinomWaldTest
 if (filterPercentile) {
     # Don't need independent filtering if already filtered
-    res <- results(dds, independentFiltering=FALSE)
+    res <- results(dds, independentFiltering=FALSE,
+        contrast=c("condition", rev(levels(samples$condition))))
 } else {
-    res <- results(dds)
+    res <- results(dds, contrast=c("condition", rev(levels(samples$condition))))
 }
 
 # Write output
