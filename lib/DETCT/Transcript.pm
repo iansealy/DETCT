@@ -31,12 +31,14 @@ use Class::InsideOut qw( private register id );
 private stable_id   => my %stable_id;      # e.g. ENSDART00000133571
 private name        => my %name;           # e.g. cxc64-001
 private description => my %description;    # e.g. CXC chemokine 64...
-private biotype     => my %biotype;        # e.g. protein_coding - can be overloaded with transcript attribute information (e.g. protein_coding:gencode_basic:tsl1:appris_pi)
-private seq_name    => my %seq_name;       # e.g. 5
-private start       => my %start;          # e.g. 40352744
-private end         => my %end;            # e.g. 40354399
-private strand      => my %strand;         # e.g. 1
-private gene        => my %gene;           # DETCT::Gene
+private biotype =>
+  my %biotype
+  ; # e.g. protein_coding - can be overloaded with transcript attribute information (e.g. protein_coding:gencode_basic:tsl1:appris_pi)
+private seq_name => my %seq_name;    # e.g. 5
+private start    => my %start;       # e.g. 40352744
+private end      => my %end;         # e.g. 40354399
+private strand   => my %strand;      # e.g. 1
+private gene     => my %gene;        # DETCT::Gene
 
 # Constants
 Readonly our $MAX_NAME_LENGTH => 128;
@@ -263,7 +265,7 @@ sub set_biotype {
 
 sub check_biotype {
     my ($biotype) = @_;
-    return $biotype if defined $biotype && $biotype =~ m/\A \w[\w\:]+\w \z/xms;
+    return $biotype if defined $biotype && $biotype =~ m/\A \w[\w\:]+ \z/xms;
     confess 'No biotype specified' if !defined $biotype;
     confess "Invalid biotype ($biotype) specified";
 }
