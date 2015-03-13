@@ -350,12 +350,17 @@ sub _fill_cache_from_ensembl {
             my $ens_transcripts = $ens_gene->get_all_Transcripts();
             foreach my $ens_transcript ( @{$ens_transcripts} ) {
                 next if $self->is_skip_transcript( $ens_transcript->stable_id );
+
+                # Extend transcript biotype with selected attributes
+                my $ens_transcript_biotype =
+                  $self->_extend_biotype_with_attributes($ens_transcript);
+
                 my $transcript = DETCT::Transcript->new(
                     {
                         stable_id   => $ens_transcript->stable_id,
                         name        => $ens_transcript->external_name,
                         description => $ens_transcript->description,
-                        biotype     => $ens_transcript->biotype,
+                        biotype     => $ens_transcript_biotype,
                         seq_name    => $seq_name,
                         start       => $ens_transcript->seq_region_start,
                         end         => $ens_transcript->seq_region_end,
@@ -376,6 +381,41 @@ sub _fill_cache_from_ensembl {
     }
 
     return;
+}
+
+# Usage       : $biotype = $self->_extend_biotype_with_attributes($transcript);
+# Purpose     : Append selected transcript atributes to the Ensembl biotype
+# Returns     : String (the extended biotype)
+# Parameters  : Bio::EnsEMBL::Transcript
+# Throws      : No exceptions
+# Comments    : At the moment only appends information for three attribute types
+#               (appris_*, gencode_basic and TSL)
+
+sub _extend_biotype_with_attributes {
+    my ( $self, $ens_transcript ) = @_;
+
+    my %selected_attributes =
+      ( appris => q{}, gencode_basic => q{}, TSL => q{} );
+    foreach my $attr ( @{ $ens_transcript->get_all_Attributes || [] } ) {
+        foreach my $key ( keys %selected_attributes ) {
+            if ( $attr->code =~ /\A $key/xms ) {
+                if ( $attr->code eq 'TSL' ) {
+
+                    # TSL needs value, not just code
+                    my ($tsl_value) = $attr->value =~ /\A (\w+)/xms;
+                    $selected_attributes{$key} .= $tsl_value;
+                }
+                else {
+                    $selected_attributes{$key} .= $attr->code;
+                }
+                last;
+            }
+        }
+    }
+    my $trans_biotype = $ens_transcript->biotype . q{:} . join q{:},
+      map { $selected_attributes{$_} } sort keys %selected_attributes;
+
+    return $trans_biotype;
 }
 
 =method add_gene_annotation

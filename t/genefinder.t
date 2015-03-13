@@ -33,21 +33,23 @@ foreach my $transcript_three_prime_end (@transcript_three_prime_ends) {
     $gene->set_always( 'seq_region_end',    $end );
     $gene->set_always( 'seq_region_strand', $strand );
     my $transcript = Test::MockObject->new();
-    $transcript->set_always( 'stable_id',        'ENSDART00000133571' );
+    $transcript->set_always( 'get_all_Attributes', undef );
+    $transcript->set_always( 'stable_id',          'ENSDART00000133571' );
     $transcript->set_always( 'external_name',    q{t} . $pos . q{:} . $strand );
     $transcript->set_always( 'description',      undef );
-    $transcript->set_always( 'biotype',          'protein_coding' );
     $transcript->set_always( 'seq_region_start', $start );
     $transcript->set_always( 'seq_region_end',   $end );
     $transcript->set_always( 'seq_region_strand', $strand );
+    $transcript->set_always( 'biotype',           'protein_coding' );
     my $transcript_far = Test::MockObject->new();
-    $transcript_far->set_always( 'stable_id',         'ENSDART00000133572' );
-    $transcript_far->set_always( 'external_name',     'cxc64-001' );
-    $transcript_far->set_always( 'description',       undef );
-    $transcript_far->set_always( 'biotype',           'protein_coding' );
-    $transcript_far->set_always( 'seq_region_start',  100_000 );
-    $transcript_far->set_always( 'seq_region_end',    100_100 );
-    $transcript_far->set_always( 'seq_region_strand', $strand );
+    $transcript_far->set_always( 'get_all_Attributes', undef );
+    $transcript_far->set_always( 'stable_id',          'ENSDART00000133572' );
+    $transcript_far->set_always( 'external_name',      'cxc64-001' );
+    $transcript_far->set_always( 'description',        undef );
+    $transcript_far->set_always( 'seq_region_start',   100_000 );
+    $transcript_far->set_always( 'seq_region_end',     100_100 );
+    $transcript_far->set_always( 'seq_region_strand',  $strand );
+    $transcript_far->set_always( 'biotype',            'protein_coding' );
     $gene->set_always( 'get_all_Transcripts',
         [ $transcript, $transcript_far ] );
     push @genes, $gene;
@@ -207,7 +209,7 @@ is( scalar @{ $annotated_regions->[0]->[-1]->{$gv}->[0]->[5] },
 is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[0],
     'ENSDART00000133571', 'Transcript stable id' );
 is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[1],
-    'protein_coding', 'Transcript biotype' );
+    'protein_coding:::', 'Transcript biotype' );
 is( scalar keys %{ $annotated_regions->[1]->[-1] },   1, '1 genebuild' );
 is( scalar @{ $annotated_regions->[1]->[-1]->{$gv} }, 1, '1 gene' );
 is( $annotated_regions->[1]->[-1]->{$gv}->[0]->[0],
@@ -223,7 +225,7 @@ is( scalar @{ $annotated_regions->[1]->[-1]->{$gv}->[0]->[5] },
 is( $annotated_regions->[1]->[-1]->{$gv}->[0]->[5]->[0]->[0],
     'ENSDART00000133571', 'Transcript stable id' );
 is( $annotated_regions->[1]->[-1]->{$gv}->[0]->[5]->[0]->[1],
-    'protein_coding', 'Transcript biotype' );
+    'protein_coding:::', 'Transcript biotype' );
 is( scalar keys %{ $annotated_regions->[2]->[-1] },   1, '1 genebuild' );
 is( scalar @{ $annotated_regions->[2]->[-1]->{$gv} }, 1, '1 gene' );
 is( $annotated_regions->[2]->[-1]->{$gv}->[0]->[0],
@@ -239,7 +241,7 @@ is( scalar @{ $annotated_regions->[2]->[-1]->{$gv}->[0]->[5] },
 is( $annotated_regions->[2]->[-1]->{$gv}->[0]->[5]->[0]->[0],
     'ENSDART00000133571', 'Transcript stable id' );
 is( $annotated_regions->[2]->[-1]->{$gv}->[0]->[5]->[0]->[1],
-    'protein_coding', 'Transcript biotype' );
+    'protein_coding:::', 'Transcript biotype' );
 is( scalar keys %{ $annotated_regions->[3]->[-1] },   1, '1 genebuild' );
 is( scalar @{ $annotated_regions->[3]->[-1]->{$gv} }, 1, '1 gene' );
 is( $annotated_regions->[3]->[-1]->{$gv}->[0]->[0],
@@ -255,7 +257,7 @@ is( scalar @{ $annotated_regions->[3]->[-1]->{$gv}->[0]->[5] },
 is( $annotated_regions->[3]->[-1]->{$gv}->[0]->[5]->[0]->[0],
     'ENSDART00000133571', 'Transcript stable id' );
 is( $annotated_regions->[3]->[-1]->{$gv}->[0]->[5]->[0]->[1],
-    'protein_coding', 'Transcript biotype' );
+    'protein_coding:::', 'Transcript biotype' );
 
 # Check skipping transcripts
 $gene_finder = DETCT::GeneFinder->new(
@@ -286,14 +288,17 @@ foreach my $transcript_three_prime_end (@transcript_three_prime_ends) {
     $gene->set_always( 'seq_region_start',  1 );
     $gene->set_always( 'seq_region_end',    $pos );
     $gene->set_always( 'seq_region_strand', $strand );
+
+    # Mock attribute
     my $transcript = Test::MockObject->new();
-    $transcript->set_always( 'stable_id',         'ENSDART00000133571' );
-    $transcript->set_always( 'external_name',     'cxc64-001' );
-    $transcript->set_always( 'description',       undef );
-    $transcript->set_always( 'biotype',           'protein_coding' );
-    $transcript->set_always( 'seq_region_start',  $pos - 50 );
-    $transcript->set_always( 'seq_region_end',    $pos );
-    $transcript->set_always( 'seq_region_strand', $strand );
+    $transcript->set_always( 'get_all_Attributes', undef );
+    $transcript->set_always( 'stable_id',          'ENSDART00000133571' );
+    $transcript->set_always( 'external_name',      'cxc64-001' );
+    $transcript->set_always( 'description',        undef );
+    $transcript->set_always( 'seq_region_start',   $pos - 50 );
+    $transcript->set_always( 'seq_region_end',     $pos );
+    $transcript->set_always( 'seq_region_strand',  $strand );
+    $transcript->set_always( 'biotype',            'protein_coding' );
     $gene->set_always( 'get_all_Transcripts', [$transcript] );
     push @genes, $gene;
 }
@@ -333,7 +338,7 @@ is( scalar @{ $annotated_regions->[0]->[-1]->{$gv}->[0]->[5] },
 is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[0],
     'ENSDART00000133571', 'Transcript stable id' );
 is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[1],
-    'protein_coding', 'Transcript biotype' );
+    'protein_coding:::', 'Transcript biotype' );
 is( scalar keys %{ $annotated_regions->[1]->[-1] },
     0, 'No genes on reverse strand' );
 
