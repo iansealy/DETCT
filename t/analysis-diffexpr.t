@@ -538,7 +538,7 @@ SKIP: {
             output_sig_level   => 0.05,
             chunk_total        => 20,
             ensembl_host       => 'ensembldb.ensembl.org',
-            ensembl_port       => 5306,
+            ensembl_port       => 3306,
             ensembl_user       => 'anonymous',
             ensembl_pass       => '',
             ensembl_species    => 'danio_rerio',
@@ -553,7 +553,7 @@ SKIP: {
 # Get database name via:
 
 =for comment
-mysql -u anonymous -h ensembldb.ensembl.org -P 5306 -Bse \
+mysql -u anonymous -h ensembldb.ensembl.org -P 3306 -Bse \
 "SHOW DATABASES LIKE 'danio_rerio_core\_%'" | sort | tail -1
 =cut
 
@@ -575,7 +575,7 @@ SKIP: {
             output_sig_level   => 0.05,
             chunk_total        => 20,
             ensembl_host       => 'ensembldb.ensembl.org',
-            ensembl_port       => 5306,
+            ensembl_port       => 3306,
             ensembl_user       => 'anonymous',
             ensembl_pass       => '',
             ensembl_name       => 'danio_rerio_core_75_9',
@@ -604,7 +604,7 @@ SKIP: {
 # Check if Ensembl is reachable
 sub is_ensembl_reachable {
     my $handle = IO::Socket::INET->new(
-        PeerAddr => 'ensembldb.ensembl.org:5306',
+        PeerAddr => 'ensembldb.ensembl.org:3306',
         Timeout  => 1,
         Proto    => 'tcp',
     );
