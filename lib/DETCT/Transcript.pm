@@ -31,14 +31,12 @@ use Class::InsideOut qw( private register id );
 private stable_id   => my %stable_id;      # e.g. ENSDART00000133571
 private name        => my %name;           # e.g. cxc64-001
 private description => my %description;    # e.g. CXC chemokine 64...
-private biotype =>
-  my %biotype
-  ; # e.g. protein_coding - can be overloaded with transcript attribute information (e.g. protein_coding:gencode_basic:tsl1:appris_pi)
-private seq_name => my %seq_name;    # e.g. 5
-private start    => my %start;       # e.g. 40352744
-private end      => my %end;         # e.g. 40354399
-private strand   => my %strand;      # e.g. 1
-private gene     => my %gene;        # DETCT::Gene
+private biotype     => my %biotype;        # e.g. protein_coding:appris_pi::
+private seq_name    => my %seq_name;       # e.g. 5
+private start       => my %start;          # e.g. 40352744
+private end         => my %end;            # e.g. 40354399
+private strand      => my %strand;         # e.g. 1
+private gene        => my %gene;           # DETCT::Gene
 
 # Constants
 Readonly our $MAX_NAME_LENGTH => 128;
@@ -46,12 +44,12 @@ Readonly our $MAX_NAME_LENGTH => 128;
 =method new
 
   Usage       : my $transcript = DETCT::Transcript->new( {
-                    stable_id   => 'ENSDART00000133571',
-                    biotype     => 'protein_coding',
-                    seq_name    => '5',
-                    start       => 40352744,
-                    end         => 40354399,
-                    strand      => 1,
+                    stable_id => 'ENSDART00000133571',
+                    biotype   => 'protein_coding:::',
+                    seq_name  => '5',
+                    start     => 40352744,
+                    end       => 40354399,
+                    strand    => 1,
                 } );
   Purpose     : Constructor for transcript objects
   Returns     : DETCT::Transcript
@@ -223,7 +221,7 @@ sub set_description {
 
   Usage       : my $biotype = $transcript->biotype;
   Purpose     : Getter for biotype attribute
-  Returns     : String (e.g. "protein_coding")
+  Returns     : String (e.g. "protein_coding:::")
   Parameters  : None
   Throws      : No exceptions
   Comments    : None
@@ -237,7 +235,7 @@ sub biotype {
 
 =method set_biotype
 
-  Usage       : $transcript->set_biotype('protein_coding');
+  Usage       : $transcript->set_biotype('protein_coding:::');
   Purpose     : Setter for biotype attribute
   Returns     : undef
   Parameters  : String (the biotype)
@@ -259,7 +257,8 @@ sub set_biotype {
   Returns     : String (the valid biotype)
   Parameters  : String (the biotype)
   Throws      : If biotype is missing or invalid (i.e. not alphanumeric)
-  Comments    : None
+  Comments    : Can be overloaded with information from three transcript
+                attribute types (appris_*, gencode_basic and TSL)
 
 =cut
 

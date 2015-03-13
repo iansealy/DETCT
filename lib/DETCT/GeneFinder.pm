@@ -351,16 +351,16 @@ sub _fill_cache_from_ensembl {
             foreach my $ens_transcript ( @{$ens_transcripts} ) {
                 next if $self->is_skip_transcript( $ens_transcript->stable_id );
 
-               # add information for selected ensembl transcript attribute types
-                my $trans_biotype =
-                  $self->_append_transcript_attributes($ens_transcript);
+                # Extend transcript biotype with selected attributes
+                my $ens_transcript_biotype =
+                  $self->_extend_biotype_with_attributes($ens_transcript);
 
                 my $transcript = DETCT::Transcript->new(
                     {
                         stable_id   => $ens_transcript->stable_id,
                         name        => $ens_transcript->external_name,
                         description => $ens_transcript->description,
-                        biotype     => $trans_biotype,
+                        biotype     => $ens_transcript_biotype,
                         seq_name    => $seq_name,
                         start       => $ens_transcript->seq_region_start,
                         end         => $ens_transcript->seq_region_end,
@@ -383,38 +383,37 @@ sub _fill_cache_from_ensembl {
     return;
 }
 
-# Usage       : $self->_append_transcript_attributes($ens_transcript)
-# Purpose     : Append the transcript atributes to the ensembl biotype
-# Returns     : String (appended biotype)
-# Parameters  : Ensembl trancript object
+# Usage       : $biotype = $self->_extend_biotype_with_attributes($transcript);
+# Purpose     : Append selected transcript atributes to the Ensembl biotype
+# Returns     : String (the extended biotype)
+# Parameters  : Bio::EnsEMBL::Transcript
 # Throws      : No exceptions
-# Comments    : At the moment the method only appends information for
-#               3 attribute types (appris, gencode_basic and tsl) if present
+# Comments    : At the moment only appends information for three attribute types
+#               (appris_*, gencode_basic and TSL)
 
-sub _append_transcript_attributes {
+sub _extend_biotype_with_attributes {
     my ( $self, $ens_transcript ) = @_;
-    my %chosen_attributes =
-      ( appris => q{:}, gencode_basic => q{:}, tsl => q{:} );
-    foreach my $transcript_attribute (
-        @{ $ens_transcript->get_all_Attributes || [] } )
-    {
-        foreach my $attrib_key ( keys %chosen_attributes ) {
-            if ( $transcript_attribute->code =~ /$attrib_key/ixms ) {
-                if ( $transcript_attribute->code =~ /tsl/ixms ) {
-                    my ($tsl_value) =
-                      $transcript_attribute->value =~ /(\w+)/xms;
-                    $chosen_attributes{$attrib_key} .= $tsl_value;
+
+    my %selected_attributes =
+      ( appris => q{}, gencode_basic => q{}, TSL => q{} );
+    foreach my $attr ( @{ $ens_transcript->get_all_Attributes || [] } ) {
+        foreach my $key ( keys %selected_attributes ) {
+            if ( $attr->code =~ /\A $key/xms ) {
+                if ( $attr->code eq 'TSL' ) {
+
+                    # TSL needs value, not just code
+                    my ($tsl_value) = $attr->value =~ /\A (\w+)/xms;
+                    $selected_attributes{$key} .= $tsl_value;
                 }
                 else {
-                    $chosen_attributes{$attrib_key} .=
-                      $transcript_attribute->code;
+                    $selected_attributes{$key} .= $attr->code;
                 }
                 last;
             }
         }
     }
-    my $trans_biotype = $ens_transcript->biotype . join q{},
-      map { $chosen_attributes{$_} } sort { $a cmp $b } keys %chosen_attributes;
+    my $trans_biotype = $ens_transcript->biotype . q{:} . join q{:},
+      map { $selected_attributes{$_} } sort keys %selected_attributes;
 
     return $trans_biotype;
 }

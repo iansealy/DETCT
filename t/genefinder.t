@@ -193,7 +193,6 @@ $regions = [
     [ '1', 1, 1000, 10, -10, '1', 300, -1, 10, [], undef, undef, [], [] ],
 ];
 $annotated_regions = $gene_finder->add_gene_annotation($regions);
-
 ($gv) = keys %{ $annotated_regions->[0]->[-1] };    # Genebuild version varies
 is( scalar keys %{ $annotated_regions->[0]->[-1] },   1, '1 genebuild' );
 is( scalar @{ $annotated_regions->[0]->[-1]->{$gv} }, 1, '1 gene' );
@@ -211,7 +210,6 @@ is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[0],
     'ENSDART00000133571', 'Transcript stable id' );
 is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[1],
     'protein_coding:::', 'Transcript biotype' );
-
 is( scalar keys %{ $annotated_regions->[1]->[-1] },   1, '1 genebuild' );
 is( scalar @{ $annotated_regions->[1]->[-1]->{$gv} }, 1, '1 gene' );
 is( $annotated_regions->[1]->[-1]->{$gv}->[0]->[0],
@@ -261,7 +259,7 @@ is( $annotated_regions->[3]->[-1]->{$gv}->[0]->[5]->[0]->[0],
 is( $annotated_regions->[3]->[-1]->{$gv}->[0]->[5]->[0]->[1],
     'protein_coding:::', 'Transcript biotype' );
 
-## Check skipping transcripts
+# Check skipping transcripts
 $gene_finder = DETCT::GeneFinder->new(
     {
         slice_adaptor    => $slice_adaptor,
@@ -291,7 +289,7 @@ foreach my $transcript_three_prime_end (@transcript_three_prime_ends) {
     $gene->set_always( 'seq_region_end',    $pos );
     $gene->set_always( 'seq_region_strand', $strand );
 
-    # Mock ens_attribute
+    # Mock attribute
     my $transcript = Test::MockObject->new();
     $transcript->set_always( 'get_all_Attributes', undef );
     $transcript->set_always( 'stable_id',          'ENSDART00000133571' );
