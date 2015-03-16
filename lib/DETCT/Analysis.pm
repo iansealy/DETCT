@@ -17,6 +17,7 @@ use strict;
 use autodie;
 use Carp;
 use Try::Tiny;
+use Data::Dumper;
 
 use Readonly;
 use Class::InsideOut qw( private register id );
@@ -124,6 +125,13 @@ sub new_from_yaml {
         confess sprintf 'YAML file (%s) is invalid: %s', $yaml_file,
           YAML::Tiny->errstr;
     }
+    
+    my $sample_names;
+    if( $sample_names = $self->_chech_for_duplicate_sample_names($yaml) ){
+        confess "YAML file ($yaml_file) has duplicate names for samples:\n$sample_names\n";
+    } elsif ( $sample_names = $self->_check_for_duplicate_tag_and_bam($yaml) ){
+        confess "YAML file ($yaml_file) has the following samples pointing to the same tag and BAM files:\n$sample_names\n";
+    }
 
     $self->set_name( $yaml->[0]->{name} );
     $self->set_ref_fasta( $yaml->[0]->{ref_fasta} );
@@ -160,6 +168,51 @@ sub new_from_yaml {
 
     return $self;
 }
+
+
+# Usage       : $duplicated_names = $self->_chech_for_duplicate_sample_names($yaml);
+# Purpose     : Check for duplicated sample names
+# Returns     : String (duplicated sample names) or undef
+# Parameters  : String (yaml file)
+# Throws      : None
+# Comments    : None
+
+sub _chech_for_duplicate_sample_names {
+ my($self,$yaml) = @_;
+
+ my (%sample_names, $duplicated_names);
+ foreach my $sample(@{ $yaml->[0]->{samples} }){
+  $sample_names{ $sample->{name} }++;
+ }
+
+ foreach my $name(sort keys %sample_names){
+  $duplicated_names .= "$name\n" if $sample_names{ $name } > 1;
+ }
+ return $duplicated_names if $duplicated_names || undef;
+}
+
+
+# Usage       : $duplicated_names = $self->check_for_duplicate_tag_and_bam($yaml);
+# Purpose     : Check for samples which point to the same tag and BAM file
+# Returns     : String (sample names which point to the same tag and BAM file) or undef
+# Parameters  : String (yaml file)
+# Throws      : None
+# Comments    : None
+
+sub _check_for_duplicate_tag_and_bam {
+ my($self,$yaml) = @_;
+
+ my (%samples, $duplicated_names);
+ foreach my $sample(@{ $yaml->[0]->{samples} }){
+  push @{ $samples{ $sample->{tag} . $sample->{bam_file} } }, $sample->{name};
+ }
+
+ foreach my $tag_and_bam(sort keys %samples){
+  $duplicated_names .= join "\n",  @{ $samples{ $tag_and_bam } } if @{ $samples{ $tag_and_bam } } > 1;
+ }
+ return $duplicated_names if $duplicated_names || undef;
+}
+  
 
 =method name
 
