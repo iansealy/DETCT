@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 190;
+plan tests => 194;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -157,6 +157,13 @@ is( $analysis->set_normalisation_method('spike'),
 is( $analysis->normalisation_method, 'spike', 'Get new normalisation method' );
 throws_ok { $analysis->set_normalisation_method('invalid') }
 qr/Invalid normalisation method/ms, 'Invalid normalisation method';
+
+# Test DESeq model attribute
+is( $analysis->deseq_model,                    'additive', 'Get DESeq model' );
+is( $analysis->set_deseq_model('interaction'), undef,      'Set DESeq model' );
+is( $analysis->deseq_model, 'interaction', 'Get new DESeq model' );
+throws_ok { $analysis->set_deseq_model('invalid') } qr/Invalid DESeq model/ms,
+  'Invalid DESeq model';
 
 # Test output significance level attribute
 is( $analysis->output_sig_level, 0.05, 'Get output significance level' );
@@ -531,7 +538,7 @@ SKIP: {
             output_sig_level   => 0.05,
             chunk_total        => 20,
             ensembl_host       => 'ensembldb.ensembl.org',
-            ensembl_port       => 5306,
+            ensembl_port       => 3306,
             ensembl_user       => 'anonymous',
             ensembl_pass       => '',
             ensembl_species    => 'danio_rerio',
@@ -546,7 +553,7 @@ SKIP: {
 # Get database name via:
 
 =for comment
-mysql -u anonymous -h ensembldb.ensembl.org -P 5306 -Bse \
+mysql -u anonymous -h ensembldb.ensembl.org -P 3306 -Bse \
 "SHOW DATABASES LIKE 'danio_rerio_core\_%'" | sort | tail -1
 =cut
 
@@ -568,7 +575,7 @@ SKIP: {
             output_sig_level   => 0.05,
             chunk_total        => 20,
             ensembl_host       => 'ensembldb.ensembl.org',
-            ensembl_port       => 5306,
+            ensembl_port       => 3306,
             ensembl_user       => 'anonymous',
             ensembl_pass       => '',
             ensembl_name       => 'danio_rerio_core_75_9',
@@ -597,7 +604,7 @@ SKIP: {
 # Check if Ensembl is reachable
 sub is_ensembl_reachable {
     my $handle = IO::Socket::INET->new(
-        PeerAddr => 'ensembldb.ensembl.org:5306',
+        PeerAddr => 'ensembldb.ensembl.org:3306',
         Timeout  => 1,
         Proto    => 'tcp',
     );

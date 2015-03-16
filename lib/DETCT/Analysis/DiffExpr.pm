@@ -45,6 +45,7 @@ private deseq_script         => my %deseq_script;           # e.g. ~/run_deseq.R
 private filter_percentile    => my %filter_percentile;      # e.g. 40
 private spike_prefix         => my %spike_prefix;           # e.g. ERCC
 private normalisation_method => my %normalisation_method;   # e.g. spike
+private deseq_model          => my %deseq_model;            # e.g. additive
 private output_sig_level     => my %output_sig_level;       # e.g. 0.05
 private table_file           => my %table_file;             # e.g. all.tsv
 private table_format         => my %table_format;           # e.g. tsv
@@ -84,6 +85,7 @@ private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
                     filter_percentile    => Int,
                     spike_prefix         => String,
                     normalisation_method => String,
+                    deseq_model          => String,
                     output_sig_level     => Float,
                     table_file           => String,
                     table_format         => String,
@@ -118,6 +120,7 @@ sub new {
     $self->set_filter_percentile( $arg_ref->{filter_percentile} );
     $self->set_spike_prefix( $arg_ref->{spike_prefix} );
     $self->set_normalisation_method( $arg_ref->{normalisation_method} );
+    $self->set_deseq_model( $arg_ref->{deseq_model} );
     $self->set_output_sig_level( $arg_ref->{output_sig_level} );
     $self->set_table_file( $arg_ref->{table_file} );
     $self->set_table_format( $arg_ref->{table_format} );
@@ -163,6 +166,7 @@ sub new_from_yaml {
     $self->set_filter_percentile( $yaml->[0]->{filter_percentile} );
     $self->set_spike_prefix( $yaml->[0]->{spike_prefix} );
     $self->set_normalisation_method( $yaml->[0]->{normalisation_method} );
+    $self->set_deseq_model( $yaml->[0]->{deseq_model} );
     $self->set_output_sig_level( $yaml->[0]->{output_sig_level} );
     $self->set_table_file( $yaml->[0]->{table_file} );
     $self->set_table_format( $yaml->[0]->{table_format} );
@@ -761,6 +765,53 @@ sub _check_normalisation_method {
       if !defined $normalisation_method
       || any { $_ eq $normalisation_method } qw(deseq spike none);
     confess "Invalid normalisation method ($normalisation_method) specified";
+}
+
+=method deseq_model
+
+  Usage       : my $deseq_model = $analysis->deseq_model;
+  Purpose     : Getter for DESeq model attribute
+  Returns     : String ('additive' or 'interaction')
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : Defaults to 'additive'
+
+=cut
+
+sub deseq_model {
+    my ($self) = @_;
+    return $deseq_model{ id $self} || 'additive';
+}
+
+=method set_deseq_model
+
+  Usage       : $analysis->set_deseq_model('interaction');
+  Purpose     : Setter for DESeq model attribute
+  Returns     : undef
+  Parameters  : String (the DESeq model)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_deseq_model {
+    my ( $self, $arg ) = @_;
+    $deseq_model{ id $self} = _check_deseq_model($arg);
+    return;
+}
+
+# Usage       : $deseq_model = _check_deseq_model($deseq_model);
+# Purpose     : Check for valid DESeq model
+# Returns     : String (the valid DESeq model)
+# Parameters  : String (the DESeq model)
+# Throws      : If DESeq model is defined but invalid
+# Comments    : None
+sub _check_deseq_model {
+    my ($deseq_model) = @_;
+    return $deseq_model
+      if !defined $deseq_model
+      || any { $_ eq $deseq_model } qw(additive interaction);
+    confess "Invalid DESeq model ($deseq_model) specified";
 }
 
 =method output_sig_level
