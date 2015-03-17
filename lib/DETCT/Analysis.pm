@@ -125,94 +125,126 @@ sub new_from_yaml {
         confess sprintf 'YAML file (%s) is invalid: %s', $yaml_file,
           YAML::Tiny->errstr;
     }
-    
-    my $sample_names;
-    if( $sample_names = $self->_chech_for_duplicate_sample_names($yaml) ){
-        confess "YAML file ($yaml_file) has duplicate names for samples:\n$sample_names\n";
-    } elsif ( $sample_names = $self->_check_for_duplicate_tag_and_bam($yaml) ){
-        confess "YAML file ($yaml_file) has the following samples pointing to the same tag and BAM files:\n$sample_names\n";
+ 
+    # some basic error checking on the input YAML and BAM files
+    if( my $sample_names = $self->_check_for_duplicate_sample_names($yaml) ){
+     confess "YAML file ($yaml_file) has duplicate names for samples:\n$sample_names\n";
+    }
+    if( my $sample_names = $self->_check_for_duplicate_tag_and_bam($yaml) ){
+     confess "YAML file ($yaml_file) has the following samples pointing to the same tag and BAM files:\n$sample_names\n";
+    }
+    if( my $bam_files = $self->_check_for_bam_file_index($yaml) ){
+     confess "YAML file ($yaml_file) has the following BAM files with no associated index files:\n$bam_files\n" 
     }
 
-    $self->set_name( $yaml->[0]->{name} );
-    $self->set_ref_fasta( $yaml->[0]->{ref_fasta} );
-    $self->set_ensembl_host( $yaml->[0]->{ensembl_host} );
-    $self->set_ensembl_port( $yaml->[0]->{ensembl_port} );
-    $self->set_ensembl_user( $yaml->[0]->{ensembl_user} );
-    $self->set_ensembl_pass( $yaml->[0]->{ensembl_pass} );
-    $self->set_ensembl_name( $yaml->[0]->{ensembl_name} );
-    $self->set_ensembl_species( $yaml->[0]->{ensembl_species} );
-    $self->set_chunk_total( $yaml->[0]->{chunk_total} );
-    $self->set_test_chunk( $yaml->[0]->{test_chunk} );
+            $self->set_name( $yaml->[0]->{name} );
+            $self->set_ref_fasta( $yaml->[0]->{ref_fasta} );
+            $self->set_ensembl_host( $yaml->[0]->{ensembl_host} );
+            $self->set_ensembl_port( $yaml->[0]->{ensembl_port} );
+            $self->set_ensembl_user( $yaml->[0]->{ensembl_user} );
+            $self->set_ensembl_pass( $yaml->[0]->{ensembl_pass} );
+            $self->set_ensembl_name( $yaml->[0]->{ensembl_name} );
+            $self->set_ensembl_species( $yaml->[0]->{ensembl_species} );
+            $self->set_chunk_total( $yaml->[0]->{chunk_total} );
+            $self->set_test_chunk( $yaml->[0]->{test_chunk} );
 
-    $self->add_all_ensembl_db_types( $yaml->[0]->{ensembl_db_types} );
+            $self->add_all_ensembl_db_types( $yaml->[0]->{ensembl_db_types} );
 
-    # Need to add skip sequences before adding samples because add_sample()
-    # calls add_all_sequences()
-    $self->add_all_skip_sequences( $yaml->[0]->{skip_sequences} );
+         # Need to add skip sequences before adding samples because add_sample()
+         # calls add_all_sequences()
+            $self->add_all_skip_sequences( $yaml->[0]->{skip_sequences} );
 
-    foreach my $sample_hash ( @{ $yaml->[0]->{samples} } ) {
-        my $sample = DETCT::Sample->new(
-            {
-                name        => $sample_hash->{name},
-                description => $sample_hash->{description},
-                condition   => $sample_hash->{condition},
-                group       => $sample_hash->{group},
-                tag         => $sample_hash->{tag},
-                bam_file    => $sample_hash->{bam_file},
-            }
-        );
-        $self->add_sample( $sample, 1 );    # 1 = do not validate
-    }
+            foreach my $sample_hash ( @{ $yaml->[0]->{samples} } ) {
+              my $sample = DETCT::Sample->new(
+                  {
+                      name        => $sample_hash->{name},
+                      description => $sample_hash->{description},
+                      condition   => $sample_hash->{condition},
+                      group       => $sample_hash->{group},
+                      tag         => $sample_hash->{tag},
+                      bam_file    => $sample_hash->{bam_file},
+                  }
+              );
+              $self->add_sample( $sample, 1 );    # 1 = do not validate
+          }
 
-    $self->validate();
+          $self->validate();
 
-    return $self;
-}
+            return $self;
+      }
 
-
-# Usage       : $duplicated_names = $self->_chech_for_duplicate_sample_names($yaml);
+# Usage       : $duplicated_names = $self->_check_for_duplicate_sample_names($yaml);
 # Purpose     : Check for duplicated sample names
 # Returns     : String (duplicated sample names) or undef
 # Parameters  : String (yaml file)
 # Throws      : None
 # Comments    : None
 
-sub _chech_for_duplicate_sample_names {
- my($self,$yaml) = @_;
+      sub _check_for_duplicate_sample_names {
+          my ( $self, $yaml ) = @_;
 
- my (%sample_names, $duplicated_names);
- foreach my $sample(@{ $yaml->[0]->{samples} }){
-  $sample_names{ $sample->{name} }++;
- }
+          my ( %sample_names, $duplicate_sample_names );
+          foreach my $sample ( @{ $yaml->[0]->{samples} } ) {
+              $sample_names{ $sample->{name} }++;
+          }
 
- foreach my $name(sort keys %sample_names){
-  $duplicated_names .= "$name\n" if $sample_names{ $name } > 1;
- }
- return $duplicated_names if $duplicated_names || undef;
-}
+          foreach my $name ( sort keys %sample_names ) {
+              if ( $sample_names{$name} > 1 ) {
+                  $duplicate_sample_names .= "$name\n";
+              }
+          }
+          return $duplicate_sample_names;
+    }
 
-
-# Usage       : $duplicated_names = $self->check_for_duplicate_tag_and_bam($yaml);
+# Usage       : $duplicated_tag_and_bam = $self->_check_for_duplicate_tag_and_bam($yaml);
 # Purpose     : Check for samples which point to the same tag and BAM file
 # Returns     : String (sample names which point to the same tag and BAM file) or undef
 # Parameters  : String (yaml file)
 # Throws      : None
 # Comments    : None
 
-sub _check_for_duplicate_tag_and_bam {
- my($self,$yaml) = @_;
+    sub _check_for_duplicate_tag_and_bam {
+          my ( $self, $yaml ) = @_;
 
- my (%samples, $duplicated_names);
- foreach my $sample(@{ $yaml->[0]->{samples} }){
-  push @{ $samples{ $sample->{tag} . $sample->{bam_file} } }, $sample->{name};
- }
+          my ( %samples, $duplicate_sample_names );
+          foreach my $sample ( @{ $yaml->[0]->{samples} } ) {
+              push @{ $samples{ $sample->{tag} . $sample->{bam_file} } },
+                $sample->{name};
+          }
 
- foreach my $tag_and_bam(sort keys %samples){
-  $duplicated_names .= join "\n",  @{ $samples{ $tag_and_bam } } if @{ $samples{ $tag_and_bam } } > 1;
- }
- return $duplicated_names if $duplicated_names || undef;
-}
-  
+          foreach my $tag_and_bam ( sort keys %samples ) {
+              if ( @{ $samples{$tag_and_bam} } > 1 ) {
+                  $duplicate_sample_names .= join "\n",
+                    @{ $samples{$tag_and_bam} };
+              }
+          }
+          return $duplicate_sample_names;
+    }
+
+# Usage       : $bam_files_without_indices = $self->_check_for_bam_file_index($yaml)
+# Purpose     : Check for presence of a BAM file index
+# Returns     : String (BAM files with no indices) or undef
+# Parameters  : String (yaml file)
+# Throws      : None
+# Comments    : None
+
+    sub _check_for_bam_file_index {
+          my ( $self, $yaml ) = @_;
+
+          my ( %bam_files, $bam_files_without_indices );
+
+          foreach my $sample ( @{ $yaml->[0]->{samples} } ) {
+              $bam_files{ $sample->{bam_file} } = $sample->{bam_file} . '.bai';
+          }
+
+          foreach my $bam_file ( sort keys %bam_files ) {
+              my $bam_index_file = $bam_files{$bam_file};
+              if ( ! -e $bam_index_file ) {
+                  $bam_files_without_indices .= "$bam_file\n";
+              }
+          }
+          return $bam_files_without_indices;
+    }
 
 =method name
 
@@ -225,10 +257,10 @@ sub _check_for_duplicate_tag_and_bam {
 
 =cut
 
-sub name {
-    my ($self) = @_;
-    return $name{ id $self};
-}
+          sub name {
+              my ($self) = @_;
+              return $name{ id $self};
+          }
 
 =method set_name
 
@@ -241,32 +273,32 @@ sub name {
 
 =cut
 
-sub set_name {
-    my ( $self, $arg ) = @_;
-    $name{ id $self} = _check_name($arg);
-    return;
-}
+          sub set_name {
+              my ( $self, $arg ) = @_;
+              $name{ id $self} = _check_name($arg);
+              return;
+          }
 
-# Usage       : $name = _check_name($name);
-# Purpose     : Check for valid name
-# Returns     : String (the valid name)
-# Parameters  : String (the name)
-# Throws      : If name is missing
-#               If name is invalid (i.e. not alphanumeric)
-#               If name is empty
-#               If name > $MAX_NAME_LENGTH characters
-# Comments    : None
-sub _check_name {
-    my ($name) = @_;
+          # Usage       : $name = _check_name($name);
+          # Purpose     : Check for valid name
+          # Returns     : String (the valid name)
+          # Parameters  : String (the name)
+          # Throws      : If name is missing
+          #               If name is invalid (i.e. not alphanumeric)
+          #               If name is empty
+          #               If name > $MAX_NAME_LENGTH characters
+          # Comments    : None
+          sub _check_name {
+              my ($name) = @_;
 
-    confess 'No name specified'      if !defined $name;
-    confess 'Empty name specified'   if !length $name;
-    confess 'Invalid name specified' if $name !~ m/\A [\w.-]+ \z/xms;
-    confess "Name ($name) longer than $MAX_NAME_LENGTH characters"
-      if length $name > $MAX_NAME_LENGTH;
+              confess 'No name specified'      if !defined $name;
+              confess 'Empty name specified'   if !length $name;
+              confess 'Invalid name specified' if $name !~ m/\A [\w.-]+ \z/xms;
+              confess "Name ($name) longer than $MAX_NAME_LENGTH characters"
+                if length $name > $MAX_NAME_LENGTH;
 
-    return $name;
-}
+              return $name;
+          }
 
 =method add_all_skip_sequences
 
@@ -279,17 +311,17 @@ sub _check_name {
 
 =cut
 
-sub add_all_skip_sequences {
-    my ( $self, $skip_sequences ) = @_;
+          sub add_all_skip_sequences {
+              my ( $self, $skip_sequences ) = @_;
 
-    $skip_sequence{ id $self} = {};
+              $skip_sequence{ id $self} = {};
 
-    foreach my $seq_name ( @{ $skip_sequences || [] } ) {
-        $skip_sequence{ id $self}->{$seq_name} = 1;
-    }
+              foreach my $seq_name ( @{ $skip_sequences || [] } ) {
+                  $skip_sequence{ id $self}->{$seq_name} = 1;
+              }
 
-    return;
-}
+              return;
+          }
 
 =method get_all_skip_sequences
 
@@ -302,11 +334,11 @@ sub add_all_skip_sequences {
 
 =cut
 
-sub get_all_skip_sequences {
-    my ($self) = @_;
+          sub get_all_skip_sequences {
+              my ($self) = @_;
 
-    return [ sort keys %{ $skip_sequence{ id $self} || {} } ];
-}
+              return [ sort keys %{ $skip_sequence{ id $self} || {} } ];
+          }
 
 =method is_skip_sequence
 
@@ -319,11 +351,11 @@ sub get_all_skip_sequences {
 
 =cut
 
-sub is_skip_sequence {
-    my ( $self, $seq_name ) = @_;
+          sub is_skip_sequence {
+              my ( $self, $seq_name ) = @_;
 
-    return exists $skip_sequence{ id $self}->{$seq_name} ? 1 : 0;
-}
+              return exists $skip_sequence{ id $self}->{$seq_name} ? 1 : 0;
+          }
 
 =method add_sample
 
@@ -338,27 +370,28 @@ sub is_skip_sequence {
 
 =cut
 
-sub add_sample {
-    my ( $self, $sample, $no_validaton ) = @_;
+          sub add_sample {
+              my ( $self, $sample, $no_validaton ) = @_;
 
-    confess 'No sample specified' if !defined $sample;
-    confess 'Class of sample (', ref $sample, ') not DETCT::Sample'
-      if !$sample->isa('DETCT::Sample');
+              confess 'No sample specified' if !defined $sample;
+              confess 'Class of sample (', ref $sample, ') not DETCT::Sample'
+                if !$sample->isa('DETCT::Sample');
 
-    if ( !exists $sample{ id $self} ) {
-        $sample{ id $self} = [$sample];
-        $self->add_all_sequences( $sample->bam_file );    # Because first sample
-    }
-    else {
-        push @{ $sample{ id $self} }, $sample;
-    }
+              if ( !exists $sample{ id $self} ) {
+                  $sample{ id $self} = [$sample];
+                  $self->add_all_sequences( $sample->bam_file )
+                    ;    # Because first sample
+              }
+              else {
+                  push @{ $sample{ id $self} }, $sample;
+              }
 
-    if ( !defined $no_validaton ) {
-        $self->validate();
-    }
+              if ( !defined $no_validaton ) {
+                  $self->validate();
+              }
 
-    return;
-}
+              return;
+          }
 
 =method get_all_samples
 
@@ -371,11 +404,11 @@ sub add_sample {
 
 =cut
 
-sub get_all_samples {
-    my ($self) = @_;
+          sub get_all_samples {
+              my ($self) = @_;
 
-    return $sample{ id $self} || [];
-}
+              return $sample{ id $self} || [];
+          }
 
 =method add_all_sequences
 
@@ -388,35 +421,38 @@ sub get_all_samples {
 
 =cut
 
-sub add_all_sequences {
-    my ( $self, $bam_file ) = @_;
+          sub add_all_sequences {
+              my ( $self, $bam_file ) = @_;
 
-    undef $total_bp{ id $self};
+              undef $total_bp{ id $self};
 
-    $bam_file = DETCT::Sample::check_bam_file($bam_file);
+              $bam_file = DETCT::Sample::check_bam_file($bam_file);
 
-    $sequence{ id $self} = [];
+              $sequence{ id $self} = [];
 
-    my %len = DETCT::Misc::BAM::get_reference_sequence_lengths($bam_file);
+              my %len =
+                DETCT::Misc::BAM::get_reference_sequence_lengths($bam_file);
 
-    foreach my $name ( reverse sort { $len{$a} <=> $len{$b} } keys %len ) {
-        next if $self->is_skip_sequence($name);
+              foreach
+                my $name ( reverse sort { $len{$a} <=> $len{$b} } keys %len )
+              {
+                  next if $self->is_skip_sequence($name);
 
-        my $sequence = DETCT::Sequence->new(
-            {
-                name => $name,
-                bp   => $len{$name},
-            }
-        );
+                  my $sequence = DETCT::Sequence->new(
+                      {
+                          name => $name,
+                          bp   => $len{$name},
+                      }
+                  );
 
-        push @{ $sequence{ id $self} }, $sequence;
-    }
+                  push @{ $sequence{ id $self} }, $sequence;
+              }
 
-    # Group sequences into chunks
-    $self->add_all_chunks();
+              # Group sequences into chunks
+              $self->add_all_chunks();
 
-    return;
-}
+              return;
+          }
 
 =method get_all_sequences
 
@@ -429,11 +465,11 @@ sub add_all_sequences {
 
 =cut
 
-sub get_all_sequences {
-    my ($self) = @_;
+          sub get_all_sequences {
+              my ($self) = @_;
 
-    return $sequence{ id $self} || [];
-}
+              return $sequence{ id $self} || [];
+          }
 
 =method validate
 
@@ -446,25 +482,27 @@ sub get_all_sequences {
 
 =cut
 
-sub validate {
-    my ($self) = @_;
+          sub validate {
+              my ($self) = @_;
 
-    my @bam_files = $self->list_all_bam_files();
+              my @bam_files = $self->list_all_bam_files();
 
-    # Compare reference sequence from first BAM file to all other BAM files
-    my $first_bam_file = shift @bam_files;
-    my %first_bam_length =
-      DETCT::Misc::BAM::get_reference_sequence_lengths($first_bam_file);
-    foreach my $bam_file (@bam_files) {
-        my %bam_length =
-          DETCT::Misc::BAM::get_reference_sequence_lengths($bam_file);
-        if ( !Compare( \%first_bam_length, \%bam_length ) ) {
-            confess "$first_bam_file and $bam_file use different reference";
-        }
-    }
+         # Compare reference sequence from first BAM file to all other BAM files
+              my $first_bam_file = shift @bam_files;
+              my %first_bam_length =
+                DETCT::Misc::BAM::get_reference_sequence_lengths(
+                  $first_bam_file);
+              foreach my $bam_file (@bam_files) {
+                  my %bam_length =
+                    DETCT::Misc::BAM::get_reference_sequence_lengths($bam_file);
+                  if ( !Compare( \%first_bam_length, \%bam_length ) ) {
+                      confess
+                        "$first_bam_file and $bam_file use different reference";
+                  }
+              }
 
-    return 1;
-}
+              return 1;
+          }
 
 =method total_bp
 
@@ -477,19 +515,19 @@ sub validate {
 
 =cut
 
-sub total_bp {
-    my ($self) = @_;
+          sub total_bp {
+              my ($self) = @_;
 
-    if ( !defined $total_bp{ id $self} ) {
-        my @seqs = @{ $self->get_all_sequences() };
-        $total_bp{ id $self} = 0;
-        foreach my $seq (@seqs) {
-            $total_bp{ id $self} += $seq->bp;
-        }
-    }
+              if ( !defined $total_bp{ id $self} ) {
+                  my @seqs = @{ $self->get_all_sequences() };
+                  $total_bp{ id $self} = 0;
+                  foreach my $seq (@seqs) {
+                      $total_bp{ id $self} += $seq->bp;
+                  }
+              }
 
-    return $total_bp{ id $self};
-}
+              return $total_bp{ id $self};
+          }
 
 =method ref_fasta
 
@@ -502,10 +540,10 @@ sub total_bp {
 
 =cut
 
-sub ref_fasta {
-    my ($self) = @_;
-    return $ref_fasta{ id $self};
-}
+          sub ref_fasta {
+              my ($self) = @_;
+              return $ref_fasta{ id $self};
+          }
 
 =method set_ref_fasta
 
@@ -518,23 +556,23 @@ sub ref_fasta {
 
 =cut
 
-sub set_ref_fasta {
-    my ( $self, $arg ) = @_;
-    $ref_fasta{ id $self} = _check_ref_fasta($arg);
-    return;
-}
+          sub set_ref_fasta {
+              my ( $self, $arg ) = @_;
+              $ref_fasta{ id $self} = _check_ref_fasta($arg);
+              return;
+          }
 
-# Usage       : $ref_fasta = _check_ref_fasta($ref_fasta);
-# Purpose     : Check for valid reference FASTA
-# Returns     : String (the valid reference FASTA)
-# Parameters  : String (the reference FASTA)
-# Throws      : If reference FASTA is defined but not readable
-# Comments    : None
-sub _check_ref_fasta {
-    my ($ref_fasta) = @_;
-    return $ref_fasta if !defined $ref_fasta || -r $ref_fasta;
-    confess "Reference FASTA ($ref_fasta) cannot be read";
-}
+          # Usage       : $ref_fasta = _check_ref_fasta($ref_fasta);
+          # Purpose     : Check for valid reference FASTA
+          # Returns     : String (the valid reference FASTA)
+          # Parameters  : String (the reference FASTA)
+          # Throws      : If reference FASTA is defined but not readable
+          # Comments    : None
+          sub _check_ref_fasta {
+              my ($ref_fasta) = @_;
+              return $ref_fasta if !defined $ref_fasta || -r $ref_fasta;
+              confess "Reference FASTA ($ref_fasta) cannot be read";
+          }
 
 =method fasta_index
 
@@ -547,17 +585,18 @@ sub _check_ref_fasta {
 
 =cut
 
-sub fasta_index {
-    my ($self) = @_;
+          sub fasta_index {
+              my ($self) = @_;
 
-    if ( !defined $fasta_index{ id $self} && $self->ref_fasta ) {
+              if ( !defined $fasta_index{ id $self} && $self->ref_fasta ) {
 
-        # We can create a FASTA index object
-        $self->set_fasta_index( Bio::DB::Sam::Fai->load( $self->ref_fasta ) );
-    }
+                  # We can create a FASTA index object
+                  $self->set_fasta_index(
+                      Bio::DB::Sam::Fai->load( $self->ref_fasta ) );
+              }
 
-    return $fasta_index{ id $self};
-}
+              return $fasta_index{ id $self};
+          }
 
 =method set_fasta_index
 
@@ -570,27 +609,28 @@ sub fasta_index {
 
 =cut
 
-sub set_fasta_index {
-    my ( $self, $arg ) = @_;
-    $fasta_index{ id $self} = _check_fasta_index($arg);
-    return;
-}
+          sub set_fasta_index {
+              my ( $self, $arg ) = @_;
+              $fasta_index{ id $self} = _check_fasta_index($arg);
+              return;
+          }
 
-# Usage       : $fai = _check_fasta_index($fai);
-# Purpose     : Check for valid FASTA index
-# Returns     : Bio::DB::Sam::Fai
-# Parameters  : Bio::DB::Sam::Fai
-# Throws      : If FASTA index is missing or invalid (i.e. not a
-#               Bio::DB::Sam::Fai object)
-# Comments    : None
-sub _check_fasta_index {
-    my ($fasta_index) = @_;
-    return $fasta_index
-      if defined $fasta_index && $fasta_index->isa('Bio::DB::Sam::Fai');
-    confess 'No FASTA index specified' if !defined $fasta_index;
-    confess 'Class of FASTA index (', ref $fasta_index,
-      ') not Bio::DB::Sam::Fai';
-}
+          # Usage       : $fai = _check_fasta_index($fai);
+          # Purpose     : Check for valid FASTA index
+          # Returns     : Bio::DB::Sam::Fai
+          # Parameters  : Bio::DB::Sam::Fai
+          # Throws      : If FASTA index is missing or invalid (i.e. not a
+          #               Bio::DB::Sam::Fai object)
+          # Comments    : None
+          sub _check_fasta_index {
+              my ($fasta_index) = @_;
+              return $fasta_index
+                if defined $fasta_index
+                && $fasta_index->isa('Bio::DB::Sam::Fai');
+              confess 'No FASTA index specified' if !defined $fasta_index;
+              confess 'Class of FASTA index (', ref $fasta_index,
+                ') not Bio::DB::Sam::Fai';
+          }
 
 =method ensembl_host
 
@@ -603,10 +643,10 @@ sub _check_fasta_index {
 
 =cut
 
-sub ensembl_host {
-    my ($self) = @_;
-    return $ensembl_host{ id $self};
-}
+          sub ensembl_host {
+              my ($self) = @_;
+              return $ensembl_host{ id $self};
+          }
 
 =method set_ensembl_host
 
@@ -619,11 +659,11 @@ sub ensembl_host {
 
 =cut
 
-sub set_ensembl_host {
-    my ( $self, $arg ) = @_;
-    $ensembl_host{ id $self} = $arg;
-    return;
-}
+          sub set_ensembl_host {
+              my ( $self, $arg ) = @_;
+              $ensembl_host{ id $self} = $arg;
+              return;
+          }
 
 =method ensembl_port
 
@@ -636,10 +676,10 @@ sub set_ensembl_host {
 
 =cut
 
-sub ensembl_port {
-    my ($self) = @_;
-    return $ensembl_port{ id $self};
-}
+          sub ensembl_port {
+              my ($self) = @_;
+              return $ensembl_port{ id $self};
+          }
 
 =method set_ensembl_port
 
@@ -652,24 +692,24 @@ sub ensembl_port {
 
 =cut
 
-sub set_ensembl_port {
-    my ( $self, $arg ) = @_;
-    $ensembl_port{ id $self} = _check_ensembl_port($arg);
-    return;
-}
+          sub set_ensembl_port {
+              my ( $self, $arg ) = @_;
+              $ensembl_port{ id $self} = _check_ensembl_port($arg);
+              return;
+          }
 
-# Usage       : $ensembl_port = _check_ensembl_port($ensembl_port);
-# Purpose     : Check for valid Ensembl port
-# Returns     : +ve Int (the valid Ensembl port)
-# Parameters  : +ve Int (the Ensembl port)
-# Throws      : If Ensembl port is defined but not a positive integer
-# Comments    : None
-sub _check_ensembl_port {
-    my ($ensembl_port) = @_;
-    return $ensembl_port
-      if !defined $ensembl_port || $ensembl_port =~ m/\A \d+ \z/xms;
-    confess "Invalid Ensembl port ($ensembl_port) specified";
-}
+          # Usage       : $ensembl_port = _check_ensembl_port($ensembl_port);
+          # Purpose     : Check for valid Ensembl port
+          # Returns     : +ve Int (the valid Ensembl port)
+          # Parameters  : +ve Int (the Ensembl port)
+          # Throws      : If Ensembl port is defined but not a positive integer
+          # Comments    : None
+          sub _check_ensembl_port {
+              my ($ensembl_port) = @_;
+              return $ensembl_port
+                if !defined $ensembl_port || $ensembl_port =~ m/\A \d+ \z/xms;
+              confess "Invalid Ensembl port ($ensembl_port) specified";
+          }
 
 =method ensembl_user
 
@@ -682,10 +722,10 @@ sub _check_ensembl_port {
 
 =cut
 
-sub ensembl_user {
-    my ($self) = @_;
-    return $ensembl_user{ id $self};
-}
+          sub ensembl_user {
+              my ($self) = @_;
+              return $ensembl_user{ id $self};
+          }
 
 =method set_ensembl_user
 
@@ -698,11 +738,11 @@ sub ensembl_user {
 
 =cut
 
-sub set_ensembl_user {
-    my ( $self, $arg ) = @_;
-    $ensembl_user{ id $self} = $arg;
-    return;
-}
+          sub set_ensembl_user {
+              my ( $self, $arg ) = @_;
+              $ensembl_user{ id $self} = $arg;
+              return;
+          }
 
 =method ensembl_pass
 
@@ -715,10 +755,10 @@ sub set_ensembl_user {
 
 =cut
 
-sub ensembl_pass {
-    my ($self) = @_;
-    return $ensembl_pass{ id $self};
-}
+          sub ensembl_pass {
+              my ($self) = @_;
+              return $ensembl_pass{ id $self};
+          }
 
 =method set_ensembl_pass
 
@@ -731,11 +771,11 @@ sub ensembl_pass {
 
 =cut
 
-sub set_ensembl_pass {
-    my ( $self, $arg ) = @_;
-    $ensembl_pass{ id $self} = $arg;
-    return;
-}
+          sub set_ensembl_pass {
+              my ( $self, $arg ) = @_;
+              $ensembl_pass{ id $self} = $arg;
+              return;
+          }
 
 =method ensembl_name
 
@@ -748,10 +788,10 @@ sub set_ensembl_pass {
 
 =cut
 
-sub ensembl_name {
-    my ($self) = @_;
-    return $ensembl_name{ id $self};
-}
+          sub ensembl_name {
+              my ($self) = @_;
+              return $ensembl_name{ id $self};
+          }
 
 =method set_ensembl_name
 
@@ -764,11 +804,11 @@ sub ensembl_name {
 
 =cut
 
-sub set_ensembl_name {
-    my ( $self, $arg ) = @_;
-    $ensembl_name{ id $self} = $arg;
-    return;
-}
+          sub set_ensembl_name {
+              my ( $self, $arg ) = @_;
+              $ensembl_name{ id $self} = $arg;
+              return;
+          }
 
 =method ensembl_species
 
@@ -781,10 +821,10 @@ sub set_ensembl_name {
 
 =cut
 
-sub ensembl_species {
-    my ($self) = @_;
-    return $ensembl_species{ id $self};
-}
+          sub ensembl_species {
+              my ($self) = @_;
+              return $ensembl_species{ id $self};
+          }
 
 =method set_ensembl_species
 
@@ -797,11 +837,11 @@ sub ensembl_species {
 
 =cut
 
-sub set_ensembl_species {
-    my ( $self, $arg ) = @_;
-    $ensembl_species{ id $self} = $arg;
-    return;
-}
+          sub set_ensembl_species {
+              my ( $self, $arg ) = @_;
+              $ensembl_species{ id $self} = $arg;
+              return;
+          }
 
 =method add_all_ensembl_db_types
 
@@ -814,17 +854,17 @@ sub set_ensembl_species {
 
 =cut
 
-sub add_all_ensembl_db_types {
-    my ( $self, $ensembl_db_types ) = @_;
+          sub add_all_ensembl_db_types {
+              my ( $self, $ensembl_db_types ) = @_;
 
-    $ensembl_db_type{ id $self} = {};
+              $ensembl_db_type{ id $self} = {};
 
-    foreach my $ensembl_db_type ( @{ $ensembl_db_types || [] } ) {
-        $ensembl_db_type{ id $self}->{$ensembl_db_type} = 1;
-    }
+              foreach my $ensembl_db_type ( @{ $ensembl_db_types || [] } ) {
+                  $ensembl_db_type{ id $self}->{$ensembl_db_type} = 1;
+              }
 
-    return;
-}
+              return;
+          }
 
 =method get_all_ensembl_db_types
 
@@ -837,14 +877,16 @@ sub add_all_ensembl_db_types {
 
 =cut
 
-sub get_all_ensembl_db_types {
-    my ($self) = @_;
+          sub get_all_ensembl_db_types {
+              my ($self) = @_;
 
-    return [
-        sort keys %{ $ensembl_db_type{ id $self}
-              || { $DEFAULT_ENSEMBL_DB_TYPE => 1 } }
-    ];
-}
+              return [
+                  sort keys %{
+                      $ensembl_db_type{ id $self}
+                        || { $DEFAULT_ENSEMBL_DB_TYPE => 1 }
+                  }
+              ];
+          }
 
 =method slice_adaptor
 
@@ -857,18 +899,18 @@ sub get_all_ensembl_db_types {
 
 =cut
 
-sub slice_adaptor {
-    my ($self) = @_;
+          sub slice_adaptor {
+              my ($self) = @_;
 
-    if ( !defined $slice_adaptor{ id $self}
-        && ( $self->ensembl_species || $self->ensembl_name ) )
-    {
-        # We can create an Ensembl slice adaptor
-        $self->_create_slice_adaptor();
-    }
+              if ( !defined $slice_adaptor{ id $self}
+                  && ( $self->ensembl_species || $self->ensembl_name ) )
+              {
+                  # We can create an Ensembl slice adaptor
+                  $self->_create_slice_adaptor();
+              }
 
-    return $slice_adaptor{ id $self};
-}
+              return $slice_adaptor{ id $self};
+          }
 
 =method set_slice_adaptor
 
@@ -881,28 +923,29 @@ sub slice_adaptor {
 
 =cut
 
-sub set_slice_adaptor {
-    my ( $self, $arg ) = @_;
-    $slice_adaptor{ id $self} = _check_slice_adaptor($arg);
-    return;
-}
+          sub set_slice_adaptor {
+              my ( $self, $arg ) = @_;
+              $slice_adaptor{ id $self} = _check_slice_adaptor($arg);
+              return;
+          }
 
-# Usage       : $slice_adaptor = _check_slice_adaptor($slice_adaptor);
-# Purpose     : Check for valid Ensembl slice adaptor
-# Returns     : Bio::EnsEMBL::DBSQL::SliceAdaptor
-# Parameters  : Bio::EnsEMBL::DBSQL::SliceAdaptor
-# Throws      : If slice adaptor is missing or invalid (i.e. not a
-#               Bio::EnsEMBL::DBSQL::SliceAdaptor object)
-# Comments    : None
-sub _check_slice_adaptor {
-    my ($slice_adaptor) = @_;
-    return $slice_adaptor
-      if defined $slice_adaptor
-      && $slice_adaptor->isa('Bio::EnsEMBL::DBSQL::SliceAdaptor');
-    confess 'No Ensembl slice adaptor specified' if !defined $slice_adaptor;
-    confess 'Class of Ensembl slice adaptor (', ref $slice_adaptor,
-      ') not Bio::EnsEMBL::DBSQL::SliceAdaptor';
-}
+          # Usage       : $slice_adaptor = _check_slice_adaptor($slice_adaptor);
+          # Purpose     : Check for valid Ensembl slice adaptor
+          # Returns     : Bio::EnsEMBL::DBSQL::SliceAdaptor
+          # Parameters  : Bio::EnsEMBL::DBSQL::SliceAdaptor
+          # Throws      : If slice adaptor is missing or invalid (i.e. not a
+          #               Bio::EnsEMBL::DBSQL::SliceAdaptor object)
+          # Comments    : None
+          sub _check_slice_adaptor {
+              my ($slice_adaptor) = @_;
+              return $slice_adaptor
+                if defined $slice_adaptor
+                && $slice_adaptor->isa('Bio::EnsEMBL::DBSQL::SliceAdaptor');
+              confess 'No Ensembl slice adaptor specified'
+                if !defined $slice_adaptor;
+              confess 'Class of Ensembl slice adaptor (', ref $slice_adaptor,
+                ') not Bio::EnsEMBL::DBSQL::SliceAdaptor';
+          }
 
 =method chunk_total
 
@@ -915,10 +958,10 @@ sub _check_slice_adaptor {
 
 =cut
 
-sub chunk_total {
-    my ($self) = @_;
-    return $chunk_total{ id $self};
-}
+          sub chunk_total {
+              my ($self) = @_;
+              return $chunk_total{ id $self};
+          }
 
 =method set_chunk_total
 
@@ -931,31 +974,31 @@ sub chunk_total {
 
 =cut
 
-sub set_chunk_total {
-    my ( $self, $arg ) = @_;
-    $chunk_total{ id $self} = _check_chunk_total($arg);
+          sub set_chunk_total {
+              my ( $self, $arg ) = @_;
+              $chunk_total{ id $self} = _check_chunk_total($arg);
 
-    # Recalculate chunks if necessary
-    if ( scalar @{ $self->get_all_samples() } ) {
-        $self->add_all_chunks();
-    }
+              # Recalculate chunks if necessary
+              if ( scalar @{ $self->get_all_samples() } ) {
+                  $self->add_all_chunks();
+              }
 
-    return;
-}
+              return;
+          }
 
-# Usage       : $chunk_total = _check_chunk_total($chunk_total);
-# Purpose     : Check for valid chunk total
-# Returns     : +ve Int (the valid chunk total)
-# Parameters  : +ve Int (the chunk total)
-# Throws      : If chunk total is missing or not a positive integer
-# Comments    : None
-sub _check_chunk_total {
-    my ($chunk_total) = @_;
-    return $chunk_total
-      if defined $chunk_total && $chunk_total =~ m/\A \d+ \z/xms;
-    confess 'No chunk total specified' if !defined $chunk_total;
-    confess "Invalid chunk total ($chunk_total) specified";
-}
+          # Usage       : $chunk_total = _check_chunk_total($chunk_total);
+          # Purpose     : Check for valid chunk total
+          # Returns     : +ve Int (the valid chunk total)
+          # Parameters  : +ve Int (the chunk total)
+          # Throws      : If chunk total is missing or not a positive integer
+          # Comments    : None
+          sub _check_chunk_total {
+              my ($chunk_total) = @_;
+              return $chunk_total
+                if defined $chunk_total && $chunk_total =~ m/\A \d+ \z/xms;
+              confess 'No chunk total specified' if !defined $chunk_total;
+              confess "Invalid chunk total ($chunk_total) specified";
+          }
 
 =method test_chunk
 
@@ -968,10 +1011,10 @@ sub _check_chunk_total {
 
 =cut
 
-sub test_chunk {
-    my ($self) = @_;
-    return $test_chunk{ id $self};
-}
+          sub test_chunk {
+              my ($self) = @_;
+              return $test_chunk{ id $self};
+          }
 
 =method set_test_chunk
 
@@ -984,11 +1027,11 @@ sub test_chunk {
 
 =cut
 
-sub set_test_chunk {
-    my ( $self, $arg ) = @_;
-    $test_chunk{ id $self} = $arg;
-    return;
-}
+          sub set_test_chunk {
+              my ( $self, $arg ) = @_;
+              $test_chunk{ id $self} = $arg;
+              return;
+          }
 
 =method add_all_chunks
 
@@ -1002,76 +1045,85 @@ sub set_test_chunk {
 
 =cut
 
-sub add_all_chunks {
-    my ($self) = @_;
+          sub add_all_chunks {
+              my ($self) = @_;
 
-    my $total_bp = $self->total_bp;
+              my $total_bp = $self->total_bp;
 
-    # Get chunk target size (+ 1 to ensure slight overestimate)
-    my $target_chunk_size = int( $total_bp / $self->chunk_total + 1 );
+              # Get chunk target size (+ 1 to ensure slight overestimate)
+              my $target_chunk_size = int( $total_bp / $self->chunk_total + 1 );
 
-    my @chunks;
-    my @chunk_size = map { 0 } 1 .. $self->chunk_total;
+              my @chunks;
+              my @chunk_size = map { 0 } 1 .. $self->chunk_total;
 
-    # Iterate over sequences
-    my @seqs = @{ $self->get_all_sequences() };
-  SEQ: foreach my $seq (@seqs) {
+              # Iterate over sequences
+              my @seqs = @{ $self->get_all_sequences() };
+            SEQ: foreach my $seq (@seqs) {
 
-        # Iterate over each chunk
-        foreach my $chunk_index ( 0 .. $self->chunk_total - 1 ) {
+                  # Iterate over each chunk
+                  foreach my $chunk_index ( 0 .. $self->chunk_total - 1 ) {
 
-            # Add sequence to chunk if there's room or if the chunk is empty
-            if (   $chunk_size[$chunk_index] + $seq->bp <= $target_chunk_size
-                || $chunk_size[$chunk_index] == 0 )
-            {
-                push @{ $chunks[$chunk_index] }, $seq;
-                $chunk_size[$chunk_index] += $seq->bp;
-                next SEQ;    # Next sequence
-            }
-        }
+                # Add sequence to chunk if there's room or if the chunk is empty
+                      if ( $chunk_size[$chunk_index] + $seq->bp <=
+                             $target_chunk_size
+                          || $chunk_size[$chunk_index] == 0 )
+                      {
+                          push @{ $chunks[$chunk_index] }, $seq;
+                          $chunk_size[$chunk_index] += $seq->bp;
+                          next SEQ;    # Next sequence
+                      }
+                  }
 
-        # Sequence hasn't been added to a chunk, so add to chunk with most room
-        my $roomy_chunk_index = 0;
-        foreach my $chunk_index ( 0 .. $self->chunk_total - 1 ) {
-            if ( $chunk_size[$chunk_index] < $chunk_size[$roomy_chunk_index] ) {
-                $roomy_chunk_index = $chunk_index;
-            }
-        }
-        push @{ $chunks[$roomy_chunk_index] }, $seq;
-        $chunk_size[$roomy_chunk_index] += $seq->bp;
-    }
+         # Sequence hasn't been added to a chunk, so add to chunk with most room
+                  my $roomy_chunk_index = 0;
+                  foreach my $chunk_index ( 0 .. $self->chunk_total - 1 ) {
+                      if ( $chunk_size[$chunk_index] <
+                          $chunk_size[$roomy_chunk_index] )
+                      {
+                          $roomy_chunk_index = $chunk_index;
+                      }
+                  }
+                  push @{ $chunks[$roomy_chunk_index] }, $seq;
+                  $chunk_size[$roomy_chunk_index] += $seq->bp;
+              }
 
-    # Iterate over empty chunks in order to attempt to add sequences to them
-    foreach my $empty_chunk_index ( 0 .. $self->chunk_total - 1 ) {
-        next if defined $chunks[$empty_chunk_index];    # Only want empty chunks
+        # Iterate over empty chunks in order to attempt to add sequences to them
+              foreach my $empty_chunk_index ( 0 .. $self->chunk_total - 1 ) {
+                  next
+                    if defined $chunks[$empty_chunk_index]
+                    ;    # Only want empty chunks
 
-        # Find chunk with highest number of sequences (but more than one)
-        my $max_seqs_chunk_index;
-        my $max_seqs;
-        foreach my $chunk_index ( 0 .. $self->chunk_total - 1 ) {
-            next if !defined $chunks[$chunk_index]; # Only want non-empty chunks
-            my $seqs = scalar @{ $chunks[$chunk_index] };
-            if ( $seqs > 1 && ( !defined $max_seqs || $seqs > $max_seqs ) ) {
-                $max_seqs_chunk_index = $chunk_index;
-                $max_seqs             = $seqs;
-            }
-        }
+               # Find chunk with highest number of sequences (but more than one)
+                  my $max_seqs_chunk_index;
+                  my $max_seqs;
+                  foreach my $chunk_index ( 0 .. $self->chunk_total - 1 ) {
+                      next
+                        if !defined $chunks[$chunk_index]
+                        ;    # Only want non-empty chunks
+                      my $seqs = scalar @{ $chunks[$chunk_index] };
+                      if ( $seqs > 1
+                          && ( !defined $max_seqs || $seqs > $max_seqs ) )
+                      {
+                          $max_seqs_chunk_index = $chunk_index;
+                          $max_seqs             = $seqs;
+                      }
+                  }
 
-        last if !defined $max_seqs;                 # No splittable chunks
+                  last if !defined $max_seqs;    # No splittable chunks
 
-        # Split chosen chunk into empty chunk
-        my $split_index = int( $max_seqs / 2 );
-        @{ $chunks[$empty_chunk_index] } =
-          splice @{ $chunks[$max_seqs_chunk_index] }, 0, $split_index;
-    }
+                  # Split chosen chunk into empty chunk
+                  my $split_index = int( $max_seqs / 2 );
+                  @{ $chunks[$empty_chunk_index] } =
+                    splice @{ $chunks[$max_seqs_chunk_index] }, 0, $split_index;
+              }
 
-    $chunk{ id $self} = \@chunks;
+              $chunk{ id $self} = \@chunks;
 
-    # Number of chunks may be smaller than requested chunk total, so adjust
-    $chunk_total{ id $self} = scalar @chunks;
+         # Number of chunks may be smaller than requested chunk total, so adjust
+              $chunk_total{ id $self} = scalar @chunks;
 
-    return;
-}
+              return;
+          }
 
 =method get_all_chunks
 
@@ -1084,18 +1136,20 @@ sub add_all_chunks {
 
 =cut
 
-sub get_all_chunks {
-    my ($self) = @_;
+          sub get_all_chunks {
+              my ($self) = @_;
 
-    my $chunks = $chunk{ id $self} || [];
+              my $chunks = $chunk{ id $self} || [];
 
-    # If a test chunk is specified then only return that chunk not all chunks
-    if ( $self->test_chunk && exists $chunks->[ $self->test_chunk - 1 ] ) {
-        $chunks = [ $chunks->[ $self->test_chunk - 1 ] ];
-    }
+       # If a test chunk is specified then only return that chunk not all chunks
+              if ( $self->test_chunk
+                  && exists $chunks->[ $self->test_chunk - 1 ] )
+              {
+                  $chunks = [ $chunks->[ $self->test_chunk - 1 ] ];
+              }
 
-    return $chunks;
-}
+              return $chunks;
+          }
 
 =method list_all_bam_files
 
@@ -1108,15 +1162,15 @@ sub get_all_chunks {
 
 =cut
 
-sub list_all_bam_files {
-    my ($self) = @_;
+          sub list_all_bam_files {
+              my ($self) = @_;
 
-    my $samples = $self->get_all_samples();
+              my $samples = $self->get_all_samples();
 
-    my @bam_files = map { $_->bam_file } @{$samples};
+              my @bam_files = map { $_->bam_file } @{$samples};
 
-    return uniq( sort @bam_files );
-}
+              return uniq( sort @bam_files );
+          }
 
 =method list_all_tags_by_bam_file
 
@@ -1129,15 +1183,16 @@ sub list_all_bam_files {
 
 =cut
 
-sub list_all_tags_by_bam_file {
-    my ( $self, $bam_file ) = @_;
+          sub list_all_tags_by_bam_file {
+              my ( $self, $bam_file ) = @_;
 
-    my $samples = $self->get_all_samples();
+              my $samples = $self->get_all_samples();
 
-    my @tags = map { $_->tag } grep { $_->bam_file eq $bam_file } @{$samples};
+              my @tags =
+                map { $_->tag } grep { $_->bam_file eq $bam_file } @{$samples};
 
-    return uniq( sort @tags );
-}
+              return uniq( sort @tags );
+          }
 
 =method get_sample_name_by_bam_file_and_tag
 
@@ -1151,17 +1206,18 @@ sub list_all_tags_by_bam_file {
 
 =cut
 
-sub get_sample_name_by_bam_file_and_tag {
-    my ( $self, $bam_file, $tag ) = @_;
+          sub get_sample_name_by_bam_file_and_tag {
+              my ( $self, $bam_file, $tag ) = @_;
 
-    my $samples = $self->get_all_samples();
+              my $samples = $self->get_all_samples();
 
-    my ($name) =
-      map { $_->name }
-      grep { $_->bam_file eq $bam_file && $_->tag eq $tag } @{$samples};
+              my ($name) =
+                map { $_->name }
+                grep { $_->bam_file eq $bam_file && $_->tag eq $tag }
+                @{$samples};
 
-    return $name;
-}
+              return $name;
+          }
 
 =method get_sample_names_by_bam_file
 
@@ -1174,15 +1230,16 @@ sub get_sample_name_by_bam_file_and_tag {
 
 =cut
 
-sub get_sample_names_by_bam_file {
-    my ( $self, $bam_file, $tag ) = @_;
+          sub get_sample_names_by_bam_file {
+              my ( $self, $bam_file, $tag ) = @_;
 
-    my $samples = $self->get_all_samples();
+              my $samples = $self->get_all_samples();
 
-    my @names = map { $_->name } grep { $_->bam_file eq $bam_file } @{$samples};
+              my @names =
+                map { $_->name } grep { $_->bam_file eq $bam_file } @{$samples};
 
-    return uniq( sort @names );
-}
+              return uniq( sort @names );
+          }
 
 =method get_subsequence
 
@@ -1201,94 +1258,98 @@ sub get_sample_names_by_bam_file {
 
 =cut
 
-sub get_subsequence {
-    my ( $self, $seq_name, $start, $end, $strand ) = @_;
+          sub get_subsequence {
+              my ( $self, $seq_name, $start, $end, $strand ) = @_;
 
-    confess 'No sequence name specified'   if !defined $seq_name;
-    confess 'No sequence start specified'  if !defined $start;
-    confess 'No sequence end specified'    if !defined $end;
-    confess 'No sequence strand specified' if !defined $strand;
+              confess 'No sequence name specified'   if !defined $seq_name;
+              confess 'No sequence start specified'  if !defined $start;
+              confess 'No sequence end specified'    if !defined $end;
+              confess 'No sequence strand specified' if !defined $strand;
 
-    # Avoid negative positions (but don't worry if end is larger than sequence)
-    if ( $start < 1 ) {
-        $start = 1;
-    }
-    if ( $end < 1 ) {
-        $end = 1;
-    }
+     # Avoid negative positions (but don't worry if end is larger than sequence)
+              if ( $start < 1 ) {
+                  $start = 1;
+              }
+              if ( $end < 1 ) {
+                  $end = 1;
+              }
 
-    my $subseq;
+              my $subseq;
 
-    if ( $self->fasta_index ) {
-        $subseq = DETCT::Misc::BAM::get_sequence(
-            {
-                fasta_index => $self->fasta_index,
-                seq_name    => $seq_name,
-                start       => $start,
-                end         => $end,
-                strand      => $strand,
-            }
-        );
-    }
-    elsif ( $self->slice_adaptor ) {
-        $subseq =
-          $self->slice_adaptor->fetch_by_region( 'toplevel', $seq_name, $start,
-            $end, $strand )->seq;
-    }
-    else {
-        confess 'No reference FASTA or Ensembl database';
-    }
+              if ( $self->fasta_index ) {
+                  $subseq = DETCT::Misc::BAM::get_sequence(
+                      {
+                          fasta_index => $self->fasta_index,
+                          seq_name    => $seq_name,
+                          start       => $start,
+                          end         => $end,
+                          strand      => $strand,
+                      }
+                  );
+              }
+              elsif ( $self->slice_adaptor ) {
+                  $subseq =
+                    $self->slice_adaptor->fetch_by_region( 'toplevel',
+                      $seq_name, $start, $end, $strand )->seq;
+              }
+              else {
+                  confess 'No reference FASTA or Ensembl database';
+              }
 
-    return uc $subseq;
-}
+              return uc $subseq;
+          }
 
-# Usage       : $self->_create_slice_adaptor();
-# Purpose     : Create an Ensembl slice adaptor
-# Returns     : Undef
-# Parameters  : None
-# Throws      : No exceptions
-# Comments    : None
-sub _create_slice_adaptor {
-    my ($self) = @_;
+          # Usage       : $self->_create_slice_adaptor();
+          # Purpose     : Create an Ensembl slice adaptor
+          # Returns     : Undef
+          # Parameters  : None
+          # Throws      : No exceptions
+          # Comments    : None
+          sub _create_slice_adaptor {
+              my ($self) = @_;
 
-    my $host =
-      $self->ensembl_host ? $self->ensembl_host : $DEFAULT_ENSEMBL_HOST;
-    my $port = $self->ensembl_port;
-    my $user =
-      $self->ensembl_user ? $self->ensembl_user : $DEFAULT_ENSEMBL_USER;
-    my $pass = $self->ensembl_pass;
-    my $slice_adaptor;
-    if ( !$self->ensembl_name ) {
+              my $host =
+                  $self->ensembl_host
+                ? $self->ensembl_host
+                : $DEFAULT_ENSEMBL_HOST;
+              my $port = $self->ensembl_port;
+              my $user =
+                  $self->ensembl_user
+                ? $self->ensembl_user
+                : $DEFAULT_ENSEMBL_USER;
+              my $pass = $self->ensembl_pass;
+              my $slice_adaptor;
+              if ( !$self->ensembl_name ) {
 
-        # Get slice adaptor via registry
-        require Bio::EnsEMBL::Registry;
-        Bio::EnsEMBL::Registry->load_registry_from_db(
-            -host    => $host,
-            -port    => $port,
-            -user    => $user,
-            -pass    => $pass,
-            -species => $self->ensembl_species,
-        );
-        $slice_adaptor =
-          Bio::EnsEMBL::Registry->get_adaptor( $self->ensembl_species, 'core',
-            'slice' );
-    }
-    else {
-        # Get slice adaptor from specific database
-        require Bio::EnsEMBL::DBSQL::DBAdaptor;
-        my $ensembl_db = Bio::EnsEMBL::DBSQL::DBAdaptor->new(
-            -host   => $host,
-            -port   => $port,
-            -user   => $user,
-            -pass   => $pass,
-            -dbname => $self->ensembl_name,
-        );
-        $slice_adaptor = $ensembl_db->get_SliceAdaptor();
-    }
+                  # Get slice adaptor via registry
+                  require Bio::EnsEMBL::Registry;
+                  Bio::EnsEMBL::Registry->load_registry_from_db(
+                      -host    => $host,
+                      -port    => $port,
+                      -user    => $user,
+                      -pass    => $pass,
+                      -species => $self->ensembl_species,
+                  );
+                  $slice_adaptor =
+                    Bio::EnsEMBL::Registry->get_adaptor( $self->ensembl_species,
+                      'core', 'slice' );
+              }
+              else {
+                  # Get slice adaptor from specific database
+                  require Bio::EnsEMBL::DBSQL::DBAdaptor;
+                  my $ensembl_db = Bio::EnsEMBL::DBSQL::DBAdaptor->new(
+                      -host   => $host,
+                      -port   => $port,
+                      -user   => $user,
+                      -pass   => $pass,
+                      -dbname => $self->ensembl_name,
+                  );
+                  $slice_adaptor = $ensembl_db->get_SliceAdaptor();
+              }
 
-    $self->set_slice_adaptor($slice_adaptor);
+              $self->set_slice_adaptor($slice_adaptor);
 
-    return;
-}
+              return;
+          }
 
-1;
+          1;
