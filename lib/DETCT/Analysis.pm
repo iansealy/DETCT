@@ -17,6 +17,8 @@ use strict;
 use autodie;
 use Carp;
 use Try::Tiny;
+use Capture::Tiny;
+use Data::Dumper;
 
 use Readonly;
 use Class::InsideOut qw( private register id );
@@ -125,6 +127,26 @@ sub new_from_yaml {
           YAML::Tiny->errstr;
     }
 
+    # some basic error checking on the input YAML and BAM files
+    if ( my $sample_names = join "\n",
+        keys %{ $self->_check_for_duplicate_sample_names($yaml) } )
+    {
+        confess
+"YAML file ($yaml_file) has duplicate names for samples:\n$sample_names\n\n";
+    }
+    if ( my $sample_names = join "\n",
+        keys %{ $self->_check_for_duplicate_tag_and_bam($yaml) } )
+    {
+        confess
+"YAML file ($yaml_file) has the following samples pointing to the same tag and BAM files:\n$sample_names\n\n";
+    }
+    if ( my $bam_wo_index = join "\n",
+        keys %{ $self->_check_for_bam_file_index($yaml) } )
+    {
+        confess
+"YAML file ($yaml_file) has the following BAM files without index files:\n$bam_wo_index\n\n";
+    }
+
     $self->set_name( $yaml->[0]->{name} );
     $self->set_ref_fasta( $yaml->[0]->{ref_fasta} );
     $self->set_ensembl_host( $yaml->[0]->{ensembl_host} );
@@ -159,6 +181,74 @@ sub new_from_yaml {
     $self->validate();
 
     return $self;
+}
+
+# Usage       : $sample_names = $self->_check_for_duplicate_sample_names($yaml);
+# Purpose     : Check for duplicated sample names
+# Returns     : Hash ref (of duplicated sample names)
+# Parameters  : YAML::Tiny object
+# Throws      : None
+# Comments    : None
+
+sub _check_for_duplicate_sample_names {
+    my ( $self, $yaml ) = @_;
+
+    my ( %sample_names, %duplicates );
+    foreach my $sample ( @{ $yaml->[0]->{samples} } ) {
+        $sample_names{ $sample->{name} }++;
+    }
+
+    foreach my $name ( sort keys %sample_names ) {
+        if ( $sample_names{$name} > 1 ) {
+            $duplicates{$name}++;
+        }
+    }
+    return \%duplicates;
+}
+
+# Usage       : $sample_names = $self->_check_for_duplicate_tag_and_bam($yaml);
+# Purpose     : Check for samples which point to the same tag and BAM file
+# Returns     : Hash ref (of sample names which point to the same tag and BAM file)
+# Parameters  : YAML::Tiny object
+# Throws      : None
+# Comments    : None
+
+sub _check_for_duplicate_tag_and_bam {
+    my ( $self, $yaml ) = @_;
+
+    my ( %samples, %duplicates );
+    foreach my $sample ( @{ $yaml->[0]->{samples} } ) {
+        push @{ $samples{ $sample->{tag} . $sample->{bam_file} } },
+          $sample->{name};
+    }
+
+    foreach my $tag_and_bam ( sort keys %samples ) {
+        if ( @{ $samples{$tag_and_bam} } > 1 ) {
+            %duplicates = map { $_ => 1 } @{ $samples{$tag_and_bam} };
+        }
+    }
+    return \%duplicates;
+}
+
+# Usage       : $bam_files_without_indices = $self->_check_for_bam_file_index($yaml)
+# Purpose     : Check for presence of a BAM file index
+# Returns     : Hash ref (of BAM files with no index)
+# Parameters  : YAML::Tiny object
+# Throws      : None
+# Comments    : None
+
+sub _check_for_bam_file_index {
+    my ( $self, $yaml ) = @_;
+
+    my %bam_wo_index;
+
+    foreach my $sample ( @{ $yaml->[0]->{samples} } ) {
+        my $index = Bio::DB::Bam->index_open( $sample->{bam_file} );
+        if ( !$index ) {
+            $bam_wo_index{ $sample->{bam_file} }++;
+        }
+    }
+    return \%bam_wo_index;
 }
 
 =method name
@@ -533,7 +623,8 @@ sub set_fasta_index {
 sub _check_fasta_index {
     my ($fasta_index) = @_;
     return $fasta_index
-      if defined $fasta_index && $fasta_index->isa('Bio::DB::Sam::Fai');
+      if defined $fasta_index
+      && $fasta_index->isa('Bio::DB::Sam::Fai');
     confess 'No FASTA index specified' if !defined $fasta_index;
     confess 'Class of FASTA index (', ref $fasta_index,
       ') not Bio::DB::Sam::Fai';
@@ -846,7 +937,8 @@ sub _check_slice_adaptor {
     return $slice_adaptor
       if defined $slice_adaptor
       && $slice_adaptor->isa('Bio::EnsEMBL::DBSQL::SliceAdaptor');
-    confess 'No Ensembl slice adaptor specified' if !defined $slice_adaptor;
+    confess 'No Ensembl slice adaptor specified'
+      if !defined $slice_adaptor;
     confess 'Class of Ensembl slice adaptor (', ref $slice_adaptor,
       ') not Bio::EnsEMBL::DBSQL::SliceAdaptor';
 }
@@ -990,15 +1082,19 @@ sub add_all_chunks {
 
     # Iterate over empty chunks in order to attempt to add sequences to them
     foreach my $empty_chunk_index ( 0 .. $self->chunk_total - 1 ) {
-        next if defined $chunks[$empty_chunk_index];    # Only want empty chunks
+        next
+          if defined $chunks[$empty_chunk_index];    # Only want empty chunks
 
         # Find chunk with highest number of sequences (but more than one)
         my $max_seqs_chunk_index;
         my $max_seqs;
         foreach my $chunk_index ( 0 .. $self->chunk_total - 1 ) {
-            next if !defined $chunks[$chunk_index]; # Only want non-empty chunks
+            next
+              if !defined $chunks[$chunk_index];    # Only want non-empty chunks
             my $seqs = scalar @{ $chunks[$chunk_index] };
-            if ( $seqs > 1 && ( !defined $max_seqs || $seqs > $max_seqs ) ) {
+            if ( $seqs > 1
+                && ( !defined $max_seqs || $seqs > $max_seqs ) )
+            {
                 $max_seqs_chunk_index = $chunk_index;
                 $max_seqs             = $seqs;
             }
@@ -1037,7 +1133,9 @@ sub get_all_chunks {
     my $chunks = $chunk{ id $self} || [];
 
     # If a test chunk is specified then only return that chunk not all chunks
-    if ( $self->test_chunk && exists $chunks->[ $self->test_chunk - 1 ] ) {
+    if ( $self->test_chunk
+        && exists $chunks->[ $self->test_chunk - 1 ] )
+    {
         $chunks = [ $chunks->[ $self->test_chunk - 1 ] ];
     }
 
@@ -1081,7 +1179,8 @@ sub list_all_tags_by_bam_file {
 
     my $samples = $self->get_all_samples();
 
-    my @tags = map { $_->tag } grep { $_->bam_file eq $bam_file } @{$samples};
+    my @tags =
+      map { $_->tag } grep { $_->bam_file eq $bam_file } @{$samples};
 
     return uniq( sort @tags );
 }
@@ -1126,7 +1225,8 @@ sub get_sample_names_by_bam_file {
 
     my $samples = $self->get_all_samples();
 
-    my @names = map { $_->name } grep { $_->bam_file eq $bam_file } @{$samples};
+    my @names =
+      map { $_->name } grep { $_->bam_file eq $bam_file } @{$samples};
 
     return uniq( sort @names );
 }
@@ -1179,8 +1279,8 @@ sub get_subsequence {
     }
     elsif ( $self->slice_adaptor ) {
         $subseq =
-          $self->slice_adaptor->fetch_by_region( 'toplevel', $seq_name, $start,
-            $end, $strand )->seq;
+          $self->slice_adaptor->fetch_by_region( 'toplevel',
+            $seq_name, $start, $end, $strand )->seq;
     }
     else {
         confess 'No reference FASTA or Ensembl database';
@@ -1199,10 +1299,14 @@ sub _create_slice_adaptor {
     my ($self) = @_;
 
     my $host =
-      $self->ensembl_host ? $self->ensembl_host : $DEFAULT_ENSEMBL_HOST;
+        $self->ensembl_host
+      ? $self->ensembl_host
+      : $DEFAULT_ENSEMBL_HOST;
     my $port = $self->ensembl_port;
     my $user =
-      $self->ensembl_user ? $self->ensembl_user : $DEFAULT_ENSEMBL_USER;
+        $self->ensembl_user
+      ? $self->ensembl_user
+      : $DEFAULT_ENSEMBL_USER;
     my $pass = $self->ensembl_pass;
     my $slice_adaptor;
     if ( !$self->ensembl_name ) {
@@ -1217,8 +1321,8 @@ sub _create_slice_adaptor {
             -species => $self->ensembl_species,
         );
         $slice_adaptor =
-          Bio::EnsEMBL::Registry->get_adaptor( $self->ensembl_species, 'core',
-            'slice' );
+          Bio::EnsEMBL::Registry->get_adaptor( $self->ensembl_species,
+            'core', 'slice' );
     }
     else {
         # Get slice adaptor from specific database

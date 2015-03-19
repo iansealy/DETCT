@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 113;
+plan tests => 116;
 
 use DETCT::Analysis;
 
@@ -212,6 +212,28 @@ throws_ok {
 }
 qr/use different reference/ms, 'Different reference';
 
+# Test for duplicate sample names in the YAML file
+throws_ok {
+    $analysis =
+      DETCT::Analysis->new_from_yaml('t/data/test_analysis_de14.yaml');
+}
+qr/.*duplicate names for samples*/ms, 'Duplicate sample names in YAML';
+
+# Test for different sample names associated with the same BAM file and TAG in the YAML file
+throws_ok {
+    $analysis =
+      DETCT::Analysis->new_from_yaml('t/data/test_analysis_de15.yaml');
+}
+qr/.*samples pointing to the same tag and BAM files*/ms,
+  'Different sample names pointing at the same BAM file and TAG in YAML';
+
+# Test for *.bam file with no associated index file *.bam.bai
+throws_ok {
+    $analysis =
+      DETCT::Analysis->new_from_yaml('t/data/test_analysis_de16.yaml');
+}
+qr/.*BAM files without index files*/ms, 'bam file with no index file';
+
 # Test summary info
 $analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis_de1122.yaml');
 my @bam_files = $analysis->list_all_bam_files();
@@ -386,3 +408,6 @@ sub is_ensembl_reachable {
         return 0;
     }
 }
+
+# Check
+
