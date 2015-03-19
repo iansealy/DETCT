@@ -47,6 +47,7 @@ perl -Ilib script/make_test_sam.pl --seed 200 --seq_region_count 5 \
 --seq_region_max_length 10_000 --read_pair_count 100 \
 --read_tags NNNNBCGCAA NNNNBCAAGA | samtools view -bS - | samtools sort - test3
 ls *.bam | xargs -n1 samtools index
+cp test1.bam test4.bam
 samtools sort -n -f test1.bam test1.sorted.bam
 mv test* t/data/
 
