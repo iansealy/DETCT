@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 116;
+plan tests => 117;
 
 use DETCT::Analysis;
 
@@ -100,20 +100,32 @@ is( scalar @{$chunks}, 0, 'No chunks' );
 my $sample = Test::MockObject->new();
 $sample->set_isa('DETCT::Sample');
 $sample->set_always( 'bam_file', 't/data/test1.bam' );
+$sample->set_always( 'name', 'zmp_ph1_1m' );
+$sample->set_always( 'tag', 'NNNNBGAGGC' );
 
 # Mock sample object with different reference sequence
 my $sample_diff = Test::MockObject->new();
 $sample_diff->set_isa('DETCT::Sample');
 $sample_diff->set_always( 'bam_file', 't/data/test3.bam' );
+$sample_diff->set_always( 'name', 'zmp_ph1_1s' );
+$sample_diff->set_always( 'tag', 'NNNNBCGCAA' );
+
+my $sample2 = Test::MockObject->new();
+$sample2->set_isa('DETCT::Sample');
+$sample2->set_always( 'bam_file', 't/data/test2.bam' );
+$sample2->set_always( 'name', 'zmp_ph1_2m' );
+$sample2->set_always( 'tag', 'NNNNBCAGAG' );
 
 # Test adding and retrieving samples
 my $samples;
 $samples = $analysis->get_all_samples();
 is( scalar @{$samples},             0,     'No samples' );
 is( $analysis->add_sample($sample), undef, 'Add sample' );
+
 $samples = $analysis->get_all_samples();
 is( scalar @{$samples}, 1, 'Get one sample' );
-$analysis->add_sample($sample);
+
+$analysis->add_sample($sample2);
 is( scalar @{$samples}, 2, 'Get two samples' );
 throws_ok { $analysis->add_sample($sample_diff) } qr/use different reference/ms,
   'Different reference for sample';
@@ -121,6 +133,62 @@ throws_ok { $analysis->add_sample() } qr/No sample specified/ms,
   'No sample specified';
 throws_ok { $analysis->add_sample('invalid') } qr/Class of sample/ms,
   'Invalid sample';
+
+# Mock sample object with duplicated name
+my $sample3 = Test::MockObject->new();
+$sample3->set_isa('DETCT::Sample');
+$sample3->set_always( 'bam_file', 't/data/test1.bam' ); 
+$sample3->set_always( 'name', 'zmp_ph1_1m' );
+$sample3->set_always( 'tag', 'NNNNBAGAAG' );
+
+throws_ok { $analysis->add_sample($sample3) } qr/Sample name (.*) is duplicated/ms, 
+  'Duplicated sample name';
+
+my $analysis2 = DETCT::Analysis->new(
+    {
+        name        => 'zmp_ph1',
+        chunk_total => 20,
+    }
+);
+
+$analysis2->add_sample($sample);
+
+# Mock sample object with same tag and BAM files as sample1
+my $sample4 = Test::MockObject->new();
+$sample4->set_isa('DETCT::Sample');
+$sample4->set_always( 'name', 'zmp_ph1_4s' );
+$sample4->set_always( 'bam_file', 't/data/test1.bam' );
+$sample4->set_always( 'tag', 'NNNNBGAGGC' );
+
+throws_ok { $analysis2->add_sample($sample4) } qr/Several samples have the same tag (.*) and BAM file (.*)/ms, 
+  'Duplicated tag and BAM file';
+
+my $analysis3 = DETCT::Analysis->new(
+    {
+        name        => 'zmp_ph1',
+        chunk_total => 20,
+    }
+);
+
+# Mock sample object with tag missing from BAM file
+my $sample5 = Test::MockObject->new();
+$sample5->set_isa('DETCT::Sample');
+$sample5->set_always( 'bam_file', 't/data/test1.bam' );
+$sample5->set_always( 'name', 'zmp_ph1_5s' );
+$sample5->set_always( 'tag', 'NNNNBTGAATC' );
+
+throws_ok { $analysis3->add_sample($sample5) } qr/The following sample tags are missing from the associated BAM files :/ms, 
+  'Tags missing from BAM files';
+
+# Mock sample object with no BAM index file
+my $sample6 = Test::MockObject->new();
+$sample6->set_isa('DETCT::Sample');
+$sample6->set_always( 'name', 'zmp_ph1_6s' );
+$sample6->set_always( 'bam_file', 't/data/test4.bam' );
+$sample6->set_always( 'tag', 'NNNNBGAGGC' );
+
+throws_ok { $analysis3->add_sample($sample6) } qr/BAM file .* has no index/ms, 
+  'BAM file with no index file';
 
 # Test total bp, sequences and chunks after adding samples
 # Get total bp using:
@@ -211,28 +279,6 @@ throws_ok {
       DETCT::Analysis->new_from_yaml('t/data/test_analysis_de13.yaml');
 }
 qr/use different reference/ms, 'Different reference';
-
-# Test for duplicate sample names in the YAML file
-throws_ok {
-    $analysis =
-      DETCT::Analysis->new_from_yaml('t/data/test_analysis_de14.yaml');
-}
-qr/.*duplicate names for samples*/ms, 'Duplicate sample names in YAML';
-
-# Test for different sample names associated with the same BAM file and TAG in the YAML file
-throws_ok {
-    $analysis =
-      DETCT::Analysis->new_from_yaml('t/data/test_analysis_de15.yaml');
-}
-qr/.*samples pointing to the same tag and BAM files*/ms,
-  'Different sample names pointing at the same BAM file and TAG in YAML';
-
-# Test for *.bam file with no associated index file *.bam.bai
-throws_ok {
-    $analysis =
-      DETCT::Analysis->new_from_yaml('t/data/test_analysis_de16.yaml');
-}
-qr/.*BAM files without index files*/ms, 'bam file with no index file';
 
 # Test summary info
 $analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis_de1122.yaml');
