@@ -100,21 +100,21 @@ is( scalar @{$chunks}, 0, 'No chunks' );
 my $sample = Test::MockObject->new();
 $sample->set_isa('DETCT::Sample');
 $sample->set_always( 'bam_file', 't/data/test1.bam' );
-$sample->set_always( 'name', 'zmp_ph1_1m' );
-$sample->set_always( 'tag', 'NNNNBGAGGC' );
+$sample->set_always( 'name',     'zmp_ph1_1m' );
+$sample->set_always( 'tag',      'NNNNBGAGGC' );
 
 # Mock sample object with different reference sequence
 my $sample_diff = Test::MockObject->new();
 $sample_diff->set_isa('DETCT::Sample');
 $sample_diff->set_always( 'bam_file', 't/data/test3.bam' );
-$sample_diff->set_always( 'name', 'zmp_ph1_1s' );
-$sample_diff->set_always( 'tag', 'NNNNBCGCAA' );
+$sample_diff->set_always( 'name',     'zmp_ph1_1s' );
+$sample_diff->set_always( 'tag',      'NNNNBCGCAA' );
 
 my $sample2 = Test::MockObject->new();
 $sample2->set_isa('DETCT::Sample');
 $sample2->set_always( 'bam_file', 't/data/test2.bam' );
-$sample2->set_always( 'name', 'zmp_ph1_2m' );
-$sample2->set_always( 'tag', 'NNNNBCAGAG' );
+$sample2->set_always( 'name',     'zmp_ph1_2m' );
+$sample2->set_always( 'tag',      'NNNNBCAGAG' );
 
 # Test adding and retrieving samples
 my $samples;
@@ -137,11 +137,12 @@ throws_ok { $analysis->add_sample('invalid') } qr/Class of sample/ms,
 # Mock sample object with duplicated name
 my $sample3 = Test::MockObject->new();
 $sample3->set_isa('DETCT::Sample');
-$sample3->set_always( 'bam_file', 't/data/test1.bam' ); 
-$sample3->set_always( 'name', 'zmp_ph1_1m' );
-$sample3->set_always( 'tag', 'NNNNBAGAAG' );
+$sample3->set_always( 'bam_file', 't/data/test1.bam' );
+$sample3->set_always( 'name',     'zmp_ph1_1m' );
+$sample3->set_always( 'tag',      'NNNNBAGAAG' );
 
-throws_ok { $analysis->add_sample($sample3) } qr/Sample name (.*) is duplicated/ms, 
+throws_ok { $analysis->add_sample($sample3) }
+qr/Sample name (.*) is duplicated/ms,
   'Duplicated sample name';
 
 my $analysis2 = DETCT::Analysis->new(
@@ -156,11 +157,12 @@ $analysis2->add_sample($sample);
 # Mock sample object with same tag and BAM files as sample1
 my $sample4 = Test::MockObject->new();
 $sample4->set_isa('DETCT::Sample');
-$sample4->set_always( 'name', 'zmp_ph1_4s' );
+$sample4->set_always( 'name',     'zmp_ph1_4s' );
 $sample4->set_always( 'bam_file', 't/data/test1.bam' );
-$sample4->set_always( 'tag', 'NNNNBGAGGC' );
+$sample4->set_always( 'tag',      'NNNNBGAGGC' );
 
-throws_ok { $analysis2->add_sample($sample4) } qr/Several samples have the same tag (.*) and BAM file (.*)/ms, 
+throws_ok { $analysis2->add_sample($sample4) }
+qr/Several samples have the same tag (.*) and BAM file (.*)/ms,
   'Duplicated tag and BAM file';
 
 my $analysis3 = DETCT::Analysis->new(
@@ -174,20 +176,21 @@ my $analysis3 = DETCT::Analysis->new(
 my $sample5 = Test::MockObject->new();
 $sample5->set_isa('DETCT::Sample');
 $sample5->set_always( 'bam_file', 't/data/test1.bam' );
-$sample5->set_always( 'name', 'zmp_ph1_5s' );
-$sample5->set_always( 'tag', 'NNNNBTGAATC' );
+$sample5->set_always( 'name',     'zmp_ph1_5s' );
+$sample5->set_always( 'tag',      'NNNNBTGAATC' );
 
-throws_ok { $analysis3->add_sample($sample5) } qr/The following sample tags are missing from the associated BAM files :/ms, 
+throws_ok { $analysis3->add_sample($sample5) }
+qr/The following sample tags are missing from the associated BAM files :/ms,
   'Tags missing from BAM files';
 
 # Mock sample object with no BAM index file
 my $sample6 = Test::MockObject->new();
 $sample6->set_isa('DETCT::Sample');
-$sample6->set_always( 'name', 'zmp_ph1_6s' );
+$sample6->set_always( 'name',     'zmp_ph1_6s' );
 $sample6->set_always( 'bam_file', 't/data/test4.bam' );
-$sample6->set_always( 'tag', 'NNNNBGAGGC' );
+$sample6->set_always( 'tag',      'NNNNBGAGGC' );
 
-throws_ok { $analysis3->add_sample($sample6) } qr/BAM file .* has no index/ms, 
+throws_ok { $analysis3->add_sample($sample6) } qr/BAM file .* has no index/ms,
   'BAM file with no index file';
 
 # Test total bp, sequences and chunks after adding samples

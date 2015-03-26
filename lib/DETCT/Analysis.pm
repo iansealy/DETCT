@@ -396,49 +396,61 @@ sub get_all_sequences {
 sub validate {
     my ($self) = @_;
 
-    # Some basic error checking for samples 
+    # Some basic error checking for samples
     my ( %sample_names, %sample_bam_tag, %missing_tags );
 
-    foreach my $sample( @{ $self->get_all_samples } ){
-     my $name = $sample->name;
-     my $tag = $sample->tag;
-     my ($sample_index_tag) = $tag=~/([ATCG]+)\z/xms;
-     my $bam_file = $sample->bam_file;
-     # Check for duplicated sample names
-     if(exists $sample_names{ $name }){
-      confess "Sample name ($name) is duplicated\n";
-     }
-     else {
-      $sample_names{ $name }++;
-     }
-     # Check for samples which point to the same tag and BAM file
-     if(exists $sample_bam_tag{ $bam_file }{ $sample_index_tag }){
-      confess "Several samples have the same tag ($tag) and BAM file ($bam_file)\n";
-     }
-     else {
-      $sample_bam_tag{ $bam_file }{ $sample_index_tag }++;
-     }
-   }
+    foreach my $sample ( @{ $self->get_all_samples } ) {
+        my $name               = $sample->name;
+        my $tag                = $sample->tag;
+        my ($sample_index_tag) = $tag =~ /[RYSWKMBDHVN]+([ATCG]+)\z/xms;
+        my $bam_file           = $sample->bam_file;
 
-   foreach my $bam_file(keys %sample_bam_tag){
-   # Check for absence of a BAM file index
-    if(! Bio::DB::Bam->index_open( $bam_file ) ){
-     confess "BAM file $bam_file has no index\n";
+        # Check for duplicated sample names
+        if ( exists $sample_names{$name} ) {
+            confess "Sample name ($name) is duplicated\n";
+        }
+        else {
+            $sample_names{$name}++;
+        }
+
+        # Check for samples which point to the same tag and BAM file
+        if ( exists $sample_bam_tag{$bam_file}{$sample_index_tag} ) {
+            confess
+"Several samples have the same tag ($tag) and BAM file ($bam_file)\n";
+        }
+        else {
+            $sample_bam_tag{$bam_file}{$sample_index_tag}++;
+        }
     }
-    # Check for sample tags missing in the BAM file
-    my $bam = Bio::DB::Bam->open( $bam_file, q{r} );
-    if(my $header = $bam->header->text){
-     my %bam_tags = map { $_ => 1 } $header=~/^\@RG[\t\S]+[PLS][LBM]:[RYSWKMBDHVN]+([GATC]+)/xmsg;
-     foreach my $sample_index_tag(keys %{ $sample_bam_tag{ $bam_file } }){
-      if(! exists $bam_tags{ $sample_index_tag }){
-       $missing_tags{ $sample_index_tag }++;
-      }
-     }
+
+    foreach my $bam_file ( keys %sample_bam_tag ) {
+
+        # Check for absence of a BAM file index
+        if ( !Bio::DB::Bam->index_open($bam_file) ) {
+            confess "BAM file $bam_file has no index\n";
+        }
+
+        # Check for sample tags missing in the BAM file
+        my $bam = Bio::DB::Bam->open( $bam_file, q{r} );
+        if ( my $header = $bam->header->text ) {
+            my %bam_tags = map { $_ => 1 }
+              $header =~ /^\@RG[\t\S]+[PLS][LBM]:[RYSWKMBDHVN]+([GATC]+)/xmsg;
+            if ( keys %bam_tags ) {
+                foreach
+                  my $sample_index_tag ( keys %{ $sample_bam_tag{$bam_file} } )
+                {
+                    if ( !exists $bam_tags{$sample_index_tag} ) {
+                        $missing_tags{$sample_index_tag}++;
+                    }
+                }
+            }
+        }
     }
-   }
-   if(keys %missing_tags){
-    confess "The following sample tags are missing from the associated BAM files :\n", join "\n",  keys %missing_tags, "\n";
-   }
+    if ( keys %missing_tags ) {
+        confess
+"The following sample tags are missing from the associated BAM files :\n",
+          join "\n", keys %missing_tags, "\n";
+    }
 
     my @bam_files = $self->list_all_bam_files();
 
