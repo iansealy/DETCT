@@ -113,6 +113,7 @@ sub new {
 
 sub new_from_yaml {
     my ( $class, $yaml_file ) = @_;
+
     my $self = register($class);
 
     confess "YAML file ($yaml_file) does not exist or cannot be read"
@@ -439,7 +440,7 @@ sub validate {
                   my $sample_index_tag ( keys %{ $sample_bam_tag{$bam_file} } )
                 {
                     if ( !exists $bam_tags{$sample_index_tag} ) {
-                        $missing_tags{$sample_index_tag}++;
+                        $missing_tags{"$sample_index_tag:$bam_file"}++;
                     }
                 }
             }
