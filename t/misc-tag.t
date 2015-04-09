@@ -312,5 +312,5 @@ ok( q{C} =~ $re_for{N}->[0], 'N matches C' );
 ok( q{T} =~ $re_for{N}->[0], 'N matches T' );
 ok( q{N} =~ $re_for{N}->[0], 'N matches N' );
 
-ok( q{A} !~ $re_for{AA}->[0],  'AA does not match A' );
+ok( q{A} !~ $re_for{AA}->[0], 'AA does not match A' );
 ok( q{AA} =~ $re_for{AA}->[0], 'AA matches AA' );

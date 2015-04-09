@@ -400,10 +400,10 @@ sub validate {
     my ( %sample_names, %sample_bam_tag, %missing_tags );
 
     foreach my $sample ( @{ $self->get_all_samples } ) {
-        my $name               = $sample->name;
-        my $tag                = $sample->tag;
+        my $name = $sample->name;
+        my $tag  = $sample->tag;
         my ($sample_index_tag) = $tag =~ /[RYSWKMBDHVN]+([ATCG]+)\z/xms;
-        my $bam_file           = $sample->bam_file;
+        my $bam_file = $sample->bam_file;
 
         # Check for duplicated sample names
         if ( exists $sample_names{$name} ) {
