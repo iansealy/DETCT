@@ -113,6 +113,7 @@ sub new {
 
 sub new_from_yaml {
     my ( $class, $yaml_file ) = @_;
+
     my $self = register($class);
 
     confess "YAML file ($yaml_file) does not exist or cannot be read"
@@ -123,26 +124,6 @@ sub new_from_yaml {
     if ( !$yaml ) {
         confess sprintf 'YAML file (%s) is invalid: %s', $yaml_file,
           YAML::Tiny->errstr;
-    }
-
-    # some basic error checking on the input YAML and BAM files
-    if ( my $sample_names = join "\n",
-        keys %{ $self->_check_for_duplicate_sample_names($yaml) } )
-    {
-        confess
-"YAML file ($yaml_file) has duplicate names for samples:\n$sample_names\n\n";
-    }
-    if ( my $sample_names = join "\n",
-        keys %{ $self->_check_for_duplicate_tag_and_bam($yaml) } )
-    {
-        confess
-"YAML file ($yaml_file) has the following samples pointing to the same tag and BAM files:\n$sample_names\n\n";
-    }
-    if ( my $bam_wo_index = join "\n",
-        keys %{ $self->_check_for_bam_file_index($yaml) } )
-    {
-        confess
-"YAML file ($yaml_file) has the following BAM files without index files:\n$bam_wo_index\n\n";
     }
 
     $self->set_name( $yaml->[0]->{name} );
@@ -177,76 +158,7 @@ sub new_from_yaml {
     }
 
     $self->validate();
-
     return $self;
-}
-
-# Usage       : $sample_names = $self->_check_for_duplicate_sample_names($yaml);
-# Purpose     : Check for duplicated sample names
-# Returns     : Hash ref (of duplicated sample names)
-# Parameters  : YAML::Tiny object
-# Throws      : None
-# Comments    : None
-
-sub _check_for_duplicate_sample_names {
-    my ( $self, $yaml ) = @_;
-
-    my ( %sample_names, %duplicates );
-    foreach my $sample ( @{ $yaml->[0]->{samples} } ) {
-        $sample_names{ $sample->{name} }++;
-    }
-
-    foreach my $name ( sort keys %sample_names ) {
-        if ( $sample_names{$name} > 1 ) {
-            $duplicates{$name}++;
-        }
-    }
-    return \%duplicates;
-}
-
-# Usage       : $sample_names = $self->_check_for_duplicate_tag_and_bam($yaml);
-# Purpose     : Check for samples which point to the same tag and BAM file
-# Returns     : Hash ref (of sample names which point to the same tag and BAM file)
-# Parameters  : YAML::Tiny object
-# Throws      : None
-# Comments    : None
-
-sub _check_for_duplicate_tag_and_bam {
-    my ( $self, $yaml ) = @_;
-
-    my ( %samples, %duplicates );
-    foreach my $sample ( @{ $yaml->[0]->{samples} } ) {
-        push @{ $samples{ $sample->{tag} . $sample->{bam_file} } },
-          $sample->{name};
-    }
-
-    foreach my $tag_and_bam ( sort keys %samples ) {
-        if ( @{ $samples{$tag_and_bam} } > 1 ) {
-            %duplicates = map { $_ => 1 } @{ $samples{$tag_and_bam} };
-        }
-    }
-    return \%duplicates;
-}
-
-# Usage       : $bam_files_without_indices = $self->_check_for_bam_file_index($yaml)
-# Purpose     : Check for presence of a BAM file index
-# Returns     : Hash ref (of BAM files with no index)
-# Parameters  : YAML::Tiny object
-# Throws      : None
-# Comments    : None
-
-sub _check_for_bam_file_index {
-    my ( $self, $yaml ) = @_;
-
-    my %bam_wo_index;
-
-    foreach my $sample ( @{ $yaml->[0]->{samples} } ) {
-        my $index = Bio::DB::Bam->index_open( $sample->{bam_file} );
-        if ( !$index ) {
-            $bam_wo_index{ $sample->{bam_file} }++;
-        }
-    }
-    return \%bam_wo_index;
 }
 
 =method name
@@ -483,6 +395,62 @@ sub get_all_sequences {
 
 sub validate {
     my ($self) = @_;
+
+    # Some basic error checking for samples
+    my ( %sample_names, %sample_bam_tag, %missing_tags );
+
+    foreach my $sample ( @{ $self->get_all_samples } ) {
+        my $name               = $sample->name;
+        my $tag                = $sample->tag;
+        my ($sample_index_tag) = $tag =~ /[RYSWKMBDHVN]+([ATCG]+)\z/xms;
+        my $bam_file           = $sample->bam_file;
+
+        # Check for duplicated sample names
+        if ( exists $sample_names{$name} ) {
+            confess "Sample name ($name) is duplicated\n";
+        }
+        else {
+            $sample_names{$name}++;
+        }
+
+        # Check for samples which point to the same tag and BAM file
+        if ( exists $sample_bam_tag{$bam_file}{$sample_index_tag} ) {
+            confess
+"Several samples have the same tag ($tag) and BAM file ($bam_file)\n";
+        }
+        else {
+            $sample_bam_tag{$bam_file}{$sample_index_tag}++;
+        }
+    }
+
+    foreach my $bam_file ( keys %sample_bam_tag ) {
+
+        # Check for absence of a BAM file index
+        if ( !Bio::DB::Bam->index_open($bam_file) ) {
+            confess "BAM file $bam_file has no index\n";
+        }
+
+        # Check for sample tags missing in the BAM file
+        my $bam = Bio::DB::Bam->open( $bam_file, q{r} );
+        if ( my $header = $bam->header->text ) {
+            my %bam_tags = map { $_ => 1 }
+              $header =~ /^\@RG[\t\S]+[PLS][LBM]:[RYSWKMBDHVN]+([GATC]+)/xmsg;
+            if ( keys %bam_tags ) {
+                foreach
+                  my $sample_index_tag ( keys %{ $sample_bam_tag{$bam_file} } )
+                {
+                    if ( !exists $bam_tags{$sample_index_tag} ) {
+                        $missing_tags{"$sample_index_tag:$bam_file"}++;
+                    }
+                }
+            }
+        }
+    }
+    if ( keys %missing_tags ) {
+        confess
+"The following sample tags are missing from the associated BAM files :\n",
+          join "\n", keys %missing_tags, "\n";
+    }
 
     my @bam_files = $self->list_all_bam_files();
 

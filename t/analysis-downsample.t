@@ -190,11 +190,21 @@ is( scalar @{$chunks}, 0, 'No chunks' );
 my $sample = Test::MockObject->new();
 $sample->set_isa('DETCT::Sample');
 $sample->set_always( 'bam_file', 't/data/test1.bam' );
+$sample->set_always( 'name',     'zmp_ph1_1m' );
+$sample->set_always( 'tag',      'NNNNBGAGGC' );
 
 # Mock sample object with different reference sequence
 my $sample_diff = Test::MockObject->new();
 $sample_diff->set_isa('DETCT::Sample');
 $sample_diff->set_always( 'bam_file', 't/data/test3.bam' );
+$sample_diff->set_always( 'name',     'zmp_ph1_1s' );
+$sample_diff->set_always( 'tag',      'NNNNBCGCAA' );
+
+my $sample2 = Test::MockObject->new();
+$sample2->set_isa('DETCT::Sample');
+$sample2->set_always( 'bam_file', 't/data/test2.bam' );
+$sample2->set_always( 'name',     'zmp_ph1_2m' );
+$sample2->set_always( 'tag',      'NNNNBCAGAG' );
 
 # Test adding and retrieving samples
 my $samples;
@@ -203,7 +213,7 @@ is( scalar @{$samples},             0,     'No samples' );
 is( $analysis->add_sample($sample), undef, 'Add sample' );
 $samples = $analysis->get_all_samples();
 is( scalar @{$samples}, 1, 'Get one sample' );
-$analysis->add_sample($sample);
+$analysis->add_sample($sample2);
 is( scalar @{$samples}, 2, 'Get two samples' );
 throws_ok { $analysis->add_sample($sample_diff) } qr/use different reference/ms,
   'Different reference for sample';
