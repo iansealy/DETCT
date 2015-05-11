@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 148;
+plan tests => 152;
 
 use DETCT::Analysis::Downsample;
 
@@ -211,8 +211,10 @@ my $samples;
 $samples = $analysis->get_all_samples();
 is( scalar @{$samples},             0,     'No samples' );
 is( $analysis->add_sample($sample), undef, 'Add sample' );
+
 $samples = $analysis->get_all_samples();
 is( scalar @{$samples}, 1, 'Get one sample' );
+
 $analysis->add_sample($sample2);
 is( scalar @{$samples}, 2, 'Get two samples' );
 throws_ok { $analysis->add_sample($sample_diff) } qr/use different reference/ms,
@@ -221,6 +223,69 @@ throws_ok { $analysis->add_sample() } qr/No sample specified/ms,
   'No sample specified';
 throws_ok { $analysis->add_sample('invalid') } qr/Class of sample/ms,
   'Invalid sample';
+
+$analysis = DETCT::Analysis->new(
+    {
+        name        => 'zmp_ph1',
+        chunk_total => 20,
+    }
+);
+$analysis->add_sample($sample);
+
+# Mock sample object with duplicated name
+my $sample_dupe_name = Test::MockObject->new();
+$sample_dupe_name->set_isa('DETCT::Sample');
+$sample_dupe_name->set_always( 'bam_file', 't/data/test1.bam' );
+$sample_dupe_name->set_always( 'name',     'zmp_ph1_1m' );
+$sample_dupe_name->set_always( 'tag',      'NNNNBAGAAG' );
+
+throws_ok { $analysis->add_sample($sample_dupe_name) } qr/is duplicated/ms,
+  'Duplicated sample name';
+
+$analysis = DETCT::Analysis->new(
+    {
+        name        => 'zmp_ph1',
+        chunk_total => 20,
+    }
+);
+$analysis->add_sample($sample);
+
+# Mock sample object with same tag and BAM files
+my $sample_dupe_tag_bam = Test::MockObject->new();
+$sample_dupe_tag_bam->set_isa('DETCT::Sample');
+$sample_dupe_tag_bam->set_always( 'name',     'zmp_ph1_4s' );
+$sample_dupe_tag_bam->set_always( 'bam_file', 't/data/test1.bam' );
+$sample_dupe_tag_bam->set_always( 'tag',      'NNNNBGAGGC' );
+
+throws_ok { $analysis->add_sample($sample_dupe_tag_bam) }
+qr/Multiple samples have the same tag/ms, 'Duplicated tag and BAM file';
+
+$analysis = DETCT::Analysis->new(
+    {
+        name        => 'zmp_ph1',
+        chunk_total => 20,
+    }
+);
+
+# Mock sample object with tag missing from BAM file
+my $sample_missing_tag = Test::MockObject->new();
+$sample_missing_tag->set_isa('DETCT::Sample');
+$sample_missing_tag->set_always( 'bam_file', 't/data/test1.bam' );
+$sample_missing_tag->set_always( 'name',     'zmp_ph1_5s' );
+$sample_missing_tag->set_always( 'tag',      'NNNNBTGAATC' );
+
+throws_ok { $analysis->add_sample($sample_missing_tag) }
+qr/does not contain tag/ms, 'Tag missing from BAM files';
+
+# Mock sample object with no BAM index file
+my $sample_no_index = Test::MockObject->new();
+$sample_no_index->set_isa('DETCT::Sample');
+$sample_no_index->set_always( 'name',     'zmp_ph1_6s' );
+$sample_no_index->set_always( 'bam_file', 't/data/test4.bam' );
+$sample_no_index->set_always( 'tag',      'NNNNBGAGGC' );
+
+throws_ok { $analysis->add_sample($sample_no_index) } qr/has no index/ms,
+  'BAM file with no index file';
 
 # Test total bp, sequences and chunks after adding samples
 # Get total bp using:
