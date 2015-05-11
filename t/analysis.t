@@ -22,7 +22,6 @@ my $analysis = DETCT::Analysis->new(
         chunk_total => 20,
     }
 );
-
 isa_ok( $analysis, 'DETCT::Analysis' );
 
 # Test name attribute
@@ -134,38 +133,43 @@ throws_ok { $analysis->add_sample() } qr/No sample specified/ms,
 throws_ok { $analysis->add_sample('invalid') } qr/Class of sample/ms,
   'Invalid sample';
 
-# Mock sample object with duplicated name
-my $sample3 = Test::MockObject->new();
-$sample3->set_isa('DETCT::Sample');
-$sample3->set_always( 'bam_file', 't/data/test1.bam' );
-$sample3->set_always( 'name',     'zmp_ph1_1m' );
-$sample3->set_always( 'tag',      'NNNNBAGAAG' );
-
-throws_ok { $analysis->add_sample($sample3) }
-qr/Sample name (.*) is duplicated/ms,
-  'Duplicated sample name';
-
-my $analysis2 = DETCT::Analysis->new(
+$analysis = DETCT::Analysis->new(
     {
         name        => 'zmp_ph1',
         chunk_total => 20,
     }
 );
+$analysis->add_sample($sample);
 
-$analysis2->add_sample($sample);
+# Mock sample object with duplicated name
+my $sample_dupe_name = Test::MockObject->new();
+$sample_dupe_name->set_isa('DETCT::Sample');
+$sample_dupe_name->set_always( 'bam_file', 't/data/test1.bam' );
+$sample_dupe_name->set_always( 'name',     'zmp_ph1_1m' );
+$sample_dupe_name->set_always( 'tag',      'NNNNBAGAAG' );
 
-# Mock sample object with same tag and BAM files as sample1
-my $sample4 = Test::MockObject->new();
-$sample4->set_isa('DETCT::Sample');
-$sample4->set_always( 'name',     'zmp_ph1_4s' );
-$sample4->set_always( 'bam_file', 't/data/test1.bam' );
-$sample4->set_always( 'tag',      'NNNNBGAGGC' );
+throws_ok { $analysis->add_sample($sample_dupe_name) } qr/is duplicated/ms,
+  'Duplicated sample name';
 
-throws_ok { $analysis2->add_sample($sample4) }
-qr/Several samples have the same tag (.*) and BAM file (.*)/ms,
-  'Duplicated tag and BAM file';
+$analysis = DETCT::Analysis->new(
+    {
+        name        => 'zmp_ph1',
+        chunk_total => 20,
+    }
+);
+$analysis->add_sample($sample);
 
-my $analysis3 = DETCT::Analysis->new(
+# Mock sample object with same tag and BAM files
+my $sample_dupe_tag_bam = Test::MockObject->new();
+$sample_dupe_tag_bam->set_isa('DETCT::Sample');
+$sample_dupe_tag_bam->set_always( 'name',     'zmp_ph1_4s' );
+$sample_dupe_tag_bam->set_always( 'bam_file', 't/data/test1.bam' );
+$sample_dupe_tag_bam->set_always( 'tag',      'NNNNBGAGGC' );
+
+throws_ok { $analysis->add_sample($sample_dupe_tag_bam) }
+qr/Multiple samples have the same tag/ms, 'Duplicated tag and BAM file';
+
+$analysis = DETCT::Analysis->new(
     {
         name        => 'zmp_ph1',
         chunk_total => 20,
@@ -173,24 +177,23 @@ my $analysis3 = DETCT::Analysis->new(
 );
 
 # Mock sample object with tag missing from BAM file
-my $sample5 = Test::MockObject->new();
-$sample5->set_isa('DETCT::Sample');
-$sample5->set_always( 'bam_file', 't/data/test1.bam' );
-$sample5->set_always( 'name',     'zmp_ph1_5s' );
-$sample5->set_always( 'tag',      'NNNNBTGAATC' );
+my $sample_missing_tag = Test::MockObject->new();
+$sample_missing_tag->set_isa('DETCT::Sample');
+$sample_missing_tag->set_always( 'bam_file', 't/data/test1.bam' );
+$sample_missing_tag->set_always( 'name',     'zmp_ph1_5s' );
+$sample_missing_tag->set_always( 'tag',      'NNNNBTGAATC' );
 
-throws_ok { $analysis3->add_sample($sample5) }
-qr/The following sample tags are missing from the associated BAM files :/ms,
-  'Tags missing from BAM files';
+throws_ok { $analysis->add_sample($sample_missing_tag) }
+qr/does not contain tag/ms, 'Tag missing from BAM files';
 
 # Mock sample object with no BAM index file
-my $sample6 = Test::MockObject->new();
-$sample6->set_isa('DETCT::Sample');
-$sample6->set_always( 'name',     'zmp_ph1_6s' );
-$sample6->set_always( 'bam_file', 't/data/test4.bam' );
-$sample6->set_always( 'tag',      'NNNNBGAGGC' );
+my $sample_no_index = Test::MockObject->new();
+$sample_no_index->set_isa('DETCT::Sample');
+$sample_no_index->set_always( 'name',     'zmp_ph1_6s' );
+$sample_no_index->set_always( 'bam_file', 't/data/test4.bam' );
+$sample_no_index->set_always( 'tag',      'NNNNBGAGGC' );
 
-throws_ok { $analysis3->add_sample($sample6) } qr/BAM file .* has no index/ms,
+throws_ok { $analysis->add_sample($sample_no_index) } qr/has no index/ms,
   'BAM file with no index file';
 
 # Test total bp, sequences and chunks after adding samples
@@ -457,6 +460,3 @@ sub is_ensembl_reachable {
         return 0;
     }
 }
-
-# Check
-

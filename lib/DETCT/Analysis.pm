@@ -113,7 +113,6 @@ sub new {
 
 sub new_from_yaml {
     my ( $class, $yaml_file ) = @_;
-
     my $self = register($class);
 
     confess "YAML file ($yaml_file) does not exist or cannot be read"
@@ -158,6 +157,7 @@ sub new_from_yaml {
     }
 
     $self->validate();
+
     return $self;
 }
 
@@ -389,68 +389,16 @@ sub get_all_sequences {
   Returns     : 1
   Parameters  : None
   Throws      : If reference sequences don't match
+                If BAM files has no index
+                If sample names are duplicated
+                If multiple samples have the same tag and BAM file
+                If BAM file doesn't contain tag in read group
   Comments    : None
 
 =cut
 
 sub validate {
     my ($self) = @_;
-
-    # Some basic error checking for samples
-    my ( %sample_names, %sample_bam_tag, %missing_tags );
-
-    foreach my $sample ( @{ $self->get_all_samples } ) {
-        my $name = $sample->name;
-        my $tag  = $sample->tag;
-        my ($sample_index_tag) = $tag =~ /[RYSWKMBDHVN]+([ATCG]+)\z/xms;
-        my $bam_file = $sample->bam_file;
-
-        # Check for duplicated sample names
-        if ( exists $sample_names{$name} ) {
-            confess "Sample name ($name) is duplicated\n";
-        }
-        else {
-            $sample_names{$name}++;
-        }
-
-        # Check for samples which point to the same tag and BAM file
-        if ( exists $sample_bam_tag{$bam_file}{$sample_index_tag} ) {
-            confess
-"Several samples have the same tag ($tag) and BAM file ($bam_file)\n";
-        }
-        else {
-            $sample_bam_tag{$bam_file}{$sample_index_tag}++;
-        }
-    }
-
-    foreach my $bam_file ( keys %sample_bam_tag ) {
-
-        # Check for absence of a BAM file index
-        if ( !Bio::DB::Bam->index_open($bam_file) ) {
-            confess "BAM file $bam_file has no index\n";
-        }
-
-        # Check for sample tags missing in the BAM file
-        my $bam = Bio::DB::Bam->open( $bam_file, q{r} );
-        if ( my $header = $bam->header->text ) {
-            my %bam_tags = map { $_ => 1 }
-              $header =~ /^\@RG[\t\S]+[PLS][LBM]:[RYSWKMBDHVN]+([GATC]+)/xmsg;
-            if ( keys %bam_tags ) {
-                foreach
-                  my $sample_index_tag ( keys %{ $sample_bam_tag{$bam_file} } )
-                {
-                    if ( !exists $bam_tags{$sample_index_tag} ) {
-                        $missing_tags{"$sample_index_tag:$bam_file"}++;
-                    }
-                }
-            }
-        }
-    }
-    if ( keys %missing_tags ) {
-        confess
-"The following sample tags are missing from the associated BAM files :\n",
-          join "\n", keys %missing_tags, "\n";
-    }
 
     my @bam_files = $self->list_all_bam_files();
 
@@ -463,6 +411,52 @@ sub validate {
           DETCT::Misc::BAM::get_reference_sequence_lengths($bam_file);
         if ( !Compare( \%first_bam_length, \%bam_length ) ) {
             confess "$first_bam_file and $bam_file use different reference";
+        }
+    }
+    unshift @bam_files, $first_bam_file;
+
+    # Check for missing BAM file index
+    foreach my $bam_file (@bam_files) {
+        if ( !Bio::DB::Bam->index_open($bam_file) ) {
+            confess "$bam_file has no index";
+        }
+    }
+
+    # Check samples
+    my ( %seen_name, %sample_bam_tag );
+    foreach my $sample ( @{ $self->get_all_samples } ) {
+
+        # Check for duplicated sample names
+        if ( exists $seen_name{ $sample->name } ) {
+            confess 'Sample name (', $sample->name, ') is duplicated';
+        }
+        else {
+            $seen_name{ $sample->name } = 1;
+        }
+
+        # Check for samples which have the same tag and BAM file
+        if ( exists $sample_bam_tag{ $sample->bam_file }{ $sample->tag } ) {
+            confess 'Multiple samples have the same tag (', $sample->tag,
+              ') and BAM file (', $sample->bam_file, q{)};
+        }
+        else {
+            $sample_bam_tag{ $sample->bam_file }{ $sample->tag } = 1;
+        }
+    }
+
+    # If BAM file contains read groups then check sample tags are present
+    foreach my $bam_file (@bam_files) {
+        my $bam        = Bio::DB::Bam->open( $bam_file, q{r} );
+        my $header     = $bam->header->text;
+        my %tag_in_bam = map { $_ => 1 }
+          $header =~ m/\@RG .*? LB: [NRYKMSWBDHV]* ([AGCT]+)/xmsg;
+        if ( keys %tag_in_bam ) {
+            foreach my $tag ( keys %{ $sample_bam_tag{$bam_file} } ) {
+                my ($index) = $tag =~ m/([AGCT]+) \z/xms;
+                if ( !exists $tag_in_bam{$index} ) {
+                    confess $bam_file, ' does not contain tag ', $tag;
+                }
+            }
         }
     }
 
