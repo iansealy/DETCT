@@ -344,10 +344,11 @@ sub add_all_sequences {
 
     $sequence{ id $self} = [];
 
-    my %len = DETCT::Misc::BAM::get_reference_sequence_lengths($bam_file);
+    my %len =
+      DETCT::Misc::BAM::get_reference_sequence_lengths( $bam_file,
+        $self->get_all_skip_sequences() );
 
     foreach my $name ( reverse sort { $len{$a} <=> $len{$b} } keys %len ) {
-        next if $self->is_skip_sequence($name);
 
         my $sequence = DETCT::Sequence->new(
             {
@@ -405,10 +406,12 @@ sub validate {
     # Compare reference sequence from first BAM file to all other BAM files
     my $first_bam_file = shift @bam_files;
     my %first_bam_length =
-      DETCT::Misc::BAM::get_reference_sequence_lengths($first_bam_file);
+      DETCT::Misc::BAM::get_reference_sequence_lengths( $first_bam_file,
+        $self->get_all_skip_sequences() );
     foreach my $bam_file (@bam_files) {
         my %bam_length =
-          DETCT::Misc::BAM::get_reference_sequence_lengths($bam_file);
+          DETCT::Misc::BAM::get_reference_sequence_lengths( $bam_file,
+            $self->get_all_skip_sequences() );
         if ( !Compare( \%first_bam_length, \%bam_length ) ) {
             confess "$first_bam_file and $bam_file use different reference";
         }

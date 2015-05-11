@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 415;
+plan tests => 416;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -106,10 +106,11 @@ my $CHR_3_LEN = 9410;
 
 throws_ok { get_reference_sequence_lengths() } qr/No BAM file specified/ms,
   'No BAM file';
-my %bam_length = get_reference_sequence_lengths('t/data/test1.bam');
-is( $bam_length{1}, $CHR_1_LEN, 'Chr 1 length' );
-is( $bam_length{2}, $CHR_2_LEN, 'Chr 2 length' );
-is( $bam_length{3}, $CHR_3_LEN, 'Chr 3 length' );
+my %bam_length = get_reference_sequence_lengths( 't/data/test1.bam', [ 4, 5 ] );
+is( scalar keys %bam_length, 3,          'Skip chr 4 and chr 5' );
+is( $bam_length{1},          $CHR_1_LEN, 'Chr 1 length' );
+is( $bam_length{2},          $CHR_2_LEN, 'Chr 2 length' );
+is( $bam_length{3},          $CHR_3_LEN, 'Chr 3 length' );
 
 # Check getting sequence from test FASTA file
 # Get first 10 bp of chromosome 1 using:

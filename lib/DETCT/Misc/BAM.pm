@@ -74,27 +74,31 @@ Readonly our @POLYA_REGEXP => (
 =func get_reference_sequence_lengths
 
   Usage       : my %length_of
-                    = DETCT::Misc::BAM::get_reference_sequence_lengths($bam_file);
+                    = DETCT::Misc::BAM::get_reference_sequence_lengths($bam);
   Purpose     : Get length of each reference sequence from a BAM file
   Returns     : Hash (
                     seq_region => length
                 )
   Parameters  : String (the BAM file)
+                Arrayref of strings (the skip sequences) or undef
   Throws      : If BAM file is missing
   Comments    : None
 
 =cut
 
 sub get_reference_sequence_lengths {
-    my ($bam_file) = @_;
+    my ( $bam_file, $skip_sequences ) = @_;
 
     confess 'No BAM file specified' if !defined $bam_file;
+
+    my %is_skip_sequence = map { $_ => 1 } @{ $skip_sequences || [] };
 
     my $sam = Bio::DB::Sam->new( -bam => $bam_file );
 
     my %length_of;
 
     foreach my $seq_id ( $sam->seq_ids ) {
+        next if $is_skip_sequence{$seq_id};
         $length_of{$seq_id} = $sam->length($seq_id);
     }
 
