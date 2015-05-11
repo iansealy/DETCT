@@ -116,16 +116,25 @@ push @cl, '--read_tags',             @read_tags;
 push @cl, '--read1_length',          $read1_length;
 push @cl, '--read2_length',          $read2_length;
 my $cl = join q{ }, @cl;
-my %rg_tag_id;
 
-# Print HD and RG SAM header
+# Print HD and RG SAM headers
 print_or_die( header_line( 'HD', [ 'VN', '1.4' ], [ 'SO', 'unsorted' ] ) );
-my $rg_id = 1;
+my %rg_for;
+my $rg = 0;
 foreach my $read_tag (@read_tags) {
+    $rg++;
+    $rg_for{$read_tag} = $rg;
+    my ($read_tag_index) = $read_tag =~ m/([AGCTX]+) \z/xms;
     print_or_die(
-        header_line( 'RG', [ 'ID', $rg_id ], [ 'SM', "$read_tag" ] ) );
-    $rg_tag_id{$read_tag} = $rg_id;
-    $rg_id++;
+        header_line(
+            'RG',
+            [ 'ID', $rg ],
+            [ 'PL', 'ILLUMINA' ],
+            [ 'PU', $read_tag_index ],
+            [ 'LB', $read_tag_index ],
+            [ 'SM', $read_tag_index ]
+        )
+    );
 }
 
 print_or_die(
@@ -163,8 +172,9 @@ $qname_base .= q{:};
 # Generate alignments for each chromosome one by one
 foreach my $seq_region ( 1 .. $seq_region_count ) {
     foreach ( 1 .. $read_pair_count ) {
-        my ( $read_tag, $orig_tag ) = @{ get_read_tag(1) };
-        my $read1_qname = get_qname( $qname_base, $read_tag );
+        my $read_tag = $read_tags[ int rand $#read_tags + 1 ];    # Random tag
+        my $sequenced_read_tag = get_sequenced_read_tag($read_tag);
+        my $read1_qname = get_qname( $qname_base, $sequenced_read_tag );
         my $read2_qname = $read1_qname;    # Always the same
         my ( $read1_pos, $read2_pos ) =
           get_pos( $length_of{$seq_region}, $read1_length, $read2_length );
@@ -217,7 +227,7 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
                     qual  => get_qual($read1_length),
                     opt   => {
                         'NM:i' => $read1_nm,
-                        'RG:Z' => $rg_tag_id{$orig_tag},
+                        'RG:Z' => $rg_for{$read_tag},
                         @{$read1_mq},
                     },
                 )
@@ -239,14 +249,18 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
                     qual  => get_qual($read2_length),
                     opt   => {
                         'NM:i' => $read2_nm,
-                        'RG:Z' => $rg_tag_id{$orig_tag},
+                        'RG:Z' => $rg_for{$read_tag},
                         @{$read2_mq},
                     },
                 )
             );
 
             # New read name for duplicates
-            $read1_qname = get_qname( $qname_base, get_read_tag() );
+            my $duplicate_tag =
+                $read_pair_count > $num_real_duplicates
+              ? $sequenced_read_tag
+              : get_sequenced_read_tag($read_tag);
+            $read1_qname = get_qname( $qname_base, $duplicate_tag );
             $read2_qname = $read1_qname;    # Always the same
 
             if ( $read_pair_count == $num_real_duplicates + 1 ) {
@@ -348,15 +362,9 @@ sub alignment_line {
     return $alignment_line;
 }
 
-# Get a random read tag and substitute random bases
-sub get_read_tag {
-
-    my $tag = $read_tags[ int rand $#read_tags + 1 ];
-
-    my $input_tag;
-    if (shift) {
-        $input_tag = $tag;
-    }
+# Substitute random bases to get as sequenced read tag
+sub get_sequenced_read_tag {
+    my ($tag) = @_;
 
     # Replace IUPAC code with random bases
     $tag =~ s/ N / qw( A G C T )[ int rand 4 ] /xmsge;
@@ -371,12 +379,7 @@ sub get_read_tag {
     $tag =~ s/ S / qw( G C     )[ int rand 2 ] /xmsge;
     $tag =~ s/ W / qw( A T     )[ int rand 2 ] /xmsge;
 
-    if ($input_tag) {
-        return [ $tag, $input_tag ];
-    }
-    else {
-        return $tag;
-    }
+    return $tag;
 }
 
 # Construct read name
