@@ -541,7 +541,7 @@ sub sort_bam {
 =func check_for_error
 
   Usage       : confess if check_for_error($stdout_file, $stderr_file);
-  Purpose     : Check STDOUR and STDERR for errors
+  Purpose     : Check STDOUT and STDERR for errors
   Returns     : Boolean
   Parameters  : String (the STDOUT file)
                 String (the STDERR file)
