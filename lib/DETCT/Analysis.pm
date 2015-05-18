@@ -1254,7 +1254,7 @@ sub get_subsequence {
 
 # Usage       : $self->_create_slice_adaptor();
 # Purpose     : Create an Ensembl slice adaptor
-# Returns     : Undef
+# Returns     : undef
 # Parameters  : None
 # Throws      : No exceptions
 # Comments    : None
