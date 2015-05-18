@@ -51,6 +51,7 @@ my $max_retries = 10;
 my $sleep_time  = 600;    # 10 minutes
 ## use critic
 my $skip_clean_up;
+my $serialiser_format = 'yaml';
 my $once;
 my $stage_to_run;
 my $component_to_run;
@@ -74,15 +75,16 @@ my $analysis = $analysis_module->new_from_yaml($analysis_yaml);
 # Create pipeline
 my $pipeline = $pipeline_module->new(
     {
-        scheduler     => $scheduler,
-        analysis_dir  => $analysis_dir,
-        analysis      => $analysis,
-        cmd_line      => $cmd_line,
-        max_jobs      => $max_jobs,
-        max_retries   => $max_retries,
-        sleep_time    => $sleep_time,
-        skip_clean_up => $skip_clean_up,
-        verbose       => $verbose,
+        scheduler         => $scheduler,
+        analysis_dir      => $analysis_dir,
+        analysis          => $analysis,
+        cmd_line          => $cmd_line,
+        max_jobs          => $max_jobs,
+        max_retries       => $max_retries,
+        sleep_time        => $sleep_time,
+        skip_clean_up     => $skip_clean_up,
+        serialiser_format => $serialiser_format,
+        verbose           => $verbose,
     }
 );
 
@@ -164,22 +166,23 @@ sub get_and_check_options {
 
     # Get options
     GetOptions(
-        'pipeline=s'        => \$pipeline_type,
-        'scheduler=s'       => \$scheduler,
-        'dir=s'             => \$analysis_dir,
-        'analysis_yaml=s'   => \$analysis_yaml,
-        'stages_yaml=s'     => \$stages_yaml,
-        'avoid_nodes=s@{,}' => \@avoid_nodes,
-        'max_jobs=i'        => \$max_jobs,
-        'max_retries=i'     => \$max_retries,
-        'sleep_time=i'      => \$sleep_time,
-        'skip_clean_up'     => \$skip_clean_up,
-        'stage=s'           => \$stage_to_run,
-        'component=i'       => \$component_to_run,
-        'once'              => \$once,
-        'verbose'           => \$verbose,
-        'help'              => \$help,
-        'man'               => \$man,
+        'pipeline=s'          => \$pipeline_type,
+        'scheduler=s'         => \$scheduler,
+        'dir=s'               => \$analysis_dir,
+        'analysis_yaml=s'     => \$analysis_yaml,
+        'stages_yaml=s'       => \$stages_yaml,
+        'avoid_nodes=s@{,}'   => \@avoid_nodes,
+        'max_jobs=i'          => \$max_jobs,
+        'max_retries=i'       => \$max_retries,
+        'sleep_time=i'        => \$sleep_time,
+        'skip_clean_up'       => \$skip_clean_up,
+        'serialiser_format=s' => \$serialiser_format,
+        'stage=s'             => \$stage_to_run,
+        'component=i'         => \$component_to_run,
+        'once'                => \$once,
+        'verbose'             => \$verbose,
+        'help'                => \$help,
+        'man'                 => \$man,
     ) or pod2usage(2);
 
     # Documentation
@@ -231,6 +234,7 @@ sub get_and_check_options {
         [--max_retries int]
         [--sleep_time int]
         [--skip_clean_up]
+        [--serialiser_format yaml|json]
         [--stage stage]
         [--component int]
         [--once]
@@ -281,6 +285,10 @@ Time to sleep, in seconds, between each cycle of the pipeline.
 =item B<--skip_clean_up>
 
 Skip final clean up stage.
+
+=item B<--serialiser_format yaml|json>
+
+Internal serialisation format - yaml (default) or json.
 
 =item B<--stage STAGE>
 

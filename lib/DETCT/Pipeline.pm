@@ -30,6 +30,8 @@ use File::Path qw( make_path );
 use Hash::Merge;
 use File::ReadBackwards;
 use YAML::Tiny qw( DumpFile );
+use YAML;
+use JSON;
 use Sys::Hostname;
 use File::Basename;
 use File::Find;
@@ -53,6 +55,7 @@ private max_jobs      => my %max_jobs;         # e.g. 1000
 private max_retries   => my %max_retries;      # e.g. 10
 private sleep_time    => my %sleep_time;       # e.g. 600
 private skip_clean_up => my %skip_clean_up;    # e.g. 1
+private serialiser_format       => my %serialiser_format;          # e.g. yaml
 private memory_limit_multiplier => my %memory_limit_multiplier;    # e.g. 1000
 private stage_to_run => my %stage_to_run;    # DETCT::Pipeline::Stage object
 private component_to_run => my %component_to_run;    # e.g. 5
@@ -86,15 +89,16 @@ Readonly our %EXTENSION_TO_DELETE => map { $_ => 1 } qw(
   Purpose     : Constructor for pipeline objects
   Returns     : DETCT::Pipeline
   Parameters  : Hashref {
-                    scheduler     => String,
-                    analysis_dir  => String,
-                    analysis      => DETCT::Analysis,
-                    cmd_line      => String,
-                    max_jobs      => Int,
-                    max_retries   => Int,
-                    sleep_time    => Int,
-                    skip_clean_up => Boolean or undef,
-                    verbose       => Boolean or undef,
+                    scheduler         => String,
+                    analysis_dir      => String,
+                    analysis          => DETCT::Analysis,
+                    cmd_line          => String,
+                    max_jobs          => Int,
+                    max_retries       => Int,
+                    sleep_time        => Int,
+                    skip_clean_up     => Boolean or undef,
+                    serialiser_format => String or undef,
+                    verbose           => Boolean or undef,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -112,6 +116,7 @@ sub new {
     $self->set_max_retries( $arg_ref->{max_retries} );
     $self->set_sleep_time( $arg_ref->{sleep_time} );
     $self->set_skip_clean_up( $arg_ref->{skip_clean_up} );
+    $self->set_serialiser_format( $arg_ref->{serialiser_format} );
     $self->set_verbose( $arg_ref->{verbose} );
     return $self;
 }
@@ -789,6 +794,55 @@ sub set_skip_clean_up {
     return;
 }
 
+=method serialiser_format
+
+  Usage       : my $serialiser_format = $pipeline->serialiser_format;
+  Purpose     : Getter for serialiser format attribute
+  Returns     : String (e.g. "yaml")
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub serialiser_format {
+    my ($self) = @_;
+    return $serialiser_format{ id $self};
+}
+
+=method set_serialiser_format
+
+  Usage       : $pipeline->set_serialiser_format('yaml');
+  Purpose     : Setter for serialiser format attribute
+  Returns     : undef
+  Parameters  : String (the serialiser format)
+  Throws      : No exceptions
+  Comments    : Defaults to YAML
+
+=cut
+
+sub set_serialiser_format {
+    my ( $self, $arg ) = @_;
+    $serialiser_format{ id $self} = _check_serialiser_format( $arg || 'yaml' );
+    return;
+}
+
+# Usage       : $serialiser_format = _check_serialiser_format($serialiser_format);
+# Purpose     : Check for valid serialiser format
+# Returns     : String (the valid serialiser format)
+# Parameters  : String (the serialiser format)
+# Throws      : If serialiser format is not yaml or sjon
+# Comments    : None
+sub _check_serialiser_format {
+    my ($serialiser_format) = @_;
+
+    confess 'Invalid serialiser format specified'
+      if !defined $serialiser_format
+      || ( $serialiser_format ne 'yaml' && $serialiser_format ne 'json' );
+
+    return $serialiser_format;
+}
+
 =method hash_merge
 
   Usage       : %chunk_hmm
@@ -1450,6 +1504,53 @@ sub run_job {
     $self->$sub_name($job);
 
     return;
+}
+
+=method dump_serialised
+
+  Usage       : $pipeline->dump_serialised($file, $data);
+  Purpose     : Store serialised data in file
+  Returns     : undef
+  Parameters  : String (the file)
+                Any reference (the data; usually hashref)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub dump_serialised {
+    my ( $self, $file, $data ) = @_;
+
+    if ( $self->serialiser_format eq 'yaml' ) {
+        YAML::DumpFile( $file, $data );
+    }
+    elsif ( $self->serialiser_format eq 'json' ) {
+        write_file( $file, JSON::to_json( $data, { pretty => 1 } ) );
+    }
+
+    return;
+}
+
+=method load_serialised
+
+  Usage       : $data = $pipeline->load_serialised($file);
+  Purpose     : Load serialised data from a file
+  Returns     : Any reference (the data; usually hashref)
+  Parameters  : String (the file)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub load_serialised {
+    my ( $self, $file ) = @_;
+
+    if ( $self->serialiser_format eq 'yaml' ) {
+        return YAML::LoadFile($file);
+    }
+    elsif ( $self->serialiser_format eq 'json' ) {
+        return JSON::from_json( read_file($file) );
+    }
 }
 
 =method input_overview

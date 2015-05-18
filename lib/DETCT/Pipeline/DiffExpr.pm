@@ -22,7 +22,6 @@ use parent qw(DETCT::Pipeline);
 
 use Class::InsideOut qw( private register id );
 use Scalar::Util qw( refaddr );
-use YAML qw( DumpFile LoadFile );
 use DETCT::GeneFinder;
 use DETCT::Misc::BAM qw(
   count_tags
@@ -137,7 +136,7 @@ sub run_count_tags {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_count );
+    $self->dump_serialised( $output_file, \%chunk_count );
 
     return;
 }
@@ -194,7 +193,7 @@ sub run_bin_reads {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_bins );
+    $self->dump_serialised( $output_file, \%chunk_bins );
 
     return;
 }
@@ -252,7 +251,7 @@ sub run_get_read_peaks {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_peaks );
+    $self->dump_serialised( $output_file, \%chunk_peaks );
 
     return;
 }
@@ -316,9 +315,8 @@ sub run_merge_read_peaks {
     my %unmerged_peaks;
     foreach my $output_file (@get_read_peaks_output_files) {
         %unmerged_peaks = %{
-            $self->hash_merge->merge(
-                \%unmerged_peaks, LoadFile($output_file)
-            )
+            $self->hash_merge->merge( \%unmerged_peaks,
+                $self->load_serialised($output_file) )
         };
     }
 
@@ -347,7 +345,7 @@ sub run_merge_read_peaks {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_peaks );
+    $self->dump_serialised( $output_file, \%chunk_peaks );
 
     return;
 }
@@ -401,7 +399,7 @@ sub run_summarise_read_peaks {
     # Get merged peaks
     my @merged_peaks;
     foreach my $merge_read_peaks_output_file (@merge_read_peaks_output_files) {
-        my $peaks = LoadFile($merge_read_peaks_output_file);
+        my $peaks = $self->load_serialised($merge_read_peaks_output_file);
         foreach my $seq_name ( sort keys %{$peaks} ) {
             foreach my $strand ( sort keys %{ $peaks->{$seq_name} } ) {
                 push @merged_peaks, @{ $peaks->{$seq_name}->{$strand} };
@@ -423,7 +421,7 @@ sub run_summarise_read_peaks {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, $summary );
+    $self->dump_serialised( $output_file, $summary );
 
     return;
 }
@@ -493,12 +491,14 @@ sub run_run_peak_hmm {
     # Join read bins
     my %read_bins;
     foreach my $output_file (@bin_reads_output_files) {
-        %read_bins =
-          %{ $self->hash_merge->merge( \%read_bins, LoadFile($output_file) ) };
+        %read_bins = %{
+            $self->hash_merge->merge( \%read_bins,
+                $self->load_serialised($output_file) )
+        };
     }
 
     # Load summary
-    my $summary = LoadFile($summary_output_file);
+    my $summary = $self->load_serialised($summary_output_file);
 
     my %chunk_hmm;
 
@@ -529,7 +529,7 @@ sub run_run_peak_hmm {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_hmm );
+    $self->dump_serialised( $output_file, \%chunk_hmm );
 
     return;
 }
@@ -580,7 +580,7 @@ sub run_join_hmm_bins {
     my ( $chunk, $run_peak_hmm_output_file ) = @{ $job->parameters };
 
     # Get HMM bins
-    my $hmm_bins = LoadFile($run_peak_hmm_output_file);
+    my $hmm_bins = $self->load_serialised($run_peak_hmm_output_file);
 
     my %chunk_regions;
 
@@ -607,7 +607,7 @@ sub run_join_hmm_bins {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_regions );
+    $self->dump_serialised( $output_file, \%chunk_regions );
 
     return;
 }
@@ -663,7 +663,7 @@ sub run_get_three_prime_ends {
       @{ $job->parameters };
 
     # Get regions
-    my $regions = LoadFile($join_hmm_bins_output_file);
+    my $regions = $self->load_serialised($join_hmm_bins_output_file);
 
     my %chunk_regions;
 
@@ -697,7 +697,7 @@ sub run_get_three_prime_ends {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_regions );
+    $self->dump_serialised( $output_file, \%chunk_regions );
 
     return;
 }
@@ -761,7 +761,7 @@ sub run_merge_three_prime_ends {
     # Load all regions
     my @list_of_lists_of_regions;
     foreach my $output_file (@get_three_prime_ends_output_files) {
-        my $regions = LoadFile($output_file);
+        my $regions = $self->load_serialised($output_file);
         push @list_of_lists_of_regions, $regions;
     }
 
@@ -782,7 +782,7 @@ sub run_merge_three_prime_ends {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_regions );
+    $self->dump_serialised( $output_file, \%chunk_regions );
 
     return;
 }
@@ -834,7 +834,7 @@ sub run_filter_three_prime_ends {
     my ( $chunk, $merge_three_prime_ends_output_file ) = @{ $job->parameters };
 
     # Get regions
-    my $regions = LoadFile($merge_three_prime_ends_output_file);
+    my $regions = $self->load_serialised($merge_three_prime_ends_output_file);
 
     my %chunk_regions;
 
@@ -853,7 +853,7 @@ sub run_filter_three_prime_ends {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_regions );
+    $self->dump_serialised( $output_file, \%chunk_regions );
 
     return;
 }
@@ -905,7 +905,7 @@ sub run_choose_three_prime_end {
     my ( $chunk, $filter_three_prime_ends_output_file ) = @{ $job->parameters };
 
     # Get regions
-    my $regions = LoadFile($filter_three_prime_ends_output_file);
+    my $regions = $self->load_serialised($filter_three_prime_ends_output_file);
 
     my %chunk_regions;
 
@@ -923,7 +923,7 @@ sub run_choose_three_prime_end {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_regions );
+    $self->dump_serialised( $output_file, \%chunk_regions );
 
     return;
 }
@@ -980,7 +980,7 @@ sub run_count_reads {
       @{ $job->parameters };
 
     # Get regions
-    my $regions = LoadFile($choose_three_prime_end_output_file);
+    my $regions = $self->load_serialised($choose_three_prime_end_output_file);
 
     my %chunk_regions;
 
@@ -1002,7 +1002,7 @@ sub run_count_reads {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_regions );
+    $self->dump_serialised( $output_file, \%chunk_regions );
 
     return;
 }
@@ -1065,7 +1065,7 @@ sub run_merge_read_counts {
     # Load all regions
     my %hash_of_lists_of_regions;
     foreach my $bam_file ( keys %output_file_for ) {
-        my $regions = LoadFile( $output_file_for{$bam_file} );
+        my $regions = $self->load_serialised( $output_file_for{$bam_file} );
         $hash_of_lists_of_regions{$bam_file} = $regions;
     }
 
@@ -1091,7 +1091,7 @@ sub run_merge_read_counts {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, \%chunk_regions );
+    $self->dump_serialised( $output_file, \%chunk_regions );
 
     return;
 }
@@ -1149,8 +1149,10 @@ sub run_run_deseq {
     # Join regions
     my %regions;
     foreach my $output_file (@merge_read_counts_output_files) {
-        %regions =
-          %{ $self->hash_merge->merge( \%regions, LoadFile($output_file) ) };
+        %regions = %{
+            $self->hash_merge->merge( \%regions,
+                $self->load_serialised($output_file) )
+        };
     }
 
     my $regions_ref = run_deseq(
@@ -1169,7 +1171,7 @@ sub run_run_deseq {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, $regions_ref );
+    $self->dump_serialised( $output_file, $regions_ref );
 
     return;
 }
@@ -1220,7 +1222,7 @@ sub run_add_gene_annotation {
     my ( $chunk, $deseq_output_file ) = @{ $job->parameters };
 
     # Get regions
-    my $regions = LoadFile($deseq_output_file);
+    my $regions = $self->load_serialised($deseq_output_file);
 
     # Filter regions by sequences in chunk
     my %chosen_seq = map { $_->name => 1 } @{$chunk};
@@ -1238,7 +1240,7 @@ sub run_add_gene_annotation {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, $annotated_regions_ref );
+    $self->dump_serialised( $output_file, $annotated_regions_ref );
 
     return;
 }
@@ -1285,8 +1287,8 @@ sub run_add_existing_gene_annotation {
     my ( $table_output_file, $deseq_output_file ) = @{ $job->parameters };
 
     # Get regions and existing regions
-    my $existing_regions = LoadFile($table_output_file);
-    my $regions          = LoadFile($deseq_output_file);
+    my $existing_regions = $self->load_serialised($table_output_file);
+    my $regions          = $self->load_serialised($deseq_output_file);
 
     # Add existing gene annotation
     my $gene_finder = DETCT::GeneFinder->new(
@@ -1305,7 +1307,7 @@ sub run_add_existing_gene_annotation {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, $annotated_regions_ref );
+    $self->dump_serialised( $output_file, $annotated_regions_ref );
 
     return;
 }
@@ -1369,7 +1371,7 @@ sub run_dump_as_table {
     # Join regions
     my @regions;
     foreach my $output_file (@add_gene_annotation_output_files) {
-        push @regions, @{ LoadFile($output_file) };
+        push @regions, @{ $self->load_serialised($output_file) };
     }
 
     dump_as_table(
@@ -1382,7 +1384,7 @@ sub run_dump_as_table {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, 1 );
+    $self->dump_serialised( $output_file, \1 );
 
     return;
 }
@@ -1428,7 +1430,7 @@ sub run_parse_table {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, $regions );
+    $self->dump_serialised( $output_file, $regions );
 
     return;
 }
@@ -1473,13 +1475,13 @@ sub run_convert_table {
 
     my ($table_output_file) = @{ $job->parameters };
 
-    my $regions = LoadFile($table_output_file);
+    my $regions = $self->load_serialised($table_output_file);
 
     $regions = convert_table_for_deseq( { regions => $regions, } );
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, $regions );
+    $self->dump_serialised( $output_file, $regions );
 
     return;
 }

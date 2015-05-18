@@ -22,7 +22,6 @@ use parent qw(DETCT::Pipeline);
 
 use Class::InsideOut qw( private register id );
 use List::Util qw( min sum );
-use YAML qw( DumpFile LoadFile );
 use File::Spec;
 use File::Slurp;
 use DETCT::Misc::BAM qw(
@@ -100,7 +99,7 @@ sub run_stats_by_tag {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, $stats );
+    $self->dump_serialised( $output_file, $stats );
 
     return;
 }
@@ -154,7 +153,7 @@ sub run_stats_all_reads {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, $stats );
+    $self->dump_serialised( $output_file, $stats );
 
     return;
 }
@@ -180,7 +179,7 @@ sub all_parameters_for_downsample_by_tag {
         $component++;
         my $stats_output_file =
           $self->get_and_check_output_file( 'stats_by_tag', $component );
-        my $stats = LoadFile($stats_output_file);
+        my $stats = $self->load_serialised($stats_output_file);
         my @tags  = $self->analysis->list_all_tags_by_bam_file($bam_file);
         foreach my $tag (@tags) {
             my $source_read_count =
@@ -249,7 +248,7 @@ sub run_downsample_by_tag {
             source_read_count => $source_read_count,
             target_read_count => $self->analysis->target_read_count,
         );
-        DumpFile( $output_file, \%output );
+        $self->dump_serialised( $output_file, \%output );
     }
     else {
         exit 1;
@@ -279,7 +278,7 @@ sub all_parameters_for_downsample_all_reads {
         $component++;
         my $stats_output_file =
           $self->get_and_check_output_file( 'stats_all_reads', $component );
-        my $stats             = LoadFile($stats_output_file);
+        my $stats             = $self->load_serialised($stats_output_file);
         my $source_read_count = $stats->{ $self->analysis->read_count_type };
         push @all_parameters, [ $bam_file, $source_read_count ];
     }
@@ -359,7 +358,7 @@ sub run_downsample_all_reads {
             sub_target_read_count => $target_read_count,
             target_read_count     => $self->analysis->target_read_count,
         );
-        DumpFile( $output_file, \%output );
+        $self->dump_serialised( $output_file, \%output );
     }
     else {
         exit 1;
@@ -494,7 +493,7 @@ sub run_sort_by_queryname {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, 1 );
+    $self->dump_serialised( $output_file, \1 );
 
     return;
 }
@@ -626,7 +625,7 @@ sub run_mark_duplicates {
         @tags = ();
     }
 
-    my $output = 1;
+    my $output = \1;
 
     if ( $self->analysis->mark_duplicates_method eq 'native' ) {
 
@@ -658,7 +657,7 @@ sub run_mark_duplicates {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, $output );
+    $self->dump_serialised( $output_file, $output );
 
     return;
 }
@@ -815,7 +814,7 @@ sub run_mark_duplicates_metrics {
         if ( $self->analysis->mark_duplicates_method eq 'native' ) {
 
             # Get metrics output from native method
-            my $output = LoadFile($metrics_file);
+            my $output = $self->load_serialised($metrics_file);
             my @tags = sort grep { $_ !~ m/\A_/xms } keys %{$output};
             if ( !@tags ) {
 
@@ -854,7 +853,7 @@ sub run_mark_duplicates_metrics {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, 1 );
+    $self->dump_serialised( $output_file, \1 );
 
     return;
 }
@@ -984,7 +983,7 @@ sub run_sort_by_coordinate {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, 1 );
+    $self->dump_serialised( $output_file, \1 );
 
     return;
 }
@@ -1130,7 +1129,7 @@ sub run_sample_flagstats {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, 1 );
+    $self->dump_serialised( $output_file, \1 );
 
     return;
 }
@@ -1275,7 +1274,7 @@ sub run_merge {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, 1 );
+    $self->dump_serialised( $output_file, \1 );
 
     return;
 }
@@ -1325,7 +1324,7 @@ sub run_make_index {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, 1 );
+    $self->dump_serialised( $output_file, \1 );
 
     return;
 }
@@ -1379,7 +1378,7 @@ sub run_merged_flagstats {
 
     my $output_file = $job->base_filename . '.out';
 
-    DumpFile( $output_file, 1 );
+    $self->dump_serialised( $output_file, \1 );
 
     return;
 }

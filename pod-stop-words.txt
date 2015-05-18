@@ -19,6 +19,7 @@ FASTQ
 FixMateInformation
 flagstats
 HMM
+json
 lsf
 MarkDuplicates
 MySQL
@@ -37,3 +38,4 @@ SortSam
 USERNAME
 username
 YAML
+yaml
