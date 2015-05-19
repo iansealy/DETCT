@@ -1,6 +1,6 @@
-library(DESeq2)
-library(RColorBrewer)
-library(gplots)
+suppressPackageStartupMessages(library(DESeq2))
+suppressPackageStartupMessages(library(RColorBrewer))
+suppressPackageStartupMessages(library(gplots))
 
 Args                <- commandArgs()
 countFile           <- Args[4]
