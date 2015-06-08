@@ -47,16 +47,18 @@ our @EXPORT_OK = qw(
   Purpose     : Detag and trim FASTQ files
   Returns     : undef
   Parameters  : Hashref {
-                    fastq_read1_input     => String (read 1 FASTQ file),
-                    fastq_read2_input     => String (read 2 FASTQ file),
-                    fastq_output_prefix   => String (prefix for output FASTQs),
-                    read1_required_length => Int (required length of read 1),
-                    read2_required_length => Int (required length of read 2),
-                    polyt_trim_length     => Int (polyT length to be trimmed),
-                    polyt_min_length      => Int (min Ts to define polyT),
-                    read_tags             => Arrayref (of read tags),
-                    no_pair_suffix        => Boolean or undef,
-                    treat_n_in_polyt_as_t => Boolean or undef,
+                    fastq_read1_input        => String (read 1 FASTQ file),
+                    fastq_read2_input        => String (read 2 FASTQ file),
+                    fastq_output_prefix      => String (output FASTQs prefix),
+                    read1_required_length    => Int (read 1 required length),
+                    read2_required_length    => Int (read 2 required length),
+                    read1_5prime_trim_length => Int (5' read 1 bases to trim),
+                    read2_5prime_trim_length => Int (5' read 2 bases to trim),
+                    polyt_trim_length        => Int (polyT length to trim),
+                    polyt_min_length         => Int (min Ts to define polyT),
+                    read_tags                => Arrayref (of read tags),
+                    no_pair_suffix           => Boolean or undef,
+                    treat_n_in_polyt_as_t    => Boolean or undef,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -72,9 +74,11 @@ sub detag_trim_fastq {
     my $min_polyt = q{T} x $arg_ref->{polyt_min_length};
     my $polyt_re = qr/$min_polyt/xms;    # Regexp for polyT matching
 
-    my $read1_required_length = $arg_ref->{read1_required_length};
-    my $read2_required_length = $arg_ref->{read2_required_length};
-    my $polyt_trim_length     = $arg_ref->{polyt_trim_length};
+    my $read1_required_length    = $arg_ref->{read1_required_length};
+    my $read2_required_length    = $arg_ref->{read2_required_length};
+    my $read1_5prime_trim_length = $arg_ref->{read1_5prime_trim_length} || 0;
+    my $read2_5prime_trim_length = $arg_ref->{read2_5prime_trim_length} || 0;
+    my $polyt_trim_length        = $arg_ref->{polyt_trim_length};
 
     # Convert tags to regular expressions
     my @read_tags  = @{ $arg_ref->{read_tags} };
@@ -126,16 +130,24 @@ sub detag_trim_fastq {
               . "($read1_id_no_suffix does not match $read2_id_no_suffix)";
         }
 
-        # Trim reads to specified length if necessary
+        # 3' trim reads to required length if necessary
         my $read1_pre_detag_length =
-          $read1_required_length + $tag_length + $polyt_trim_length;
+          $read1_required_length +
+          $read1_5prime_trim_length +
+          $tag_length +
+          $polyt_trim_length;
         if ( length $read1_seq > $read1_pre_detag_length ) {
             $read1_seq  = substr $read1_seq,  0, $read1_pre_detag_length;
             $read1_qual = substr $read1_qual, 0, $read1_pre_detag_length;
         }
-        if ( length $read2_seq > $read2_required_length ) {
-            $read2_seq  = substr $read2_seq,  0, $read2_required_length;
-            $read2_qual = substr $read2_qual, 0, $read2_required_length;
+        if (
+            length $read2_seq >
+            $read2_required_length + $read2_5prime_trim_length )
+        {
+            $read2_seq = substr $read2_seq, 0,
+              $read2_required_length + $read2_5prime_trim_length;
+            $read2_qual = substr $read2_qual, 0,
+              $read2_required_length + $read2_5prime_trim_length;
         }
 
         # Get tag and putative polyT from read 1
@@ -164,6 +176,12 @@ sub detag_trim_fastq {
                 }
             }
         }
+
+        # 5' trim read if necessary
+        substr $read1_seq,  0, $read1_5prime_trim_length, q{};
+        substr $read2_seq,  0, $read2_5prime_trim_length, q{};
+        substr $read1_qual, 0, $read1_5prime_trim_length, q{};
+        substr $read2_qual, 0, $read2_5prime_trim_length, q{};
 
         # Add tag to id
         $read1_id =~ s{ /[12] \z}{#$tag_for_id/1}xms;

@@ -34,10 +34,12 @@ use DETCT::Misc::Tag;
 my $fastq_read1_input;
 my $fastq_read2_input;
 my $fastq_output_prefix;
-my $read1_required_length = 30;
-my $read2_required_length = 54;
-my $polyt_trim_length     = 14;
-my $polyt_min_length      = 10;
+my $read1_required_length    = 30;
+my $read2_required_length    = 54;
+my $read1_5prime_trim_length = 0;
+my $read2_5prime_trim_length = 0;
+my $polyt_trim_length        = 14;
+my $polyt_min_length         = 10;
 my @read_tags;
 my $no_pair_suffix        = 0;
 my $treat_n_in_polyt_as_t = 0;
@@ -49,16 +51,18 @@ get_and_check_options();
 
 DETCT::Misc::Tag::detag_trim_fastq(
     {
-        fastq_read1_input     => $fastq_read1_input,
-        fastq_read2_input     => $fastq_read2_input,
-        fastq_output_prefix   => $fastq_output_prefix,
-        read1_required_length => $read1_required_length,
-        read2_required_length => $read2_required_length,
-        polyt_trim_length     => $polyt_trim_length,
-        polyt_min_length      => $polyt_min_length,
-        read_tags             => \@read_tags,
-        no_pair_suffix        => $no_pair_suffix,
-        treat_n_in_polyt_as_t => $treat_n_in_polyt_as_t,
+        fastq_read1_input        => $fastq_read1_input,
+        fastq_read2_input        => $fastq_read2_input,
+        fastq_output_prefix      => $fastq_output_prefix,
+        read1_required_length    => $read1_required_length,
+        read2_required_length    => $read2_required_length,
+        read1_5prime_trim_length => $read1_5prime_trim_length,
+        read2_5prime_trim_length => $read2_5prime_trim_length,
+        polyt_trim_length        => $polyt_trim_length,
+        polyt_min_length         => $polyt_min_length,
+        read_tags                => \@read_tags,
+        no_pair_suffix           => $no_pair_suffix,
+        treat_n_in_polyt_as_t    => $treat_n_in_polyt_as_t,
     }
 );
 
@@ -67,18 +71,20 @@ sub get_and_check_options {
 
     # Get options
     GetOptions(
-        'fastq_read1_input=s'     => \$fastq_read1_input,
-        'fastq_read2_input=s'     => \$fastq_read2_input,
-        'fastq_output_prefix=s'   => \$fastq_output_prefix,
-        'read1_required_length=i' => \$read1_required_length,
-        'read2_required_length=i' => \$read2_required_length,
-        'polyt_trim_length=i'     => \$polyt_trim_length,
-        'polyt_min_length=i'      => \$polyt_min_length,
-        'read_tags=s@{1,}'        => \@read_tags,
-        'no_pair_suffix'          => \$no_pair_suffix,
-        'treat_n_in_polyt_as_t'   => \$treat_n_in_polyt_as_t,
-        'help'                    => \$help,
-        'man'                     => \$man,
+        'fastq_read1_input=s'        => \$fastq_read1_input,
+        'fastq_read2_input=s'        => \$fastq_read2_input,
+        'fastq_output_prefix=s'      => \$fastq_output_prefix,
+        'read1_required_length=i'    => \$read1_required_length,
+        'read2_required_length=i'    => \$read2_required_length,
+        'read1_5prime_trim_length=i' => \$read1_5prime_trim_length,
+        'read2_5prime_trim_length=i' => \$read2_5prime_trim_length,
+        'polyt_trim_length=i'        => \$polyt_trim_length,
+        'polyt_min_length=i'         => \$polyt_min_length,
+        'read_tags=s@{1,}'           => \@read_tags,
+        'no_pair_suffix'             => \$no_pair_suffix,
+        'treat_n_in_polyt_as_t'      => \$treat_n_in_polyt_as_t,
+        'help'                       => \$help,
+        'man'                        => \$man,
     ) or pod2usage(2);
 
     # Documentation
@@ -114,6 +120,8 @@ sub get_and_check_options {
         [--fastq_output_prefix prefix]
         [--read1_required_length int]
         [--read2_required_length int]
+        [--read1_5prime_trim_length int]
+        [--read2_5prime_trim_length int]
         [--polyt_trim_length int]
         [--polyt_min_length int]
         [--read_tags tags...]
@@ -144,7 +152,15 @@ Length of read 1 after detagging and optional trimming.
 
 =item B<--read2_required_length INT>
 
-Length of read 2 after detagging and optional trimming.
+Length of read 2 after optional trimming.
+
+=item B<--read1_5prime_trim_length INT>
+
+Bases to trim from 5' end of read 1 after detagging and before any 3' trimming.
+
+=item B<--read2_5prime_trim_length INT>
+
+Bases to trim from 5' end of read 2 before any 3' trimming.
 
 =item B<--polyt_trim_length INT>
 

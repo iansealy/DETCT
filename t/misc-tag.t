@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 111;
+plan tests => 117;
 
 use DETCT::Misc::Tag qw(
   detag_trim_fastq
@@ -215,6 +215,83 @@ is( length $read_seq, 54, 'Sequence trimmed to 54 bp' );
 $read_qual = $fastq[3];
 chomp $read_qual;
 is( length $read_qual, 54, 'Quality trimmed to 54 bp' );
+
+# Check detagging and trimming FASTQ files
+is(
+    detag_trim_fastq(
+        {
+            fastq_read1_input        => 't/data/test1_1.fastq',
+            fastq_read2_input        => 't/data/test1_2.fastq',
+            fastq_output_prefix      => $tmp_dir . '/test4',
+            read1_required_length    => 30,
+            read2_required_length    => 54,
+            read1_5prime_trim_length => 2,
+            polyt_trim_length        => 14,
+            polyt_min_length         => 10,
+            read_tags                => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
+        }
+    ),
+    undef,
+    'Detag and trim FASTQ'
+);
+is(
+    detag_trim_fastq(
+        {
+            fastq_read1_input        => 't/data/test1_1.fastq',
+            fastq_read2_input        => 't/data/test1_2.fastq',
+            fastq_output_prefix      => $tmp_dir . '/test5',
+            read1_required_length    => 30,
+            read2_required_length    => 54,
+            read2_5prime_trim_length => 2,
+            polyt_trim_length        => 14,
+            polyt_min_length         => 10,
+            read_tags                => [ 'NNNNBGAGGC', 'NNNNBAGAAG' ],
+        }
+    ),
+    undef,
+    'Detag and trim FASTQ'
+);
+
+my @fastq_read1        = read_file( $tmp_dir . '/test5_NNNNBGAGGC_1.fastq' );
+my @fastq_5prime_read1 = read_file( $tmp_dir . '/test4_NNNNBGAGGC_1.fastq' );
+my @fastq_read2        = read_file( $tmp_dir . '/test4_NNNNBGAGGC_2.fastq' );
+my @fastq_5prime_read2 = read_file( $tmp_dir . '/test5_NNNNBGAGGC_2.fastq' );
+
+chomp @fastq_read1;
+chomp @fastq_5prime_read1;
+chomp @fastq_read2;
+chomp @fastq_5prime_read2;
+
+my $seq_qual_match_read1 = 1;
+my $names_match_read1    = 1;
+my $seq_qual_match_read2 = 1;
+my $names_match_read2    = 1;
+foreach my $i ( 0 .. ( ( scalar @fastq_read1 ) / 2 ) - 1 ) {
+    if ( $fastq_read1[ $i * 2 ] ne $fastq_5prime_read1[ $i * 2 ] ) {
+        $names_match_read1 = 0;
+    }
+    if ( $fastq_read2[ $i * 2 ] ne $fastq_5prime_read2[ $i * 2 ] ) {
+        $names_match_read2 = 0;
+    }
+    my $untrimmed1 = $fastq_read1[ $i * 2 + 1 ];
+    my $trimmed1   = $fastq_5prime_read1[ $i * 2 + 1 ];
+    if ( ( substr $untrimmed1, 2 ) ne substr $trimmed1,
+        0, ( length $trimmed1 ) - 2 )
+    {
+        $seq_qual_match_read1 = 0;
+    }
+    my $untrimmed2 = $fastq_read2[ $i * 2 + 1 ];
+    my $trimmed2   = $fastq_5prime_read2[ $i * 2 + 1 ];
+    if ( ( substr $untrimmed2, 2 ) ne substr $trimmed2,
+        0, ( length $trimmed2 ) - 2 )
+    {
+        $seq_qual_match_read2 = 0;
+    }
+}
+is( $seq_qual_match_read1, 1, q{Read 1 5' end trimming sequence or quality} );
+is( $seq_qual_match_read2, 1, q{Read 2 5' end trimming sequence or quality} );
+is( $names_match_read1,    1, q{Read 1 5' end trimming names} );
+is( $names_match_read2,    1, q{Read 2 5' end trimming names} );
 
 # Check converting tags to regular expressions
 
