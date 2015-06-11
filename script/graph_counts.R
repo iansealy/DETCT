@@ -21,7 +21,7 @@ samples <- read.table( samplesFile, header=TRUE, row.names=1 )
 # Graph parameters
 labels <- gsub(".normalised.count$", "",
                names(data)[grepl(".normalised.count$", names(data))])
-colours <- as.numeric(samples[labels, "condition"])
+colours <- as.numeric(samples$condition)
 
 pdf(pdfFile)
 
