@@ -66,6 +66,12 @@ for (i in seq.int(sum(percentVarPC * 100 >= varPCThreshold))) {
 # Write PCs to PDF
 pdf(pdfFile)
 
+d <- data.frame(PC=seq.int(length(percentVarPC)), var=percentVarPC)
+print(ggplot(data=d, aes(x=PC, y=var)) + geom_line() + geom_point() +
+    xlab("PC") + ylab("Variance explained") + ylim(c(0, 1)))
+print(ggplot(data=d, aes(x=PC, y=cumsum(var))) + geom_line() + geom_point() +
+    xlab("PC") + ylab("Cumulative variance explained") + ylim(c(0, 1)))
+
 intgroup.df <- as.data.frame(colData(dds)[, c("condition"), drop=FALSE])
 group <- factor(apply( intgroup.df, 1, paste, collapse=" : "))
 
