@@ -54,7 +54,7 @@ propVarRegion <- sweep(aload, 2, colSums(aload), "/")
 for (i in seq.int(sum(propVarPC * 100 >= varPCThreshold))) {
     data[select, "% variance explained"] <- propVarRegion[,i] * 100
     topData <- subset(data[order(data$`% variance explained`,
-        decreasing=TRUE),], `% variance explained` >= 0.1)
+        decreasing=TRUE),], `% variance explained` >= varRegionThreshold)
     if (grepl("csv$", dataFile)) {
         write.csv( topData, file=paste0(outputBase, "-PC", i, ".csv"),
             row.names=FALSE)
