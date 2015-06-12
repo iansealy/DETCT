@@ -27,6 +27,9 @@ if (grepl("csv$", dataFile)) {
 # Read samples
 samples <- read.table( samplesFile, header=TRUE, row.names=1 )
 
+# Ensure chromosome is a factor, even if all numeric
+data[,1] <- factor(data[,1])
+
 # Get counts
 countData <- data[,grepl(" count$", names(data)) &
                   !grepl(" normalised count$", names(data)) &
