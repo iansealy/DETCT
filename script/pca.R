@@ -96,9 +96,9 @@ varMax <- max(propVarRegion[,1:lastSigPC])
 propVarRegion <- as.data.frame(propVarRegion[,1:lastSigPC])
 propVarRegion$region <- rowMeans(data[select, c(2,3)])
 propVarRegion$chr <- data[select, 1]
-lastChr <- max(as.numeric(levels(data[,1])[grepl("^[0-9]+$",
-    levels(data[,1]))]))
-for (chr in seq.int(lastChr)) {
+chrs <- sort(unique(as.numeric(levels(data[,1])[grepl("^[0-9]+$",
+    levels(data[,1]))])))
+for (chr in chrs) {
     var_long <- melt(propVarRegion[propVarRegion$chr == chr,1:ncol(propVarRegion)-1],
         id="region", variable.name="PC")
     print(ggplot(data=var_long, aes(x=region, y=value, colour=PC)) +
