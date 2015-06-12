@@ -12,8 +12,8 @@ pdfFile            <- ifelse(is.na(Args[8]),  "pca.pdf",     Args[8])
 outputBase         <- ifelse(is.na(Args[9]),  "all",         Args[9])
 transformMethod    <- ifelse(is.na(Args[10]), "rlog",        Args[10])
 regionCount        <- ifelse(is.na(Args[11]), 500,         as.integer(Args[11]))
-varPCThreshold     <- ifelse(is.na(Args[12]), 1,           as.integer(Args[12]))
-varRegionThreshold <- ifelse(is.na(Args[13]), 0.1,         as.integer(Args[13]))
+varPCThreshold     <- ifelse(is.na(Args[12]), 1,           as.numeric(Args[12]))
+varRegionThreshold <- ifelse(is.na(Args[13]), 0.1,         as.numeric(Args[13]))
 
 # Read data
 if (grepl("csv$", dataFile)) {
