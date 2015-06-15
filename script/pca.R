@@ -15,6 +15,22 @@ regionCount        <- ifelse(is.na(Args[11]), 500,         as.integer(Args[11]))
 varPCThreshold     <- ifelse(is.na(Args[12]), 1,           as.numeric(Args[12]))
 varRegionThreshold <- ifelse(is.na(Args[13]), 0.1,         as.numeric(Args[13]))
 
+remove_common_prefix <- function(names) {
+    common_prefix_length <- 0
+    got_longest <- FALSE
+    while ( !got_longest ) {
+        prefixes <- substr(names, 1, common_prefix_length + 1)
+        if ( length(unique(prefixes)) == 1 ) {
+            common_prefix_length <- common_prefix_length + 1
+        } else {
+            got_longest <- TRUE
+        }
+    }
+    common_prefix <- substr(names[1], 1, common_prefix_length)
+    names <- gsub(common_prefix, "", names)
+    return(names)
+}
+
 # Read data
 if (grepl("csv$", dataFile)) {
     data <- read.csv(dataFile, header=TRUE, check.names=FALSE)
@@ -80,13 +96,16 @@ print(ggplot(data=d, aes(x=PC, y=cumsum(var))) + geom_line() + geom_point() +
 # Plot PCs in pairs
 intgroup.df <- as.data.frame(colData(dds)[, c("condition"), drop=FALSE])
 group <- factor(apply( intgroup.df, 1, paste, collapse=" : "))
+short_sample_names <- remove_common_prefix(colnames(dds))
 for (i in seq.int(sum(propVarPC * 100 >= varPCThreshold) - 1)) {
     first <- i
     second <- i + 1
     d <- data.frame(first=pca$x[,first], second=pca$x[,second], group=group,
         intgroup.df, name=colnames(dds))
-    print(ggplot(data=d, aes_string(x="first", y="second", color="group"))
-        + geom_point(size=3) + 
+    print(ggplot(data=d, aes_string(x="first", y="second", color="group")) +
+        geom_point(size=2) +
+        geom_text(aes(label=short_sample_names), hjust=0, vjust=0, size=4,
+                  show_guide=FALSE) +
         xlab(paste0("PC", first, ": ", round(propVarPC[first] * 100, 1),
             "% variance")) +
         ylab(paste0("PC", second, ": ", round(propVarPC[second] * 100, 1),
