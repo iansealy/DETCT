@@ -4,6 +4,7 @@ BAM
 biotype
 bp
 BWA
+csv
 detagging
 de
 Danio
@@ -34,7 +35,10 @@ sampe
 SAMtools
 STDIN
 Sealy
+sig
 SortSam
+subsetting
+tsv
 USERNAME
 username
 YAML
