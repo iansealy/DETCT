@@ -7,7 +7,7 @@ suppressPackageStartupMessages(library(pheatmap))
 Args               <- commandArgs()
 dataFile           <- ifelse(is.na(Args[6]), "sig.tsv",     Args[6])
 samplesFile        <- ifelse(is.na(Args[7]), "samples.txt", Args[7])
-pngFile            <- ifelse(is.na(Args[8]), "heatmap.png", Args[8])
+outputFile         <- ifelse(is.na(Args[8]), "heatmap.png", Args[8])
 transformMethod    <- ifelse(is.na(Args[9]), "rlog",        Args[9])
 regionCount        <- ifelse(is.na(Args[10]), 50,           as.integer(Args[10]))
 
@@ -54,5 +54,5 @@ for (condition in levels(samples$condition)) {
 }
 rownames(mat) <- data$`Gene name`[1:regionCount]
 mat <- mat - rowMeans(mat)
-pheatmap(mat, cellheight=10, filename=pngFile)
+pheatmap(mat, cellheight=10, filename=outputFile)
 unlink('Rplots.pdf')
