@@ -78,7 +78,9 @@ $base_cmd_line .=
   . ' --max_jobs '
   . $max_jobs
   . ' --max_retries '
-  . $max_retries;
+  . $max_retries
+  . ' --serialiser_format '
+  . $serialiser_format;
 if (@avoid_nodes) {
     $base_cmd_line .= ' --avoid_nodes ' . join q{ }, @avoid_nodes;
 }
