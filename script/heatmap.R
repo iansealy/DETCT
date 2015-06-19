@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
 
+suppressWarnings(library(tcltk))
 suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(pheatmap))
 
