@@ -45,9 +45,11 @@ mat <- matrix(nrow=regionCount, ncol=length(levels(samples$condition)),
               dimnames = list(c(), levels(samples$condition)))
 for (condition in levels(samples$condition)) {
     if (sum(samples$condition == condition) == 1) {
-        mat[,condition] <- assay(dds)[1:regionCount,samples$condition == condition]
+        mat[,condition] <-
+            assay(dds)[1:regionCount,samples$condition == condition]
     } else {
-        mat[,condition] <- rowMeans(assay(dds)[1:regionCount,samples$condition == condition])
+        mat[,condition] <-
+            rowMeans(assay(dds)[1:regionCount,samples$condition == condition])
     }
 }
 rownames(mat) <- data$`Gene name`[1:regionCount]
