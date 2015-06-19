@@ -55,3 +55,4 @@ for (condition in levels(samples$condition)) {
 rownames(mat) <- data$`Gene name`[1:regionCount]
 mat <- mat - rowMeans(mat)
 pheatmap(mat, cellheight=10, filename=pngFile)
+unlink('Rplots.pdf')
