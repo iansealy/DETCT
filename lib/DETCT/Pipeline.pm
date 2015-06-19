@@ -55,7 +55,7 @@ private max_jobs      => my %max_jobs;         # e.g. 1000
 private max_retries   => my %max_retries;      # e.g. 10
 private sleep_time    => my %sleep_time;       # e.g. 600
 private skip_clean_up => my %skip_clean_up;    # e.g. 1
-private serialiser_format       => my %serialiser_format;          # e.g. yaml
+private serialiser_format       => my %serialiser_format;          # e.g. json
 private memory_limit_multiplier => my %memory_limit_multiplier;    # e.g. 1000
 private stage_to_run => my %stage_to_run;    # DETCT::Pipeline::Stage object
 private component_to_run => my %component_to_run;    # e.g. 5
@@ -798,7 +798,7 @@ sub set_skip_clean_up {
 
   Usage       : my $serialiser_format = $pipeline->serialiser_format;
   Purpose     : Getter for serialiser format attribute
-  Returns     : String (e.g. "yaml")
+  Returns     : String (e.g. "json")
   Parameters  : None
   Throws      : No exceptions
   Comments    : None
@@ -812,18 +812,18 @@ sub serialiser_format {
 
 =method set_serialiser_format
 
-  Usage       : $pipeline->set_serialiser_format('yaml');
+  Usage       : $pipeline->set_serialiser_format('json');
   Purpose     : Setter for serialiser format attribute
   Returns     : undef
   Parameters  : String (the serialiser format)
   Throws      : No exceptions
-  Comments    : Defaults to YAML
+  Comments    : Defaults to JSON
 
 =cut
 
 sub set_serialiser_format {
     my ( $self, $arg ) = @_;
-    $serialiser_format{ id $self} = _check_serialiser_format( $arg || 'yaml' );
+    $serialiser_format{ id $self} = _check_serialiser_format( $arg || 'json' );
     return;
 }
 
@@ -831,14 +831,14 @@ sub set_serialiser_format {
 # Purpose     : Check for valid serialiser format
 # Returns     : String (the valid serialiser format)
 # Parameters  : String (the serialiser format)
-# Throws      : If serialiser format is not yaml or sjon
+# Throws      : If serialiser format is not json or yaml
 # Comments    : None
 sub _check_serialiser_format {
     my ($serialiser_format) = @_;
 
     confess 'Invalid serialiser format specified'
       if !defined $serialiser_format
-      || ( $serialiser_format ne 'yaml' && $serialiser_format ne 'json' );
+      || ( $serialiser_format ne 'json' && $serialiser_format ne 'yaml' );
 
     return $serialiser_format;
 }
@@ -1521,11 +1521,11 @@ sub run_job {
 sub dump_serialised {
     my ( $self, $file, $data ) = @_;
 
-    if ( $self->serialiser_format eq 'yaml' ) {
-        YAML::DumpFile( $file, $data );
-    }
-    elsif ( $self->serialiser_format eq 'json' ) {
+    if ( $self->serialiser_format eq 'json' ) {
         write_file( $file, JSON::to_json( $data, { pretty => 1 } ) );
+    }
+    elsif ( $self->serialiser_format eq 'yaml' ) {
+        YAML::DumpFile( $file, $data );
     }
 
     return;
@@ -1545,11 +1545,11 @@ sub dump_serialised {
 sub load_serialised {
     my ( $self, $file ) = @_;
 
-    if ( $self->serialiser_format eq 'yaml' ) {
-        return YAML::LoadFile($file);
-    }
-    elsif ( $self->serialiser_format eq 'json' ) {
+    if ( $self->serialiser_format eq 'json' ) {
         return JSON::from_json( read_file($file) );
+    }
+    elsif ( $self->serialiser_format eq 'yaml' ) {
+        return YAML::LoadFile($file);
     }
 }
 

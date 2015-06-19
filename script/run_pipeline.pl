@@ -51,7 +51,7 @@ my $max_retries = 10;
 my $sleep_time  = 600;    # 10 minutes
 ## use critic
 my $skip_clean_up;
-my $serialiser_format = 'yaml';
+my $serialiser_format = 'json';
 my $once;
 my $stage_to_run;
 my $component_to_run;
@@ -234,7 +234,7 @@ sub get_and_check_options {
         [--max_retries int]
         [--sleep_time int]
         [--skip_clean_up]
-        [--serialiser_format yaml|json]
+        [--serialiser_format json|yaml]
         [--stage stage]
         [--component int]
         [--once]
@@ -286,9 +286,9 @@ Time to sleep, in seconds, between each cycle of the pipeline.
 
 Skip final clean up stage.
 
-=item B<--serialiser_format yaml|json>
+=item B<--serialiser_format json|yaml>
 
-Internal serialisation format - yaml (default) or json.
+Internal serialisation format - json (default) or yaml.
 
 =item B<--stage STAGE>
 
