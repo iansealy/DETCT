@@ -4,12 +4,13 @@ suppressWarnings(library(tcltk))
 suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(pheatmap))
 
-Args               <- commandArgs()
-dataFile           <- ifelse(is.na(Args[6]), "sig.tsv",     Args[6])
-samplesFile        <- ifelse(is.na(Args[7]), "samples.txt", Args[7])
-outputFile         <- ifelse(is.na(Args[8]), "heatmap.png", Args[8])
-transformMethod    <- ifelse(is.na(Args[9]), "rlog",        Args[9])
-regionCount        <- ifelse(is.na(Args[10]), 50,           as.integer(Args[10]))
+Args            <- commandArgs()
+dataFile        <- ifelse(is.na(Args[6]), "sig.tsv",     Args[6])
+samplesFile     <- ifelse(is.na(Args[7]), "samples.txt", Args[7])
+outputFile      <- ifelse(is.na(Args[8]), "heatmap.png", Args[8])
+transformMethod <- ifelse(is.na(Args[9]), "rlog",        Args[9])
+regionCount     <- ifelse(is.na(Args[10]), 50,           as.integer(Args[10]))
+clusteringType  <- ifelse(is.na(Args[11]), "both",       Args[11])
 
 # Read data
 if (grepl("csv$", dataFile)) {
@@ -54,5 +55,14 @@ for (condition in levels(samples$condition)) {
 }
 rownames(mat) <- data$`Gene name`[1:regionCount]
 mat <- mat - rowMeans(mat)
-pheatmap(mat, cellheight=10, filename=outputFile)
+if (clusteringType == "both") {
+    pheatmap(mat, cellheight=10, filename=outputFile)
+} else if (clusteringType == "genes") {
+    pheatmap(mat, cellheight=10, filename=outputFile, cluster_cols=FALSE)
+} else if (clusteringType == "conditions") {
+    pheatmap(mat, cellheight=10, filename=outputFile, cluster_rows=FALSE)
+} else {
+    pheatmap(mat, cellheight=10, filename=outputFile,
+             cluster_cols=FALSE, cluster_rows=FALSE)
+}
 unlink('Rplots.pdf')
