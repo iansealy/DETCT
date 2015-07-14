@@ -19,7 +19,6 @@ use Try::Tiny;
 
 use Getopt::Long;
 use Pod::Usage;
-use Readonly;
 use DETCT::Misc qw( print_or_die printf_or_die );
 
 =head1 DESCRIPTION
