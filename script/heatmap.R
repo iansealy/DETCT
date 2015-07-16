@@ -11,6 +11,7 @@ outputFile      <- ifelse(is.na(Args[8]), "heatmap.png", Args[8])
 transformMethod <- ifelse(is.na(Args[9]), "rlog",        Args[9])
 regionCount     <- ifelse(is.na(Args[10]), 50,           as.integer(Args[10]))
 clusteringType  <- ifelse(is.na(Args[11]), "both",       Args[11])
+scaleType       <- ifelse(is.na(Args[12]), "none",       Args[12])
 
 # Read data
 if (grepl("csv$", dataFile)) {
@@ -56,13 +57,15 @@ for (condition in levels(samples$condition)) {
 rownames(mat) <- data$`Gene name`[1:regionCount]
 mat <- mat - rowMeans(mat)
 if (clusteringType == "both") {
-    pheatmap(mat, cellheight=10, filename=outputFile)
+    pheatmap(mat, cellheight=10, filename=outputFile, scale=scaleType)
 } else if (clusteringType == "genes") {
-    pheatmap(mat, cellheight=10, filename=outputFile, cluster_cols=FALSE)
+    pheatmap(mat, cellheight=10, filename=outputFile, scale=scaleType,
+             cluster_cols=FALSE)
 } else if (clusteringType == "conditions") {
-    pheatmap(mat, cellheight=10, filename=outputFile, cluster_rows=FALSE)
+    pheatmap(mat, cellheight=10, filename=outputFile, scale=scaleType,
+             cluster_rows=FALSE)
 } else {
-    pheatmap(mat, cellheight=10, filename=outputFile,
+    pheatmap(mat, cellheight=10, filename=outputFile, scale=scaleType,
              cluster_cols=FALSE, cluster_rows=FALSE)
 }
 unlink('Rplots.pdf')
