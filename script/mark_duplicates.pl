@@ -50,7 +50,7 @@ my $java_binary         = 'java';
 my $sort_bam_jar        = 'picard-tools-1.110-detct/SortSam.jar';
 my $mark_duplicates_jar = 'picard-tools-1.110-detct/MarkDuplicates.jar';
 my $fix_mate_info_jar   = 'picard-tools-1.110-detct/FixMateInformation.jar';
-my ( $debug, $help, $man );
+my ( $help, $man );
 
 # Get and check command line options
 get_and_check_options();
@@ -234,7 +234,6 @@ sub get_and_check_options {
         'sort_bam_jar=s'        => \$sort_bam_jar,
         'mark_duplicates_jar=s' => \$mark_duplicates_jar,
         'fix_mate_info_jar=s'   => \$fix_mate_info_jar,
-        'debug'                 => \$debug,
         'help'                  => \$help,
         'man'                   => \$man,
     ) or pod2usage(2);
@@ -276,7 +275,6 @@ sub get_and_check_options {
         [--sort_bam_jar file]
         [--mark_duplicates_jar file]
         [--fix_mate_info_jar file]
-        [--debug]
         [--help]
         [--man]
 
@@ -331,10 +329,6 @@ Picard MarkDuplicates JAR file.
 =item B<--fix_mate_info_jar FILE>
 
 Picard FixMateInformation JAR file.
-
-=item B<--debug>
-
-Print debugging information.
 
 =item B<--help>
 

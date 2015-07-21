@@ -35,7 +35,7 @@ use DETCT::Misc::BAM;
 my $input_bam_file;
 my $output_bam_file;
 my @read_tags;
-my ( $debug, $help, $man );
+my ( $help, $man );
 
 # Get and check command line options
 get_and_check_options();
@@ -56,7 +56,6 @@ sub get_and_check_options {
         'input_bam_file=s'  => \$input_bam_file,
         'output_bam_file=s' => \$output_bam_file,
         'read_tags=s@{1,}'  => \@read_tags,
-        'debug'             => \$debug,
         'help'              => \$help,
         'man'               => \$man,
     ) or pod2usage(2);
@@ -89,7 +88,6 @@ sub get_and_check_options {
         [--input_bam_file file]
         [--output_bam_file file]
         [--read_tags tags...]
-        [--debug]
         [--help]
         [--man]
 
@@ -108,10 +106,6 @@ Output BAM file.
 =item B<--read_tags TAGS>
 
 Read tags.
-
-=item B<--debug>
-
-Print debugging information.
 
 =item B<--help>
 
