@@ -1,9 +1,11 @@
 aln
 API
 BAM
+BedGraph
 biotype
 bp
 BWA
+contig
 csv
 detagging
 de
@@ -41,5 +43,6 @@ subsetting
 tsv
 USERNAME
 username
+WGS
 YAML
 yaml
