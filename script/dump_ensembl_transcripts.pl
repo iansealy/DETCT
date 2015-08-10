@@ -44,9 +44,10 @@ my $ensembl_dbhost = 'ensembldb.ensembl.org';
 my $ensembl_dbport;
 my $ensembl_dbuser = 'anonymous';
 my $ensembl_dbpass;
+my $slice_regexp;
 my $wgs_prefix = 'CABZ';
 my $rnaseq_bedgraph;
-my $rnaseq_threshold = 10;    ## no critic (ProhibitMagicNumbers)
+my $rnaseq_threshold = 3;    ## no critic (ProhibitMagicNumbers)
 my ( $debug, $help, $man );
 
 # Get and check command line options
@@ -108,17 +109,28 @@ my @HEADERS = (
     'Distance to Transcript CDS End',
     'Continuous RNA-Seq End',
     'Distance to Continuous RNA-Seq End',
+    'Genes Extended Over',
+    'Distance Hexamer Upstream of RNA-Seq End (up to 40 bp)',
+    'RNA-Seq End Hexamer',
+    'RNA-Seq End polyA?',
+    'RNA-Seq End 14 bp Downstream',
 );
 printf_or_die( "#%s\n", join "\t", @HEADERS );
 
 # Get all transcripts
-my %gene_id_version_cache;
 my $slices = $sa->fetch_all('toplevel');
 warn scalar @{$slices}, " slices\n" if $debug;
+if ($slice_regexp) {
+    @{$slices} =
+      grep { $_->seq_region_name =~ m/\A $slice_regexp \z/xms } @{$slices};
+    warn scalar @{$slices}, " slices after filtering\n" if $debug;
+}
 foreach my $slice ( sort { ncmp( $a->seq_region_name, $b->seq_region_name ) }
     @{$slices} )
 {
     warn 'Slice: ', $slice->name, "\n" if $debug;
+
+    my %gene_id_version_cache;
 
     # Cache gap and WGS locations
     my ( $gap_cache, $wgs_cache ) = get_gap_and_wgs_locations($slice);
@@ -138,47 +150,78 @@ foreach my $slice ( sort { ncmp( $a->seq_region_name, $b->seq_region_name ) }
         } @{$transcripts}
       )
     {
-        warn 'Transcript: ', $transcript->stable_id, "\n" if $debug;
-
-        my @fields;
-
-        push @fields, $transcript->seq_region_name;
-        push @fields, $transcript->seq_region_start;
-        push @fields, $transcript->seq_region_end;
-        push @fields, $transcript->seq_region_strand;
-        push @fields, $transcript->stable_id;
-        push @fields, $transcript->get_Gene->stable_id;
-        push @fields, $transcript->biotype;
-        push @fields, $transcript->get_Gene->biotype;
-        push @fields, get_three_prime_utr_length($transcript);
-        push @fields, get_appris($transcript);
-        push @fields,
-          get_stable_id_initial_version( $transcript->stable_id, $asia );
-
-        if (
-            !exists $gene_id_version_cache{ $transcript->get_Gene->stable_id } )
-        {
-            $gene_id_version_cache{ $transcript->get_Gene->stable_id } =
-              get_stable_id_initial_version( $transcript->get_Gene->stable_id,
-                $asia );
-        }
-        push @fields,
-          $gene_id_version_cache{ $transcript->get_Gene->stable_id };
-        push @fields, get_overlapping_genes($transcript);
-        push @fields, get_hexamer($transcript);
-        push @fields, get_polya($transcript);
-        push @fields, get_sequence_type($transcript);
-        push @fields,
-          get_downstream_gap_and_wgs( $transcript, $slice->length, $gap_cache,
-            $wgs_cache );
-        push @fields,
-          get_rnaseq_extension( $transcript, $gap_cache,
-            $rnaseq_cache->{ $slice->seq_region_name },
+        dump_transcript( $transcript, $slice, \%gene_id_version_cache,
+            $gap_cache, $wgs_cache, $rnaseq_cache->{ $slice->seq_region_name },
             $repeat_cache );
-
-        @fields = map { ( !defined $_ || $_ eq q{} ) ? q{-} : $_ } @fields;
-        printf_or_die( "%s\n", join "\t", @fields );
     }
+}
+
+sub dump_transcript {    ## no critic (ProhibitManyArgs)
+    ## no critic (ProhibitReusedNames)
+    my ( $transcript, $slice, $gene_id_version_cache, $gap_cache,
+        $wgs_cache, $rnaseq_cache, $repeat_cache )
+      = @_;
+    ## use critic
+
+    warn 'Transcript: ', $transcript->stable_id, "\n" if $debug;
+
+    my @fields;
+
+    push @fields, $transcript->seq_region_name;
+    push @fields, $transcript->seq_region_start;
+    push @fields, $transcript->seq_region_end;
+    push @fields, $transcript->seq_region_strand;
+    push @fields, $transcript->stable_id;
+    push @fields, $transcript->get_Gene->stable_id;
+    push @fields, $transcript->biotype;
+    push @fields, $transcript->get_Gene->biotype;
+    push @fields, get_three_prime_utr_length($transcript);
+    push @fields, get_appris($transcript);
+    push @fields, get_stable_id_initial_version( $transcript->stable_id );
+
+    if ( !exists $gene_id_version_cache->{ $transcript->get_Gene->stable_id } )
+    {
+        $gene_id_version_cache->{ $transcript->get_Gene->stable_id } =
+          get_stable_id_initial_version( $transcript->get_Gene->stable_id );
+    }
+    push @fields, $gene_id_version_cache->{ $transcript->get_Gene->stable_id };
+    push @fields, get_overlapping_genes($transcript);
+    push @fields,
+      get_hexamer(
+        $transcript->seq_region_name, $transcript->seq_region_start,
+        $transcript->seq_region_end,  $transcript->seq_region_strand
+      );
+    push @fields,
+      get_polya(
+        $transcript->seq_region_name, $transcript->seq_region_start,
+        $transcript->seq_region_end,  $transcript->seq_region_strand
+      );
+    push @fields, get_sequence_type($transcript);
+    push @fields,
+      get_downstream_gap_and_wgs( $transcript, $slice->length, $gap_cache,
+        $wgs_cache );
+    my ( $cds_upstream, $extension_pos, $extension_dist, $genes_extended_over )
+      = get_rnaseq_extension( $transcript, $gap_cache, $rnaseq_cache,
+        $repeat_cache );
+    push @fields, $cds_upstream, $extension_pos, $extension_dist,
+      $genes_extended_over;
+
+    if ($extension_dist) {
+        push @fields,
+          get_hexamer( $transcript->seq_region_name,
+            $extension_pos, $extension_pos, $transcript->seq_region_strand );
+        push @fields,
+          get_polya( $transcript->seq_region_name,
+            $extension_pos, $extension_pos, $transcript->seq_region_strand );
+    }
+    else {
+        push @fields, undef, undef, undef, undef;
+    }
+
+    @fields = map { ( !defined $_ || $_ eq q{} ) ? q{-} : $_ } @fields;
+    printf_or_die( "%s\n", join "\t", @fields );
+
+    return;
 }
 
 sub get_three_prime_utr_length {
@@ -188,7 +231,7 @@ sub get_three_prime_utr_length {
         return $transcript->three_prime_utr->length;
     }
 
-    return;
+    return undef; ## no critic (ProhibitExplicitReturnUndef)
 }
 
 sub get_appris {
@@ -198,11 +241,11 @@ sub get_appris {
         return $attr->code if ( $attr->code =~ /\A appris/xms );
     }
 
-    return;
+    return undef; ## no critic (ProhibitExplicitReturnUndef)
 }
 
 sub get_stable_id_initial_version {
-    my ( $stable_id, $asia ) = @_;    ## no critic (ProhibitReusedNames)
+    my ($stable_id) = @_;
 
     my $history = $asia->fetch_history_tree_by_stable_id($stable_id);
     my $initial_version;
@@ -235,7 +278,7 @@ sub get_overlapping_genes {
 }
 
 sub get_hexamer {
-    my ($transcript) = @_;
+    my ( $chr, $transcript_start, $transcript_end, $transcript_strand ) = @_;
 
     my $SEQ_TO_CHECK_FOR_HEXAMER = 40;
 
@@ -248,17 +291,17 @@ sub get_hexamer {
 
     my $start;
     my $end;
-    if ( $transcript->seq_region_strand > 0 ) {
-        $start = $transcript->seq_region_end - $SEQ_TO_CHECK_FOR_HEXAMER + 1;
-        $end   = $transcript->seq_region_end;
+    if ( $transcript_strand > 0 ) {
+        $start = $transcript_end - $SEQ_TO_CHECK_FOR_HEXAMER + 1;
+        $end   = $transcript_end;
     }
     else {
-        $start = $transcript->seq_region_start;
-        $end   = $transcript->seq_region_start + $SEQ_TO_CHECK_FOR_HEXAMER - 1;
+        $start = $transcript_start;
+        $end   = $transcript_start + $SEQ_TO_CHECK_FOR_HEXAMER - 1;
     }
     my $upstream_seq =
-      reverse $sa->fetch_by_region( 'toplevel', $transcript->seq_region_name,
-        $start, $end, $transcript->seq_region_strand )->seq;
+      reverse $sa->fetch_by_region( 'toplevel', $chr, $start, $end,
+        $transcript_strand )->seq;
 
     foreach my $hexamer (@primary_hexamers) {
         my $pos = index $upstream_seq, $hexamer;
@@ -283,20 +326,21 @@ sub get_hexamer {
 }
 
 sub get_polya {
-    my ($transcript) = @_;
+    my ( $chr, $transcript_start, $transcript_end, $transcript_strand ) = @_;
 
     my $start;
     my $end;
-    if ( $transcript->seq_region_strand > 0 ) {
-        $start = $transcript->seq_region_end + 1;
-        $end   = $transcript->seq_region_end + 14;
+    if ( $transcript_strand > 0 ) {
+        $start = $transcript_end + 1;
+        $end   = $transcript_end + 14;
     }
     else {
-        $start = $transcript->seq_region_start - 14;
-        $end   = $transcript->seq_region_start - 1;
+        $start = $transcript_start - 14;
+        $end   = $transcript_start - 1;
     }
-    my $seq = $sa->fetch_by_region( 'toplevel', $transcript->seq_region_name,
-        $start, $end, $transcript->seq_region_strand )->seq;
+    my $seq =
+      $sa->fetch_by_region( 'toplevel', $chr, $start, $end, $transcript_strand )
+      ->seq;
 
     return DETCT::Misc::BAM::is_polya( substr $seq, 0, 10 ) ? q{y} : q{n}, $seq;
 }
@@ -367,43 +411,84 @@ sub get_rnaseq_extension {
     ## use critic
 
     my $cds_upstream;
-    my $extension_start;
+    my $extension_pos;
     if ( $transcript->seq_region_strand > 0 ) {
-        $extension_start = $transcript->seq_region_end;
+        $extension_pos = $transcript->seq_region_end;
         if ( defined $transcript->translation ) {
             $cds_upstream =
               $transcript->seq_region_end - $transcript->coding_region_end;
-            $extension_start = $transcript->coding_region_end;
+            $extension_pos = $transcript->coding_region_end;
         }
     }
     else {
-        $extension_start = $transcript->seq_region_start;
+        $extension_pos = $transcript->seq_region_start;
         if ( defined $transcript->translation ) {
             $cds_upstream =
               $transcript->coding_region_start - $transcript->seq_region_start;
-            $extension_start = $transcript->coding_region_start;
+            $extension_pos = $transcript->coding_region_start;
         }
     }
 
-    my $extension       = $extension_start;
     my $still_extending = 1;
     while ($still_extending) {
-        $extension += $transcript->seq_region_strand;
-        my $gap_intervals = $gap_cache->fetch( $extension, $extension + 1 );
+        $extension_pos += $transcript->seq_region_strand;
+        my $gap_intervals =
+          $gap_cache->fetch( $extension_pos, $extension_pos + 1 );
         if ( @{$gap_intervals} ) {
             $still_extending = 0;
         }
         my $rnaseq_intervals =
-          $rnaseq_cache->fetch( $extension, $extension + 1 );
+          $rnaseq_cache->fetch( $extension_pos, $extension_pos + 1 );
         my $repeat_intervals =
-          $repeat_cache->fetch( $extension, $extension + 1 );
+          $repeat_cache->fetch( $extension_pos, $extension_pos + 1 );
         if ( !@{$rnaseq_intervals} && !@{$repeat_intervals} ) {
             $still_extending = 0;
         }
     }
-    $extension -= $transcript->seq_region_strand;
+    $extension_pos -= $transcript->seq_region_strand;
 
-    return $cds_upstream, $extension, abs $extension - $extension_start;
+    my $extension_diff;
+    if ( $transcript->seq_region_strand > 0 ) {
+        $extension_diff = $extension_pos - $transcript->seq_region_end;
+    }
+    else {
+        $extension_diff = $transcript->seq_region_start - $extension_pos;
+    }
+
+    my $genes_extended_over_count = 0;
+    if ( $extension_diff > 0 ) {
+        my ( $slice_start, $slice_end );
+        if ( $transcript->seq_region_strand > 0 ) {
+            $slice_start = $transcript->seq_region_end + 1;
+            $slice_end   = $extension_pos;
+        }
+        else {
+            $slice_start = $extension_pos;
+            $slice_end   = $transcript->seq_region_start - 1;
+        }
+        my $extension_slice =
+          $sa->fetch_by_region( 'toplevel', $transcript->seq_region_name,
+            $slice_start, $slice_end, $transcript->seq_region_strand );
+        my $genes_extended_over = $extension_slice->get_all_Genes();
+        foreach my $gene_extended_over ( @{$genes_extended_over} ) {
+            next
+              if $gene_extended_over->stable_id eq
+              $transcript->get_Gene->stable_id;
+            next
+              if $gene_extended_over->seq_region_strand !=
+              $transcript->seq_region_strand;
+            $genes_extended_over_count++;
+        }
+    }
+
+    # Don't extend at all if extending over other genes
+    if ($genes_extended_over_count) {
+        $extension_pos  = undef;
+        $extension_diff = undef;
+    }
+
+    return $cds_upstream, $extension_pos, $extension_diff,
+      $genes_extended_over_count;
 }
 
 sub get_gap_and_wgs_locations {
@@ -447,6 +532,8 @@ sub get_gap_and_wgs_locations {
 }
 
 sub get_rnaseq_locations {
+    my ($slice_regexp) = @_;    ## no critic (ProhibitReusedNames)
+
     my %rnaseq_cache;
 
     my $chr;
@@ -459,6 +546,7 @@ sub get_rnaseq_locations {
         ## no critic (ProhibitReusedNames)
         my ( $chr, $start, $end, $reads ) = split /\t/xms, $line;
         ## use critic
+        next if $slice_regexp && $chr !~ m/\A $slice_regexp \z/xms;
         $start++;
         if ( !exists $rnaseq_cache{$chr} ) {
             $rnaseq_cache{$chr} = Set::IntervalTree->new;
@@ -536,6 +624,7 @@ sub get_and_check_options {
         'ensembl_dbport=i'   => \$ensembl_dbport,
         'ensembl_dbuser=s'   => \$ensembl_dbuser,
         'ensembl_dbpass=s'   => \$ensembl_dbpass,
+        'slice_regexp=s'     => \$slice_regexp,
         'wgs_prefix=s'       => \$wgs_prefix,
         'rnaseq_bedgraph=s'  => \$rnaseq_bedgraph,
         'rnaseq_threshold=i' => \$rnaseq_threshold,
@@ -563,6 +652,7 @@ sub get_and_check_options {
         [--ensembl_dbport port]
         [--ensembl_dbuser username]
         [--ensembl_dbpass password]
+        [--slice_regexp regexp]
         [--wgs_prefix prefix]
         [--rnaseq_bedgraph file]
         [--rnaseq_threshold int]
@@ -593,6 +683,10 @@ Ensembl MySQL database username.
 =item B<--ensembl_dbpass PASSWORD>
 
 Ensembl MySQL database password.
+
+=item B<--slice_regexp REGEXP>
+
+Regular expression for matching slice names.
 
 =item B<--wgs_prefix PREFIX>
 
