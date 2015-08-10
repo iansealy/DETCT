@@ -381,7 +381,7 @@ sub get_next_forward_gap_or_wgs {
     my ( $transcript, $cache, $slice_length ) = @_;
 
     my $distance;
-    my $intervals = $cache->fetch( $transcript->seq_region_end, $slice_length );
+    my $intervals = $cache->fetch( $transcript->seq_region_end, $slice_length + 1 );
     @{$intervals} = sort { $a->{start} <=> $b->{start} } @{$intervals};
     if ( @{$intervals} ) {
         $distance = ${$intervals}[0]->{start} - $transcript->seq_region_end;
@@ -395,7 +395,7 @@ sub get_next_reverse_gap_or_wgs {
     my ( $transcript, $cache ) = @_;
 
     my $distance;
-    my $intervals = $cache->fetch( 1, $transcript->seq_region_start );
+    my $intervals = $cache->fetch( 0, $transcript->seq_region_start );
     @{$intervals} = sort { $a->{end} <=> $b->{end} } @{$intervals};
     if ( @{$intervals} ) {
         $distance = $transcript->seq_region_start - ${$intervals}[-1]->{end};
