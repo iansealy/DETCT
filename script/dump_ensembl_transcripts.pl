@@ -231,7 +231,7 @@ sub get_three_prime_utr_length {
         return $transcript->three_prime_utr->length;
     }
 
-    return undef; ## no critic (ProhibitExplicitReturnUndef)
+    return undef;    ## no critic (ProhibitExplicitReturnUndef)
 }
 
 sub get_appris {
@@ -241,7 +241,7 @@ sub get_appris {
         return $attr->code if ( $attr->code =~ /\A appris/xms );
     }
 
-    return undef; ## no critic (ProhibitExplicitReturnUndef)
+    return undef;    ## no critic (ProhibitExplicitReturnUndef)
 }
 
 sub get_stable_id_initial_version {
@@ -381,7 +381,8 @@ sub get_next_forward_gap_or_wgs {
     my ( $transcript, $cache, $slice_length ) = @_;
 
     my $distance;
-    my $intervals = $cache->fetch( $transcript->seq_region_end, $slice_length + 1 );
+    my $intervals =
+      $cache->fetch( $transcript->seq_region_end, $slice_length + 1 );
     @{$intervals} = sort { $a->{start} <=> $b->{start} } @{$intervals};
     if ( @{$intervals} ) {
         $distance = ${$intervals}[0]->{start} - $transcript->seq_region_end;
