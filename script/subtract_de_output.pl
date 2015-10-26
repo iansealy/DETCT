@@ -68,7 +68,7 @@ sub get_regions {
     return \%is_region;
 }
 
-# Output regions of interest with new counts
+# Output regions of interest
 sub output_regions {
     my ( $file, $is_minus_region ) = @_;    ## no critic (ProhibitReusedNames)
 
