@@ -202,7 +202,7 @@ sub set_condition {
 # Parameters  : String (the condition)
 # Throws      : If condition is missing
 #               If condition is empty
-#               If condition > $MAX_GROUP_LENGTH characters
+#               If condition > $MAX_CONDITION_LENGTH characters
 # Comments    : None
 sub _check_condition {
     my ($condition) = @_;
