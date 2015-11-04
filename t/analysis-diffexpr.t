@@ -182,7 +182,7 @@ is( $analysis->set_table_file( $tmp_dir . '/all.tsv' ),
     undef, 'Set table file' );
 is( $analysis->table_file, $tmp_dir . '/all.tsv', 'Get new table file' );
 throws_ok { $analysis->set_table_file('nonexistent') } qr/cannot be read/ms,
-  'Missing table file';
+  'Unreadable table file';
 $analysis->set_table_file();
 
 # Test table format attribute
@@ -190,7 +190,7 @@ is( $analysis->table_format,            undef, 'Get table format' );
 is( $analysis->set_table_format('tsv'), undef, 'Set table format' );
 is( $analysis->table_format,            'tsv', 'Get new table format' );
 throws_ok { $analysis->set_table_format('invalid') } qr/Invalid table format/ms,
-  'Missing table format';
+  'Invalid table format';
 $analysis->set_table_format();
 
 # Test guessing table format from table file
