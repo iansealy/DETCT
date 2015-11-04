@@ -22,7 +22,6 @@ use Readonly;
 use File::Slurp;
 use File::Spec;
 use File::Path qw( make_path );
-use Sort::Naturally;
 use Text::CSV;
 use List::MoreUtils qw( uniq all );
 use DETCT::Misc qw( write_or_die );
@@ -81,10 +80,9 @@ sub dump_as_table {
     confess 'No regions specified'   if !defined $arg_ref->{regions};
 
     # Get conditions and groups
-    my @samples = @{ $arg_ref->{analysis}->get_all_samples() };
-    my @conditions = uniq( nsort( map { $_->condition } @samples ) );
-    my @groups =
-      uniq( nsort( grep { defined $_ } map { $_->group } @samples ) );
+    my @samples    = @{ $arg_ref->{analysis}->get_all_samples() };
+    my @conditions = $arg_ref->{analysis}->list_all_conditions();
+    my @groups     = $arg_ref->{analysis}->list_all_groups();
 
     # Get regions sorted by p value then location
     my $regions = sort_regions( $arg_ref->{regions} );
@@ -207,7 +205,7 @@ sub dump_as_table {
         }
 
         # Group fold changes
-        if ( scalar @conditions == 2 && scalar @groups > 1 ) {
+        if ( scalar @conditions == 2 && scalar @groups > 0 ) {
             ## no critic (ProhibitMagicNumbers)
             my @group_fold_changes = @{ $region->[14] };
             ## use critic
@@ -336,7 +334,7 @@ sub get_definition {
         push @def, [ $heading, $FLOAT ];
     }
 
-    if ( scalar @{$conditions} == 2 && scalar @{$groups} > 1 ) {
+    if ( scalar @{$conditions} == 2 && scalar @{$groups} > 0 ) {
         foreach my $group ( @{$groups} ) {
             my $heading = sprintf 'Log2 fold change (%s/%s) for group %s',
               $conditions->[0], $conditions->[1], $group;
@@ -830,10 +828,9 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
     }
 
     # Get conditions and groups
-    my @samples = @{ $arg_ref->{analysis}->get_all_samples() };
-    my @conditions = uniq( nsort( map { $_->condition } @samples ) );
-    my @groups =
-      uniq( nsort( grep { defined $_ } map { $_->group } @samples ) );
+    my @samples    = @{ $arg_ref->{analysis}->get_all_samples() };
+    my @conditions = $arg_ref->{analysis}->list_all_conditions();
+    my @groups     = $arg_ref->{analysis}->list_all_groups();
 
     # Get table
     my @rows = read_file( $arg_ref->{table_file} );
@@ -901,10 +898,10 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
             if ( scalar @conditions == 2 ) {
                 push @{ $counts_for_condition{ $sample->condition } },
                   $normalised_count;
-            }
-            if ( scalar @conditions == 2 && scalar @groups > 1 ) {
-                push @{ $counts_for_group_condition{ $sample->group }
-                      { $sample->condition } }, $normalised_count;
+                foreach my $group ( @{ $sample->groups } ) {
+                    push @{ $counts_for_group_condition{$group}
+                          { $sample->condition } }, $normalised_count;
+                }
             }
         }
         push @region, \@counts;

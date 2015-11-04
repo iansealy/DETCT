@@ -31,7 +31,7 @@ use Class::InsideOut qw( private register id );
 private name        => my %name;           # e.g. zmp_ph1_1m
 private description => my %description;    # e.g. ZMP phenotype 1.1 mutant
 private condition   => my %condition;      # e.g. mutant
-private group       => my %group;          # e.g. 1
+private group       => my %group;          # e.g. arrayref of groups
 private tag         => my %tag;            # e.g. NNNNBGAGGC
 private bam_file    => my %bam_file;       # e.g. 8295_6#1.bam
 
@@ -55,7 +55,7 @@ Readonly our $MAX_GROUP_LENGTH     => 128;
                     name        => String,
                     description => String or undef,
                     condition   => String,
-                    group       => String or undef,
+                    group       => Arrayref or String or undef,
                     tag         => String,
                     bam_file    => String,
                 }
@@ -220,7 +220,7 @@ sub _check_condition {
 
   Usage       : my $group = $sample->group;
   Purpose     : Getter for group attribute
-  Returns     : String (e.g. "1")
+  Returns     : Arrayref of strings (e.g. ["1"])
   Parameters  : None
   Throws      : No exceptions
   Comments    : None
@@ -229,7 +229,23 @@ sub _check_condition {
 
 sub group {
     my ($self) = @_;
-    return $group{ id $self};
+    return $group{ id $self} || [];
+}
+
+=method groups
+
+  Usage       : my $groups = $sample->groups;
+  Purpose     : Getter for group attribute
+  Returns     : Arrayref of strings (e.g. ["1", "2"])
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : Synonym for group method
+
+=cut
+
+sub groups {
+    my ($self) = @_;
+    return $self->group();
 }
 
 =method set_group
@@ -237,7 +253,7 @@ sub group {
   Usage       : $sample->set_group('1');
   Purpose     : Setter for group attribute
   Returns     : undef
-  Parameters  : String (the group)
+  Parameters  : Arrayref (of groups) or String (the group)
   Throws      : No exceptions
   Comments    : None
 
@@ -245,25 +261,50 @@ sub group {
 
 sub set_group {
     my ( $self, $arg ) = @_;
-    $group{ id $self} = _check_group($arg);
+    $group{ id $self} = _check_groups($arg);
     return;
 }
 
-# Usage       : $group = _check_group($group);
+=method set_groups
+
+  Usage       : $sample->set_groups(['1', '2']);
+  Purpose     : Setter for group attribute
+  Returns     : undef
+  Parameters  : Arrayref (of groups) or String (the group)
+  Throws      : No exceptions
+  Comments    : Synonym for set_group method
+
+=cut
+
+sub set_groups {
+    my ( $self, $arg ) = @_;
+    return $self->set_group($arg);
+}
+
+# Usage       : $group = _check_groups($group);
 # Purpose     : Check for valid group
-# Returns     : String (the valid group)
-# Parameters  : String (the group)
-# Throws      : If group is empty
-#               If group > $MAX_GROUP_LENGTH characters
+# Returns     : Arrayref (of valid groups)
+# Parameters  : Arrayref (of groups) or String (the group)
+# Throws      : If a group is empty
+#               If a group > $MAX_GROUP_LENGTH characters
 # Comments    : None
-sub _check_group {
-    my ($group) = @_;
+sub _check_groups {
+    my ($groups) = @_;
 
-    confess 'Empty group specified' if defined $group && !length $group;
-    confess "Group ($group) longer than $MAX_GROUP_LENGTH characters"
-      if defined $group && length $group > $MAX_GROUP_LENGTH;
+    if ( !defined $groups ) {
+        return [];
+    }
+    elsif ( ref $groups ne 'ARRAY' ) {
+        $groups = [$groups];
+    }
 
-    return $group;
+    foreach my $group ( @{$groups} ) {
+        confess 'Empty group specified' if defined $group && !length $group;
+        confess "Group ($group) longer than $MAX_GROUP_LENGTH characters"
+          if defined $group && length $group > $MAX_GROUP_LENGTH;
+    }
+
+    return $groups;
 }
 
 =method tag

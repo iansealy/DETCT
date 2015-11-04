@@ -44,7 +44,7 @@ our @EXPORT_OK = qw(
   Usage       : my $regions_ref = DETCT::Misc::R::run_deseq( {
                     dir          => '.',
                     regions      => $regions_hash_ref,
-                    samples      => $samples_ary_ref,
+                    analysis     => $analysis,
                     r_binary     => 'R',
                     deseq_script => 'bin/run_deseq.R',
                 } );
@@ -87,7 +87,7 @@ our @EXPORT_OK = qw(
   Parameters  : Hashref {
                     dir                  => String (the working directory),
                     regions              => Hashref (of arrayrefs of regions),
-                    samples              => Arrayref (of samples)
+                    analysis             => DETCT::Analysis,
                     r_binary             => String (the R binary),
                     deseq_script         => String (the DESeq script),
                     filter_percentile    => Int (the filter percentile) or undef,
@@ -97,7 +97,7 @@ our @EXPORT_OK = qw(
                 }
   Throws      : If directory is missing
                 If regions are missing
-                If samples are missing
+                If analysis is missing
                 If R binary is missing
                 If DESeq script is missing
                 If command line can't be run
@@ -110,7 +110,7 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
 
     confess 'No directory specified'    if !defined $arg_ref->{dir};
     confess 'No regions specified'      if !defined $arg_ref->{regions};
-    confess 'No samples specified'      if !defined $arg_ref->{samples};
+    confess 'No analysis specified'     if !defined $arg_ref->{analysis};
     confess 'No R binary specified'     if !defined $arg_ref->{r_binary};
     confess 'No DESeq script specified' if !defined $arg_ref->{deseq_script};
 
@@ -121,10 +121,9 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
       if $normalisation_method eq 'spike' && !$spike_prefix;
 
     # Get conditions and groups
-    my @samples = @{ $arg_ref->{samples} };
-    my @conditions = uniq( nsort( map { $_->condition } @samples ) );
-    my @groups = uniq( nsort( map { $_->group } grep { $_->group } @samples ) );
-    @groups = grep { defined $_ } @groups;
+    my @samples    = @{ $arg_ref->{analysis}->get_all_samples() };
+    my @conditions = $arg_ref->{analysis}->list_all_conditions();
+    my @groups     = $arg_ref->{analysis}->list_all_groups();
 
     # Make sure working directory exists
     if ( !-d $arg_ref->{dir} ) {
@@ -148,20 +147,26 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
 
     # Write samples to input file
     my $samples_file = File::Spec->catfile( $arg_ref->{dir}, 'samples.txt' );
-    my $last_col_to_print = @groups > 1 ? 2 : 1;
-    my $condition_prefix  = condition_prefix( \@samples );
-    my $group_prefix      = group_prefix( \@samples );
+    my $condition_prefix = condition_prefix( \@samples );
+    my $group_prefix     = group_prefix( \@samples );
     my $samples_text;
     foreach my $sample (@samples) {
         my @row = (
             $sample->name,
             $condition_prefix . $sample->condition,
-            $group_prefix . ( $sample->group || q{} ),
-        )[ 0 .. $last_col_to_print ];
+            map { $group_prefix . $_ } @{ $sample->groups },
+        );
         $samples_text .= ( join "\t", @row ) . "\n";
     }
+    my @header = ( q{}, 'condition' );
+    my $num_groups = scalar @{ $samples[0]->groups };
+    if ( $num_groups == 1 ) {
+        push @header, 'group';
+    }
+    elsif ( $num_groups > 1 ) {
+        push @header, map { 'group' . $_ } ( 1 .. $num_groups );
+    }
     open my $samples_fh, '>', $samples_file;
-    my @header = ( q{}, 'condition', 'group' )[ 0 .. $last_col_to_print ];
     write_or_die( $samples_fh, ( join "\t", @header ), "\n" );
     write_or_die( $samples_fh, $samples_text );
     close $samples_fh;
@@ -223,10 +228,10 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
                 if ( scalar @conditions == 2 ) {
                     push @{ $counts_for_condition{ $sample->condition } },
                       $normalised_count;
-                }
-                if ( scalar @conditions == 2 && scalar @groups > 1 ) {
-                    push @{ $counts_for_group_condition{ $sample->group }
-                          { $sample->condition } }, $normalised_count;
+                    foreach my $group ( @{ $sample->groups } ) {
+                        push @{ $counts_for_group_condition{$group}
+                              { $sample->condition } }, $normalised_count;
+                    }
                 }
                 $sample_index++;
             }
@@ -312,13 +317,19 @@ sub write_deseq_input {
 sub condition_prefix {
     my ($samples) = @_;
 
-    return prefix( 'condition', $samples );
+    foreach my $sample ( @{$samples} ) {
+        if ( $sample->condition !~ m/\A [\d.]+ \z/xms ) {
+            return q{};
+        }
+    }
+
+    return 'condition';
 }
 
 =func group_prefix
 
   Usage       : group_prefix( \@samples );
-  Purpose     : Return a prefix if all groups are numeric
+  Purpose     : Return a prefix if all of a group are numeric
   Returns     : String (the prefix)
   Parameters  : Arrayref (of samples)
   Throws      : No exceptions
@@ -329,32 +340,24 @@ sub condition_prefix {
 sub group_prefix {
     my ($samples) = @_;
 
-    return prefix( 'group', $samples );
-}
-
-=func prefix
-
-  Usage       : prefix( 'condition', \@samples );
-  Purpose     : Return a prefix if all of chosen attribute are numeric
-  Returns     : String (the prefix)
-  Parameters  : String (the attribute)
-                Arrayref (of samples)
-  Throws      : No exceptions
-  Comments    : Numeric attributes won't be treated as R factors
-
-=cut
-
-sub prefix {
-    my ( $attribute, $samples ) = @_;
+    my @not_numeric = (0) * scalar @{ $samples->[0]->groups };
 
     foreach my $sample ( @{$samples} ) {
-        if ( $sample->$attribute && $sample->$attribute !~ m/\A [\d.]+ \z/xms )
-        {
-            return q{};
+        my $i = 0;
+        foreach my $group ( @{ $sample->groups } ) {
+            if ( $group !~ m/\A [\d.]+ \z/xms ) {
+                $not_numeric[$i] = 1;
+            }
+            $i++;
         }
     }
 
-    return $attribute;
+    my $prefix = 'group';
+    if ( ( scalar grep { $_ } @not_numeric ) == scalar @not_numeric ) {
+        $prefix = q{};
+    }
+
+    return $prefix;
 }
 
 =func calc_condition_fold_change
@@ -412,7 +415,7 @@ sub calc_group_fold_changes {
 
     my @group_fold_changes;
 
-    if ( scalar @{$conditions} == 2 && scalar @{$groups} > 1 ) {
+    if ( scalar @{$conditions} == 2 && scalar @{$groups} > 0 ) {
         foreach my $group ( @{$groups} ) {
             my ( $group_fold_change, $group_log2_fold_change ) =
               calc_fold_change(

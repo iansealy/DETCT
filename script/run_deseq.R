@@ -23,11 +23,6 @@ if (normalisationMethod == "spike") {
     spikeCountData <- read.table( spikeCountFile, header=TRUE, row.names=1 )
 }
 
-# Can only handle one or two factors
-if (numFactors > 2) {
-    stop("Too many factors")
-}
-
 # If not two conditions then just write empty output
 if (numConditions != 2) {
     dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ 1)
@@ -57,11 +52,17 @@ if (filterPercentile) {
 
 # Create DESeqDataSet (with design according to number of factors)
 dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ condition)
-if (numFactors == 2) {
+if (numFactors > 1) {
     if (deseqModel == "interaction") {
-        design(dds) <- formula(~ group + condition + group:condition)
+        design(dds) <- formula(paste('~',
+                                     paste(colnames(samples)[-1],
+                                           collapse=' * '), '* condition',
+                                     collapse=''))
     } else {
-        design(dds) <- formula(~ group + condition)
+        design(dds) <- formula(paste('~',
+                                     paste(colnames(samples)[-1],
+                                           collapse=' + '), '+ condition',
+                                     collapse=''))
     }
 }
 
@@ -79,7 +80,11 @@ if (normalisationMethod == "none") {
 }
 
 # Differential expression analysis
-dds <- DESeq(dds) # estimateSizeFactors, estimateDispersions, nbinomWaldTest
+if (numFactors > 2 && deseqModel == "interaction") {
+    dds <- DESeq(dds, betaPrior=FALSE)
+} else {
+    dds <- DESeq(dds)
+}
 if (filterPercentile) {
     # Don't need independent filtering if already filtered
     res <- results(dds, independentFiltering=FALSE,
@@ -120,15 +125,17 @@ heatmap.2(as.matrix(dist(t(assay(vsd)))), trace="none", col = rev(hmcol),
     margin=c(13, 13))
 
 # PCA of samples
-print(plotPCA(rld, intgroup=c("condition")))
-if (numFactors == 2) {
-    print(plotPCA(rld, intgroup=c("group")))
-    print(plotPCA(rld, intgroup=c("condition", "group")))
+for (factor in colnames(samples)) {
+    print(plotPCA(rld, intgroup=factor))
 }
-print(plotPCA(vsd, intgroup=c("condition")))
-if (numFactors == 2) {
-    print(plotPCA(vsd, intgroup=c("group")))
-    print(plotPCA(vsd, intgroup=c("condition", "group")))
+if (numFactors > 1) {
+    print(plotPCA(rld, intgroup=colnames(samples)))
+}
+for (factor in colnames(samples)) {
+    print(plotPCA(vsd, intgroup=factor))
+}
+if (numFactors > 1) {
+    print(plotPCA(vsd, intgroup=colnames(samples)))
 }
 
 # Dispersion plot

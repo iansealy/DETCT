@@ -21,6 +21,7 @@ use Try::Tiny;
 use Readonly;
 use Class::InsideOut qw( private register id );
 use List::MoreUtils qw( uniq );
+use Sort::Naturally;
 use YAML::Tiny;
 use Data::Compare;
 use DETCT::Sample;
@@ -426,7 +427,7 @@ sub validate {
     }
 
     # Check samples
-    my ( %seen_name, %sample_bam_tag );
+    my ( %seen_name, %sample_bam_tag, %groups_per_sample, %group_ordinal );
     foreach my $sample ( @{ $self->get_all_samples } ) {
 
         # Check for duplicated sample names
@@ -444,6 +445,28 @@ sub validate {
         }
         else {
             $sample_bam_tag{ $sample->bam_file }{ $sample->tag } = 1;
+        }
+
+        # Check all samples have same number of groups
+        $groups_per_sample{ scalar @{ $sample->groups } }++;
+
+        # Check same group name not repeated in multiple groups
+        my $ordinal = 0;
+        foreach my $group ( @{ $sample->groups } ) {
+            $ordinal++;
+            $group_ordinal{$group}{$ordinal}++;
+        }
+    }
+
+    # Check all samples have same number of groups
+    if ( scalar keys %groups_per_sample > 1 ) {
+        confess 'Samples do not all have same number of groups';
+    }
+
+    # Check same group name not repeated in multiple groups
+    foreach my $group ( sort keys %group_ordinal ) {
+        if ( scalar keys %{ $group_ordinal{$group} } > 1 ) {
+            confess 'Group name (', $group, ') is duplicated between groups';
         }
     }
 
@@ -1192,6 +1215,48 @@ sub get_sample_names_by_bam_file {
       map { $_->name } grep { $_->bam_file eq $bam_file } @{$samples};
 
     return uniq( sort @names );
+}
+
+=method list_all_conditions
+
+  Usage       : @conditions = $analysis->list_all_conditions();
+  Purpose     : Get all conditions used in an analysis
+  Returns     : Array of strings
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub list_all_conditions {
+    my ($self) = @_;
+
+    my $samples = $self->get_all_samples();
+
+    my @conditions = map { $_->condition } @{$samples};
+
+    return uniq( nsort(@conditions) );
+}
+
+=method list_all_groups
+
+  Usage       : @groups = $analysis->list_all_groups();
+  Purpose     : Get all groups used in an analysis
+  Returns     : Array of strings
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub list_all_groups {
+    my ($self) = @_;
+
+    my $samples = $self->get_all_samples();
+
+    my @groups = map { @{ $_->groups } } @{$samples};
+
+    return uniq( nsort(@groups) );
 }
 
 =method get_subsequence

@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 36;
+plan tests => 39;
 
 use DETCT::Sample;
 
@@ -57,11 +57,14 @@ throws_ok { $sample->set_condition($long_condition) }
 qr/longer than \d+ characters/ms, 'Long condition';
 
 # Test group attribute
-is( $sample->group,          '1',   'Get group' );
-is( $sample->set_group('2'), undef, 'Set group' );
-is( $sample->group,          '2',   'Get new group' );
-is( $sample->set_group(),    undef, 'Set undefined group' );
-is( $sample->group,          undef, 'Get undefined group' );
+is( $sample->group->[0],        '1',   'Get group' );
+is( $sample->set_group('2'),    undef, 'Set group' );
+is( $sample->group->[0],        '2',   'Get new group' );
+is( $sample->set_group(),       undef, 'Set undefined group' );
+is( scalar @{ $sample->group }, 0,     'Get undefined group' );
+is( $sample->set_groups( [ '1', '2' ] ), undef, 'Set groups' );
+is( $sample->groups->[0], '1', 'Get new groups' );
+is( $sample->groups->[1], '2', 'Get new groups' );
 my $long_group = 'X' x ( $DETCT::Sample::MAX_GROUP_LENGTH + 1 );
 throws_ok { $sample->set_group('') } qr/Empty group specified/ms, 'Empty group';
 throws_ok { $sample->set_group($long_group) } qr/longer than \d+ characters/ms,
