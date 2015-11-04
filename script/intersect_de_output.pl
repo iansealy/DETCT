@@ -70,14 +70,14 @@ sub get_regions {
 
 # Output regions of interest
 sub output_regions {
-    my ( $file, $is_intersect_region ) = @_;    ## no critic (ProhibitReusedNames)
+    my ( $file, $is_intersect_region ) = @_;  ## no critic (ProhibitReusedNames)
 
     my ($extension) = $file =~ m/[.] ([[:lower:]]{3}) \z/xms;
     if ( !$extension || ( $extension ne 'csv' && $extension ne 'tsv' ) ) {
         confess sprintf '%s is not .csv or .tsv file', $file;
     }
 
-    open my $fh, '<', $file;                ## no critic (RequireBriefOpen)
+    open my $fh, '<', $file;                  ## no critic (RequireBriefOpen)
     my $header = <$fh>;
     print_or_die($header);
     while ( my $line = <$fh> ) {
