@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 202;
+plan tests => 214;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -196,6 +196,33 @@ $analysis->set_table_format();
 # Test guessing table format from table file
 $analysis->set_table_file( $tmp_dir . '/all.tsv' );
 is( $analysis->table_format, 'tsv', 'Get guessed table format' );
+
+my $long_condition =
+  'X' x ( $DETCT::Analysis::DiffExpr::MAX_CONDITION_LENGTH + 1 );
+
+# Test control condition attribute
+is( $analysis->control_condition,            undef, 'Get control condition' );
+is( $analysis->set_control_condition('sib'), undef, 'Set control condition' );
+is( $analysis->control_condition, 'sib', 'Get new control condition' );
+throws_ok { $analysis->set_control_condition('!invalid') }
+qr/Invalid control condition/ms, 'Invalid control condition';
+throws_ok { $analysis->set_control_condition('') }
+qr/Empty control condition/ms, 'Empty control condition';
+throws_ok { $analysis->set_control_condition($long_condition) }
+qr/longer than \d+ characters/ms, 'Long control condition';
+
+# Test experimental condition attribute
+is( $analysis->experimental_condition, undef, 'Get experimental condition' );
+is( $analysis->set_experimental_condition('mut'),
+    undef, 'Set experimental condition' );
+is( $analysis->experimental_condition, 'mut',
+    'Get new experimental condition' );
+throws_ok { $analysis->set_experimental_condition('!invalid') }
+qr/Invalid experimental condition/ms, 'Invalid experimental condition';
+throws_ok { $analysis->set_experimental_condition('') }
+qr/Empty experimental condition/ms, 'Empty experimental condition';
+throws_ok { $analysis->set_experimental_condition($long_condition) }
+qr/longer than \d+ characters/ms, 'Long experimental condition';
 
 # Test skip transcripts
 is( scalar @{ $analysis->get_all_skip_transcripts }, 0,

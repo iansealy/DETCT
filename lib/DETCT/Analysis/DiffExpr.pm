@@ -32,24 +32,29 @@ use YAML::Tiny;
 =cut
 
 # Attributes:
-private read1_length         => my %read1_length;           # e.g. 30
-private read2_length         => my %read2_length;           # e.g. 54
-private mismatch_threshold   => my %mismatch_threshold;     # e.g. 2
-private mapq_threshold       => my %mapq_threshold;         # e.g. 10
-private bin_size             => my %bin_size;               # e.g. 100
-private peak_buffer_width    => my %peak_buffer_width;      # e.g. 100
-private hmm_sig_level        => my %hmm_sig_level;          # e.g. 0.001
-private hmm_binary           => my %hmm_binary;             # e.g. chiphmmnew
-private r_binary             => my %r_binary;               # e.g. R
-private deseq_script         => my %deseq_script;           # e.g. ~/run_deseq.R
-private filter_percentile    => my %filter_percentile;      # e.g. 40
-private spike_prefix         => my %spike_prefix;           # e.g. ERCC
-private normalisation_method => my %normalisation_method;   # e.g. spike
-private deseq_model          => my %deseq_model;            # e.g. additive
-private output_sig_level     => my %output_sig_level;       # e.g. 0.05
-private table_file           => my %table_file;             # e.g. all.tsv
-private table_format         => my %table_format;           # e.g. tsv
+private read1_length           => my %read1_length;           # e.g. 30
+private read2_length           => my %read2_length;           # e.g. 54
+private mismatch_threshold     => my %mismatch_threshold;     # e.g. 2
+private mapq_threshold         => my %mapq_threshold;         # e.g. 10
+private bin_size               => my %bin_size;               # e.g. 100
+private peak_buffer_width      => my %peak_buffer_width;      # e.g. 100
+private hmm_sig_level          => my %hmm_sig_level;          # e.g. 0.001
+private hmm_binary             => my %hmm_binary;             # e.g. chiphmmnew
+private r_binary               => my %r_binary;               # e.g. R
+private deseq_script           => my %deseq_script;           # e.g. run_deseq.R
+private filter_percentile      => my %filter_percentile;      # e.g. 40
+private spike_prefix           => my %spike_prefix;           # e.g. ERCC
+private normalisation_method   => my %normalisation_method;   # e.g. spike
+private deseq_model            => my %deseq_model;            # e.g. additive
+private output_sig_level       => my %output_sig_level;       # e.g. 0.05
+private table_file             => my %table_file;             # e.g. all.tsv
+private table_format           => my %table_format;           # e.g. tsv
+private control_condition      => my %control_condition;      # e.g. sibling
+private experimental_condition => my %experimental_condition; # e.g. mutant
 private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
+
+# Constants
+Readonly our $MAX_CONDITION_LENGTH => 128;
 
 =method new
 
@@ -71,33 +76,35 @@ private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
   Purpose     : Constructor for analysis objects
   Returns     : DETCT::Analysis::DiffExpr
   Parameters  : Hashref {
-                    name                 => String,
-                    read1_length         => Int,
-                    read2_length         => Int,
-                    mismatch_threshold   => Int,
-                    mapq_threshold       => Int,
-                    bin_size             => Int,
-                    peak_buffer_width    => Int,
-                    hmm_sig_level        => Float,
-                    hmm_binary           => String,
-                    r_binary             => String,
-                    deseq_script         => String,
-                    filter_percentile    => Int,
-                    spike_prefix         => String,
-                    normalisation_method => String,
-                    deseq_model          => String,
-                    output_sig_level     => Float,
-                    table_file           => String,
-                    table_format         => String,
-                    ref_fasta            => String or undef,
-                    ensembl_host         => String or undef,
-                    ensembl_port         => Int or undef,
-                    ensembl_user         => String or undef,
-                    ensembl_pass         => String or undef,
-                    ensembl_name         => String or undef,
-                    ensembl_species      => String or undef,
-                    chunk_total          => Int,
-                    test_chunk           => Int or undef,
+                    name                   => String,
+                    read1_length           => Int,
+                    read2_length           => Int,
+                    mismatch_threshold     => Int,
+                    mapq_threshold         => Int,
+                    bin_size               => Int,
+                    peak_buffer_width      => Int,
+                    hmm_sig_level          => Float,
+                    hmm_binary             => String,
+                    r_binary               => String,
+                    deseq_script           => String,
+                    filter_percentile      => Int,
+                    spike_prefix           => String,
+                    normalisation_method   => String,
+                    deseq_model            => String,
+                    output_sig_level       => Float,
+                    table_file             => String,
+                    table_format           => String,
+                    control_condition      => String,
+                    experimental_condition => String,
+                    ref_fasta              => String or undef,
+                    ensembl_host           => String or undef,
+                    ensembl_port           => Int or undef,
+                    ensembl_user           => String or undef,
+                    ensembl_pass           => String or undef,
+                    ensembl_name           => String or undef,
+                    ensembl_species        => String or undef,
+                    chunk_total            => Int,
+                    test_chunk             => Int or undef,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -124,6 +131,8 @@ sub new {
     $self->set_output_sig_level( $arg_ref->{output_sig_level} );
     $self->set_table_file( $arg_ref->{table_file} );
     $self->set_table_format( $arg_ref->{table_format} );
+    $self->set_control_condition( $arg_ref->{control_condition} );
+    $self->set_experimental_condition( $arg_ref->{experimental_condition} );
     return $self;
 }
 
@@ -170,6 +179,8 @@ sub new_from_yaml {
     $self->set_output_sig_level( $yaml->[0]->{output_sig_level} );
     $self->set_table_file( $yaml->[0]->{table_file} );
     $self->set_table_format( $yaml->[0]->{table_format} );
+    $self->set_control_condition( $yaml->[0]->{control_condition} );
+    $self->set_experimental_condition( $yaml->[0]->{experimental_condition} );
     $self->add_all_skip_transcripts( $yaml->[0]->{skip_transcripts} );
 
     return $self;
@@ -964,6 +975,120 @@ sub _check_table_format {
     return $table_format
       if !defined $table_format || any { $_ eq $table_format } qw(csv tsv);
     confess "Invalid table format ($table_format) specified";
+}
+
+=method control_condition
+
+  Usage       : my $control_condition = $analysis->control_condition;
+  Purpose     : Getter for control condition attribute
+  Returns     : String (e.g. "sibling")
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub control_condition {
+    my ($self) = @_;
+    return $control_condition{ id $self};
+}
+
+=method set_control_condition
+
+  Usage       : $analysis->set_control_condition('sibling');
+  Purpose     : Setter for control condition attribute
+  Returns     : undef
+  Parameters  : String (the control condition)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_control_condition {
+    my ( $self, $arg ) = @_;
+    $control_condition{ id $self} = _check_control_condition($arg);
+    return;
+}
+
+# Usage       : $control_condition = _check_control_condition($control_condition);
+# Purpose     : Check for valid control condition
+# Returns     : String (the valid control condition)
+# Parameters  : String (the control condition)
+# Throws      : If control condition is invalid (i.e. not alphanumeric)
+#               If control condition is empty
+#               If control condition > $MAX_CONDITION_LENGTH characters
+# Comments    : None
+sub _check_control_condition {
+    my ($control_condition) = @_;
+
+    confess 'Empty control condition specified'
+      if defined $control_condition && !length $control_condition;
+    confess "Invalid control condition ($control_condition) specified"
+      if defined $control_condition && $control_condition !~ m/\A \w+ \z/xms;
+    confess( sprintf 'Control condition (%s) longer than %d characters',
+        $control_condition, $MAX_CONDITION_LENGTH )
+      if defined $control_condition
+      && length $control_condition > $MAX_CONDITION_LENGTH;
+
+    return $control_condition;
+}
+
+=method experimental_condition
+
+  Usage       : my $experimental_condition = $analysis->experimental_condition;
+  Purpose     : Getter for experimental condition attribute
+  Returns     : String (e.g. "mutant")
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub experimental_condition {
+    my ($self) = @_;
+    return $experimental_condition{ id $self};
+}
+
+=method set_experimental_condition
+
+  Usage       : $analysis->set_experimental_condition('mutant');
+  Purpose     : Setter for experimental condition attribute
+  Returns     : undef
+  Parameters  : String (the experimental condition)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_experimental_condition {
+    my ( $self, $arg ) = @_;
+    $experimental_condition{ id $self} = _check_experimental_condition($arg);
+    return;
+}
+
+# Usage       : $experimental_condition
+#                   = _check_experimental_condition($experimental_condition);
+# Purpose     : Check for valid experimental condition
+# Returns     : String (the valid experimental condition)
+# Parameters  : String (the experimental condition)
+# Throws      : If experimental condition is invalid (i.e. not alphanumeric)
+#               If experimental condition is empty
+#               If experimental condition > $MAX_CONDITION_LENGTH characters
+# Comments    : None
+sub _check_experimental_condition {
+    my ($experimental_condition) = @_;
+
+    confess 'Empty experimental condition specified'
+      if defined $experimental_condition && !length $experimental_condition;
+    confess "Invalid experimental condition ($experimental_condition) specified"
+      if defined $experimental_condition
+      && $experimental_condition !~ m/\A \w+ \z/xms;
+    confess( sprintf 'Control condition (%s) longer than %d characters',
+        $experimental_condition, $MAX_CONDITION_LENGTH )
+      if defined $experimental_condition
+      && length $experimental_condition > $MAX_CONDITION_LENGTH;
+
+    return $experimental_condition;
 }
 
 =method add_all_skip_transcripts
