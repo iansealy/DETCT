@@ -1137,7 +1137,7 @@ sub get_all_skip_transcripts {
   Purpose     : Check analysis
   Returns     : 1
   Parameters  : None
-  Throws      : If reference sequences don't match
+  Throws      : If spike prefix not present in BAM files
   Comments    : None
 
 =cut
