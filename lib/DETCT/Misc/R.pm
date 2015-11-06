@@ -171,6 +171,23 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
     write_or_die( $samples_fh, $samples_text );
     close $samples_fh;
 
+    my $control_condition = q{-};
+    if ( $arg_ref->{analysis}->control_condition() ) {
+        $control_condition =
+          $condition_prefix . $arg_ref->{analysis}->control_condition();
+    }
+    elsif ( scalar @conditions == 2 ) {
+        $control_condition = $condition_prefix . $conditions[1];
+    }
+    my $experimental_condition = q{-};
+    if ( $arg_ref->{analysis}->experimental_condition() ) {
+        $experimental_condition =
+          $condition_prefix . $arg_ref->{analysis}->experimental_condition();
+    }
+    elsif ( scalar @conditions == 2 ) {
+        $experimental_condition = $condition_prefix . $conditions[0];
+    }
+
     my $output_file = File::Spec->catfile( $arg_ref->{dir}, 'output.txt' );
     my $size_factors_file =
       File::Spec->catfile( $arg_ref->{dir}, 'size_factors.txt' );
@@ -182,7 +199,8 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
     my $cmd = join q{ }, $arg_ref->{r_binary}, '--slave', '--args',
       $input_file, $samples_file, $output_file, $size_factors_file,
       $qc_pdf_file, $filter_percentile, $normalisation_method,
-      $arg_ref->{deseq_model}, $spike_input_file, '<', $arg_ref->{deseq_script};
+      $arg_ref->{deseq_model}, $spike_input_file, $control_condition,
+      $experimental_condition, '<', $arg_ref->{deseq_script};
     $cmd .= ' 1>' . $stdout_file;
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";

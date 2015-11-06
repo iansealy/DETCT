@@ -13,6 +13,8 @@ filterPercentile    <- as.numeric( Args[9] )
 normalisationMethod <- Args[10]
 deseqModel          <- Args[11]
 spikeCountFile      <- Args[12]
+ctrlCondition       <- Args[13]
+exptCondition       <- Args[14]
 
 # Get data and samples
 countData     <- read.table(   countFile, header=TRUE, row.names=1 )
@@ -23,8 +25,8 @@ if (normalisationMethod == "spike") {
     spikeCountData <- read.table( spikeCountFile, header=TRUE, row.names=1 )
 }
 
-# If not two conditions then just write empty output
-if (numConditions != 2) {
+# If no pair of conditions then just write empty output
+if (ctrlCondition == '-' || exptCondition == '-') {
     dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ 1)
     write.table( c(), file=outputFile, col.names=FALSE, row.names=FALSE,
         quote=FALSE, sep="\t" )
@@ -66,10 +68,6 @@ if (numFactors > 1) {
     }
 }
 
-# Ensure control level (usually "sibling") is first level (i.e. before "mutant")
-colData(dds)$condition <- factor(colData(dds)$condition,
-    levels=rev(levels(colData(dds)$condition)))
-
 # Non-standard type of normalisation?
 if (normalisationMethod == "none") {
     sizeFactors(dds) <- rep.int(1, ncol(countData))
@@ -88,9 +86,9 @@ if (numFactors > 2 && deseqModel == "interaction") {
 if (filterPercentile) {
     # Don't need independent filtering if already filtered
     res <- results(dds, independentFiltering=FALSE,
-        contrast=c("condition", rev(levels(samples$condition))))
+        contrast=c("condition", exptCondition, ctrlCondition))
 } else {
-    res <- results(dds, contrast=c("condition", rev(levels(samples$condition))))
+    res <- results(dds, contrast=c("condition", exptCondition, ctrlCondition))
 }
 
 # Write output
