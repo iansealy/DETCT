@@ -394,6 +394,8 @@ sub get_all_sequences {
                 If BAM files has no index
                 If sample names are duplicated
                 If multiple samples have the same tag and BAM file
+                If samples do not all have same number of groups
+                If group name is duplicated between groups
                 If BAM file doesn't contain tag in read group
   Comments    : None
 
