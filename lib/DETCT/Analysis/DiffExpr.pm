@@ -1138,6 +1138,8 @@ sub get_all_skip_transcripts {
   Returns     : 1
   Parameters  : None
   Throws      : If spike prefix not present in BAM files
+                If both control and experimental conditions not specified
+                If control or experimental conditions not specified for a sample
   Comments    : None
 
 =cut
@@ -1157,6 +1159,24 @@ sub validate {
         }
         if ( !$seen_spike ) {
             confess "Spike prefix ($spike) not seen in BAM files";
+        }
+    }
+
+    if ( $self->control_condition && !$self->experimental_condition ) {
+        confess 'Control condition specified, but no experimental condition';
+    }
+    elsif ( $self->experimental_condition && !$self->control_condition ) {
+        confess 'Control condition specified, but no experimental condition';
+    }
+    elsif ( $self->control_condition && $self->experimental_condition ) {
+        my %is_condition = map { $_ => 1 } $self->list_all_conditions();
+        if ( !exists $is_condition{ $self->control_condition } ) {
+            confess 'Control condition (', $self->control_condition,
+              ') not specified for any sample';
+        }
+        if ( !exists $is_condition{ $self->experimental_condition } ) {
+            confess 'Experimental condition (', $self->experimental_condition,
+              ') not specified for any sample';
         }
     }
 

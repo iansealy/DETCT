@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 214;
+plan tests => 218;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -204,6 +204,7 @@ my $long_condition =
 is( $analysis->control_condition,            undef, 'Get control condition' );
 is( $analysis->set_control_condition('sib'), undef, 'Set control condition' );
 is( $analysis->control_condition, 'sib', 'Get new control condition' );
+$analysis->set_control_condition();
 throws_ok { $analysis->set_control_condition('!invalid') }
 qr/Invalid control condition/ms, 'Invalid control condition';
 throws_ok { $analysis->set_control_condition('') }
@@ -217,6 +218,7 @@ is( $analysis->set_experimental_condition('mut'),
     undef, 'Set experimental condition' );
 is( $analysis->experimental_condition, 'mut',
     'Get new experimental condition' );
+$analysis->set_experimental_condition();
 throws_ok { $analysis->set_experimental_condition('!invalid') }
 qr/Invalid experimental condition/ms, 'Invalid experimental condition';
 throws_ok { $analysis->set_experimental_condition('') }
@@ -549,12 +551,14 @@ throws_ok {
 qr/does not exist or cannot be read/ms, 'Missing YAML file';
 
 # Test validating analysis
+
 throws_ok {
     $analysis =
       DETCT::Analysis::DiffExpr->new_from_yaml(
         't/data/test_analysis_de13.yaml');
 }
 qr/use different reference/ms, 'Different reference';
+
 $analysis =
   DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de12.yaml');
 throws_ok {
@@ -564,6 +568,44 @@ throws_ok {
 qr/not seen in BAM files/ms, 'Missing spikes';
 $analysis->set_spike_prefix('1');
 $analysis->validate();
+
+$analysis =
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de12.yaml');
+throws_ok {
+    $analysis->set_control_condition('sibling');
+    $analysis->validate();
+}
+qr/Control condition specified, but no experimental condition/ms,
+  'Control but not experimental condition';
+
+$analysis =
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de12.yaml');
+throws_ok {
+    $analysis->set_experimental_condition('mutant');
+    $analysis->validate();
+}
+qr/Control condition specified, but no experimental condition/ms,
+  'Experimental but not control condition';
+
+$analysis =
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de12.yaml');
+throws_ok {
+    $analysis->set_control_condition('sib');
+    $analysis->set_experimental_condition('mutant');
+    $analysis->validate();
+}
+qr/Control condition .* not specified for any sample/ms,
+  'Control condition not in samples';
+
+$analysis =
+  DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de12.yaml');
+throws_ok {
+    $analysis->set_control_condition('sibling');
+    $analysis->set_experimental_condition('mut');
+    $analysis->validate();
+}
+qr/Experimental condition .* not specified for any sample/ms,
+  'Experimental condition not in samples';
 
 # Test summary info
 $analysis =
