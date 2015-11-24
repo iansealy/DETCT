@@ -53,7 +53,9 @@ $analysis->set_isa('DETCT::Analysis');
 $analysis->set_always( 'get_all_samples', $samples );
 $analysis->set_list( 'list_all_conditions', 'mutant', 'sibling' );
 $analysis->set_list( 'list_all_groups',     '1',      '2' );
-$analysis->set_always( 'ensembl_species', 'danio_rerio' );
+$analysis->set_always( 'ensembl_species',        'danio_rerio' );
+$analysis->set_always( 'control_condition',      undef );
+$analysis->set_always( 'experimental_condition', undef );
 
 my $regions = [
     [

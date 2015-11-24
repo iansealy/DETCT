@@ -188,6 +188,12 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
         $experimental_condition = $condition_prefix . $conditions[0];
     }
 
+    if (   $arg_ref->{analysis}->control_condition
+        && $arg_ref->{analysis}->experimental_condition )
+    {
+        @conditions = ( $control_condition, $experimental_condition );
+    }
+
     my $output_file = File::Spec->catfile( $arg_ref->{dir}, 'output.txt' );
     my $size_factors_file =
       File::Spec->catfile( $arg_ref->{dir}, 'size_factors.txt' );

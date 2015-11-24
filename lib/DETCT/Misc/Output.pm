@@ -72,7 +72,7 @@ Readonly our @FORMATS => qw( csv tsv html );
 
 =cut
 
-sub dump_as_table {
+sub dump_as_table {    ## no critic (ProhibitExcessComplexity)
     my ($arg_ref) = @_;
 
     confess 'No analysis specified'  if !defined $arg_ref->{analysis};
@@ -83,6 +83,15 @@ sub dump_as_table {
     my @samples    = @{ $arg_ref->{analysis}->get_all_samples() };
     my @conditions = $arg_ref->{analysis}->list_all_conditions();
     my @groups     = $arg_ref->{analysis}->list_all_groups();
+
+    if (   $arg_ref->{analysis}->control_condition
+        && $arg_ref->{analysis}->experimental_condition )
+    {
+        @conditions = (
+            $arg_ref->{analysis}->control_condition,
+            $arg_ref->{analysis}->experimental_condition
+        );
+    }
 
     # Get regions sorted by p value then location
     my $regions = sort_regions( $arg_ref->{regions} );
@@ -831,6 +840,15 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
     my @samples    = @{ $arg_ref->{analysis}->get_all_samples() };
     my @conditions = $arg_ref->{analysis}->list_all_conditions();
     my @groups     = $arg_ref->{analysis}->list_all_groups();
+
+    if (   $arg_ref->{analysis}->control_condition
+        && $arg_ref->{analysis}->experimental_condition )
+    {
+        @conditions = (
+            $arg_ref->{analysis}->control_condition,
+            $arg_ref->{analysis}->experimental_condition
+        );
+    }
 
     # Get table
     my @rows = read_file( $arg_ref->{table_file} );
