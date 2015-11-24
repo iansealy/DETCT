@@ -172,17 +172,17 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
     close $samples_fh;
 
     my $control_condition = q{-};
-    if ( $arg_ref->{analysis}->control_condition() ) {
+    if ( $arg_ref->{analysis}->control_condition ) {
         $control_condition =
-          $condition_prefix . $arg_ref->{analysis}->control_condition();
+          $condition_prefix . $arg_ref->{analysis}->control_condition;
     }
     elsif ( scalar @conditions == 2 ) {
         $control_condition = $condition_prefix . $conditions[1];
     }
     my $experimental_condition = q{-};
-    if ( $arg_ref->{analysis}->experimental_condition() ) {
+    if ( $arg_ref->{analysis}->experimental_condition ) {
         $experimental_condition =
-          $condition_prefix . $arg_ref->{analysis}->experimental_condition();
+          $condition_prefix . $arg_ref->{analysis}->experimental_condition;
     }
     elsif ( scalar @conditions == 2 ) {
         $experimental_condition = $condition_prefix . $conditions[0];
