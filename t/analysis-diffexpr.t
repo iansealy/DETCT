@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 218;
+plan tests => 216;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -205,8 +205,6 @@ is( $analysis->control_condition,            undef, 'Get control condition' );
 is( $analysis->set_control_condition('sib'), undef, 'Set control condition' );
 is( $analysis->control_condition, 'sib', 'Get new control condition' );
 $analysis->set_control_condition();
-throws_ok { $analysis->set_control_condition('!invalid') }
-qr/Invalid control condition/ms, 'Invalid control condition';
 throws_ok { $analysis->set_control_condition('') }
 qr/Empty control condition/ms, 'Empty control condition';
 throws_ok { $analysis->set_control_condition($long_condition) }
@@ -219,8 +217,6 @@ is( $analysis->set_experimental_condition('mut'),
 is( $analysis->experimental_condition, 'mut',
     'Get new experimental condition' );
 $analysis->set_experimental_condition();
-throws_ok { $analysis->set_experimental_condition('!invalid') }
-qr/Invalid experimental condition/ms, 'Invalid experimental condition';
 throws_ok { $analysis->set_experimental_condition('') }
 qr/Empty experimental condition/ms, 'Empty experimental condition';
 throws_ok { $analysis->set_experimental_condition($long_condition) }

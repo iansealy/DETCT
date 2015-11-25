@@ -1014,8 +1014,7 @@ sub set_control_condition {
 # Purpose     : Check for valid control condition
 # Returns     : String (the valid control condition)
 # Parameters  : String (the control condition)
-# Throws      : If control condition is invalid (i.e. not alphanumeric)
-#               If control condition is empty
+# Throws      : If control condition is empty
 #               If control condition > $MAX_CONDITION_LENGTH characters
 # Comments    : None
 sub _check_control_condition {
@@ -1023,8 +1022,6 @@ sub _check_control_condition {
 
     confess 'Empty control condition specified'
       if defined $control_condition && !length $control_condition;
-    confess "Invalid control condition ($control_condition) specified"
-      if defined $control_condition && $control_condition !~ m/\A \w+ \z/xms;
     confess( sprintf 'Control condition (%s) longer than %d characters',
         $control_condition, $MAX_CONDITION_LENGTH )
       if defined $control_condition
@@ -1071,8 +1068,7 @@ sub set_experimental_condition {
 # Purpose     : Check for valid experimental condition
 # Returns     : String (the valid experimental condition)
 # Parameters  : String (the experimental condition)
-# Throws      : If experimental condition is invalid (i.e. not alphanumeric)
-#               If experimental condition is empty
+# Throws      : If experimental condition is empty
 #               If experimental condition > $MAX_CONDITION_LENGTH characters
 # Comments    : None
 sub _check_experimental_condition {
@@ -1080,9 +1076,6 @@ sub _check_experimental_condition {
 
     confess 'Empty experimental condition specified'
       if defined $experimental_condition && !length $experimental_condition;
-    confess "Invalid experimental condition ($experimental_condition) specified"
-      if defined $experimental_condition
-      && $experimental_condition !~ m/\A \w+ \z/xms;
     confess( sprintf 'Control condition (%s) longer than %d characters',
         $experimental_condition, $MAX_CONDITION_LENGTH )
       if defined $experimental_condition
