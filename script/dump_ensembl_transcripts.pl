@@ -286,8 +286,8 @@ sub get_hexamer {
     my @PRIMARY_HEXAMERS = qw( AATAAA ATTAAA );
     my @SECONDARY_HEXAMERS =
       qw( AGTAAA TATAAA CATAAA GATAAA AATATA AATACA AATAGA ACTAAA AAGAAA AATGAA );
-    my @primary_hexamers   = map { reverse $_ } @PRIMARY_HEXAMERS;
-    my @secondary_hexamers = map { reverse $_ } @SECONDARY_HEXAMERS;
+    my @primary_hexamers   = map { scalar reverse $_ } @PRIMARY_HEXAMERS;
+    my @secondary_hexamers = map { scalar reverse $_ } @SECONDARY_HEXAMERS;
 
     my $start;
     my $end;
@@ -306,7 +306,7 @@ sub get_hexamer {
     foreach my $hexamer (@primary_hexamers) {
         my $pos = index $upstream_seq, $hexamer;
         if ( $pos != -1 ) {
-            return $pos + 5, $hexamer;
+            return $pos + 5, scalar reverse $hexamer;
         }
     }
 
@@ -318,7 +318,7 @@ sub get_hexamer {
             && ( !defined $nearest_pos || $pos + 5 < $nearest_pos ) )
         {
             $nearest_pos     = $pos + 5;
-            $nearest_hexamer = $hexamer;
+            $nearest_hexamer = scalar reverse $hexamer;
         }
     }
 
