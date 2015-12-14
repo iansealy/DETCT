@@ -54,7 +54,7 @@ countData <- data[,grepl(" count$", names(data)) &
 names(countData) <- gsub(" count$", "", names(countData))
 
 # Transform using DESeq2
-dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ condition)
+dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ 1)
 dds <- estimateSizeFactors(dds)
 if (transformMethod == "rlog") {
     dds <- rlogTransformation(dds, blind=TRUE)
