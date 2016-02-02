@@ -35,8 +35,9 @@ medianData <- matrix(nrow=nrow(countData),
                      dimnames=list(rownames(countData),
                                    levels(samples$condition)))
 for (condition in levels(samples$condition)) {
-    medianData[,condition] <- apply(countData[,samples$condition == condition],
-                                    1, median)
+    medianData[,condition] <-
+        apply(countData[,samples$condition == condition, drop=FALSE], 1,
+            median)
 }
 
 # Standardise data
