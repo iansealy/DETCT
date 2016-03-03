@@ -2,6 +2,7 @@
 
 suppressWarnings(library(tcltk))
 suppressPackageStartupMessages(library(Mfuzz))
+library(naturalsort)
 
 Args           <- commandArgs()
 dataFile       <- ifelse(is.na(Args[6]),  "all.tsv",     Args[6])
@@ -174,8 +175,8 @@ names(countData) <- gsub(" normalised count$", "", names(countData))
 medianData <- matrix(nrow=nrow(countData),
                      ncol=length(levels(samples$condition)),
                      dimnames=list(rownames(countData),
-                                   levels(samples$condition)))
-for (condition in levels(samples$condition)) {
+                                   naturalsort(levels(samples$condition))))
+for (condition in naturalsort(levels(samples$condition))) {
     medianData[,condition] <-
         apply(countData[,samples$condition == condition, drop=FALSE], 1,
               median)
