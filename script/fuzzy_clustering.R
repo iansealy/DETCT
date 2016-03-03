@@ -218,19 +218,19 @@ for (i in 1:numClusters) {
     # Plot counts
     pdf(paste0(outputBase, '-', numClusters, '-', alphaThreshold, '-', i,
                '-counts.pdf'))
-    for (i in 1:nrow(data.subset)) {
-        counts <- data.subset[i, grepl(".normalised.count$",
+    for (j in 1:nrow(data.subset)) {
+        counts <- data.subset[j, grepl(".normalised.count$",
                                        names(data.subset)) ]
         par(mar=c(8.1, 4.1, 4.1, 2.1), xpd=TRUE)
         plot(as.numeric(counts), axes=FALSE, ann=FALSE, pch=21, bg=colours)
         axis(1, at=1:length(labels), lab=labels, las=2, cex.axis=0.5)
         axis(2)
         title(main=sprintf("%s:%d-%d %s\n%.2f",
-                           data.subset[i,"Chr"],
-                           data.subset[i,"Region.start"],
-                           data.subset[i,"Region.end"],
-                           data.subset[i,"Gene.name"],
-                           data.subset[i,"Adjusted.p.value"]))
+                           data.subset[j,"Chr"],
+                           data.subset[j,"Region.start"],
+                           data.subset[j,"Region.end"],
+                           data.subset[j,"Gene.name"],
+                           data.subset[j,"Adjusted.p.value"]))
         title(xlab="")
         title(ylab="Normalised Counts")
         legend("topright", inset=c(0, -0.1), levels(samples$condition), pch=21,
