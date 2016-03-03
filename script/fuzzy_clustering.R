@@ -48,11 +48,11 @@ eset.s <- standardise(eset)
 # Get fuzzy clusters
 cl <- mfuzz(eset.s, c=numClusters, m=mestimate(eset.s))
 pdf(paste0(outputBase, '-', numClusters, '-', alphaThreshold, '-mfuzz.pdf'))
-mfuzz.plot(eset.s, cl=cl, mfrow=c(4,4), new.window=FALSE,
+mfuzz.plot2(eset.s, cl=cl, mfrow=c(4,4), x11=FALSE, centre=TRUE,
            time.labels=colnames(medianData))
 graphics.off()
 pdf(paste0(outputBase, '-', numClusters, '-mfuzz.pdf'))
-mfuzz.plot(eset.s, cl=cl, mfrow=c(4,4), new.window=FALSE,
+mfuzz.plot2(eset.s, cl=cl, mfrow=c(4,4), x11=FALSE, centre=TRUE,
            time.labels=colnames(medianData), min.mem=alphaThreshold)
 graphics.off()
 
