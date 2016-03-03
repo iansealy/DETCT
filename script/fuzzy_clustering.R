@@ -46,10 +46,14 @@ eset <- filter.std(eset, min.std=0, visu=FALSE)
 eset.s <- standardise(eset)
 
 # Get fuzzy clusters
-pdf(paste0(outputBase, '-', numClusters, '-', alphaThreshold, '-mfuzz.pdf'))
 cl <- mfuzz(eset.s, c=numClusters, m=mestimate(eset.s))
+pdf(paste0(outputBase, '-', numClusters, '-', alphaThreshold, '-mfuzz.pdf'))
 mfuzz.plot(eset.s, cl=cl, mfrow=c(4,4), new.window=FALSE,
            time.labels=colnames(medianData))
+graphics.off()
+pdf(paste0(outputBase, '-', numClusters, '-mfuzz.pdf'))
+mfuzz.plot(eset.s, cl=cl, mfrow=c(4,4), new.window=FALSE,
+           time.labels=colnames(medianData), min.mem=alphaThreshold)
 graphics.off()
 
 # Output fuzzy clusters
