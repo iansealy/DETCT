@@ -57,6 +57,9 @@ mfuzz.plot(eset.s, cl=cl, mfrow=c(4,4), new.window=FALSE,
 graphics.off()
 
 # Output fuzzy clusters
+labels <- gsub(".normalised.count$", "",
+               names(data)[grepl(".normalised.count$", names(data))])
+colours <- as.numeric(samples$condition)
 acore.list <- acore(eset.s, cl=cl, min.acore=alphaThreshold)
 for (i in 1:numClusters) {
     data.subset <- data[c(as.character(acore.list[[i]][,1])),]
@@ -69,4 +72,26 @@ for (i in 1:numClusters) {
                                              alphaThreshold, '-', i, '.tsv'),
                     quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
     }
+    # Plot counts
+    pdf(paste0(outputBase, '-', numClusters, '-', alphaThreshold, '-', i,
+               '-counts.pdf'))
+    for (i in 1:nrow(data.subset)) {
+        counts <- data.subset[i, grepl(".normalised.count$",
+                                       names(data.subset)) ]
+        par(mar=c(8.1, 4.1, 4.1, 2.1), xpd=TRUE)
+        plot(as.numeric(counts), axes=FALSE, ann=FALSE, pch=21, bg=colours)
+        axis(1, at=1:length(labels), lab=labels, las=2, cex.axis=0.5)
+        axis(2)
+        title(main=sprintf("%s:%d-%d %s\n%.2f",
+                           data.subset[i,"Chr"],
+                           data.subset[i,"Region.start"],
+                           data.subset[i,"Region.end"],
+                           data.subset[i,"Gene.name"],
+                           data.subset[i,"Adjusted.p.value"]))
+        title(xlab="")
+        title(ylab="Normalised Counts")
+        legend("topright", inset=c(0, -0.1), levels(samples$condition), pch=21,
+               pt.bg=1:length(levels(samples$condition)))
+    }
+    graphics.off()
 }
