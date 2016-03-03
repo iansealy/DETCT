@@ -204,6 +204,7 @@ colours <- as.numeric(samples$condition)
 acore.list <- acore(eset.s, cl=cl, min.acore=alphaThreshold)
 for (i in 1:numClusters) {
     data.subset <- data[c(as.character(acore.list[[i]][,1])),]
+    data.subset$membership <- acore.list[[i]][,2]
     if (grepl("csv$", dataFile)) {
         write.csv(data.subset, file=paste0(outputBase, '-', numClusters, '-',
                                            alphaThreshold, '-', i, '.csv'),
