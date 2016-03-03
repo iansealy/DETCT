@@ -59,10 +59,10 @@ for (i in 1:numClusters) {
     if (grepl("csv$", dataFile)) {
         write.csv(data.subset, file=paste0(outputBase, '-', numClusters, '-',
                                            alphaThreshold, '-', i, '.csv'),
-                  row.names=TRUE)
+                  row.names=FALSE)
     } else {
         write.table(data.subset, file=paste0(outputBase, '-', numClusters, '-',
                                              alphaThreshold, '-', i, '.tsv'),
-                    quote=FALSE, sep='\t', row.names=TRUE, col.names=TRUE)
+                    quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
     }
 }
