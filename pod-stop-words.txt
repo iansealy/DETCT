@@ -22,6 +22,7 @@ FASTQ
 FixMateInformation
 flagstats
 HMM
+intronic
 json
 lsf
 MarkDuplicates
