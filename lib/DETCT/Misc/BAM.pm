@@ -1099,7 +1099,7 @@ sub count_reads {
 
         my %count = map { $_ => 0 } @tags;
 
-        # Get first read from each pair
+        # Get second read from each pair
         my $read2_alignments = $hts->features(
             -seq_id   => $arg_ref->{seq_name},
             -start    => $region_start,
