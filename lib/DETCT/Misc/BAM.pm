@@ -19,7 +19,7 @@ use Carp;
 use Try::Tiny;
 
 use Readonly;
-use Bio::DB::Sam;
+use Bio::DB::HTS;
 use List::Util qw( min sum );
 use List::MoreUtils qw( all );
 use Data::Compare;
@@ -93,13 +93,13 @@ sub get_reference_sequence_lengths {
 
     my %is_skip_sequence = map { $_ => 1 } @{ $skip_sequences || [] };
 
-    my $sam = Bio::DB::Sam->new( -bam => $bam_file );
+    my $hts = Bio::DB::HTS->new( -bam => $bam_file );
 
     my %length_of;
 
-    foreach my $seq_id ( $sam->seq_ids ) {
+    foreach my $seq_id ( $hts->seq_ids ) {
         next if $is_skip_sequence{$seq_id};
-        $length_of{$seq_id} = $sam->length($seq_id);
+        $length_of{$seq_id} = $hts->length($seq_id);
     }
 
     return %length_of;
@@ -117,7 +117,7 @@ sub get_reference_sequence_lengths {
   Purpose     : Get sequence from FASTA file
   Returns     : String (sequence)
   Parameters  : Hashref {
-                    fasta_index => Bio::DB::Sam::Fai
+                    fasta_index => Bio::DB::HTS::Fai
                     ref_fasta   => String (the FASTA file)
                     seq_name    => String (the sequence name)
                     start       => Int (the sequence start)
@@ -146,7 +146,7 @@ sub get_sequence {
     my $fai =
         $arg_ref->{fasta_index}
       ? $arg_ref->{fasta_index}
-      : Bio::DB::Sam::Fai->load( $arg_ref->{ref_fasta} );
+      : Bio::DB::HTS::Fai->load( $arg_ref->{ref_fasta} );
 
     my $query = sprintf '%s:%d-%d', $arg_ref->{seq_name}, $arg_ref->{start},
       $arg_ref->{end};
@@ -218,7 +218,7 @@ sub count_tags {
         $random_count_for{$tag} = scalar @random;
     }
 
-    my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
+    my $hts = Bio::DB::HTS->new( -bam => $arg_ref->{bam_file} );
 
     my %count;
 
@@ -260,7 +260,7 @@ sub count_tags {
         }
     }
 
-    $sam->fetch( $region, $callback );
+    $hts->fetch( $region, $callback );
 
     return \%count;
 }
@@ -316,7 +316,7 @@ sub bin_reads {
     # Convert tags to regular expressions
     my %re_for = DETCT::Misc::Tag::convert_tag_to_regexp(@tags);
 
-    my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
+    my $hts = Bio::DB::HTS->new( -bam => $arg_ref->{bam_file} );
 
     my %read_count_for = (
         '1'  => {},
@@ -346,7 +346,7 @@ sub bin_reads {
         return;
     };
 
-    $sam->fetch( $arg_ref->{seq_name}, $callback );
+    $hts->fetch( $arg_ref->{seq_name}, $callback );
 
     return { $arg_ref->{seq_name} => \%read_count_for };
 }
@@ -410,7 +410,7 @@ sub get_read_peaks {
     # Convert tags to regular expressions
     my %re_for = DETCT::Misc::Tag::convert_tag_to_regexp(@tags);
 
-    my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
+    my $hts = Bio::DB::HTS->new( -bam => $arg_ref->{bam_file} );
 
     # Peak variables (all keyed by strand)
     my %peaks = (
@@ -477,7 +477,7 @@ sub get_read_peaks {
 
     # Identify peaks (where peaks are read 2s separated by a buffer of specific
     # size)
-    $sam->fetch( $arg_ref->{seq_name}, $callback );
+    $hts->fetch( $arg_ref->{seq_name}, $callback );
 
     # Finish last peaks
     foreach my $strand ( 1, -1 ) {    ## no critic (ProhibitMagicNumbers)
@@ -569,7 +569,7 @@ sub get_three_prime_ends {    ## no critic (ProhibitExcessComplexity)
     # Convert tags to regular expressions
     my %re_for = DETCT::Misc::Tag::convert_tag_to_regexp(@tags);
 
-    my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
+    my $hts = Bio::DB::HTS->new( -bam => $arg_ref->{bam_file} );
 
     my @regions_with_three_prime_ends;
 
@@ -579,7 +579,7 @@ sub get_three_prime_ends {    ## no critic (ProhibitExcessComplexity)
         my %count_for;
 
         # Get all second reads in region
-        my $read2_alignments = $sam->features(
+        my $read2_alignments = $hts->features(
             -seq_id   => $arg_ref->{seq_name},
             -start    => $start,
             -end      => $end,
@@ -1084,7 +1084,7 @@ sub count_reads {
     # Convert tags to regular expressions
     my %re_for = DETCT::Misc::Tag::convert_tag_to_regexp(@tags);
 
-    my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
+    my $hts = Bio::DB::HTS->new( -bam => $arg_ref->{bam_file} );
 
     my @regions_with_three_prime_ends;
 
@@ -1100,7 +1100,7 @@ sub count_reads {
         my %count = map { $_ => 0 } @tags;
 
         # Get first read from each pair
-        my $read2_alignments = $sam->features(
+        my $read2_alignments = $hts->features(
             -seq_id   => $arg_ref->{seq_name},
             -start    => $region_start,
             -end      => $region_end,
@@ -1300,12 +1300,12 @@ sub stats_by_tag {
     my %is_skip_sequence =
       map { $_ => 1 } @{ $arg_ref->{skip_sequences} || [] };
 
-    my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
+    my $hts = Bio::DB::HTS->new( -bam => $arg_ref->{bam_file} );
 
     my %stats = map { $_ => { paired => 0, mapped => 0, proper => 0, } } @tags;
 
     # Get all reads
-    my $alignments = $sam->features( -iterator => 1, );
+    my $alignments = $hts->features( -iterator => 1, );
     while ( my $alignment = $alignments->next_seq ) {
         next
           if ( $alignment->seq_id
@@ -1360,12 +1360,12 @@ sub stats_all_reads {
     my %is_skip_sequence =
       map { $_ => 1 } @{ $arg_ref->{skip_sequences} || [] };
 
-    my $sam = Bio::DB::Sam->new( -bam => $arg_ref->{bam_file} );
+    my $hts = Bio::DB::HTS->new( -bam => $arg_ref->{bam_file} );
 
     my %stats = ( paired => 0, mapped => 0, proper => 0, );
 
     # Get all reads
-    my $alignments = $sam->features( -iterator => 1, );
+    my $alignments = $hts->features( -iterator => 1, );
     while ( my $alignment = $alignments->next_seq ) {
         next
           if ( $alignment->seq_id
@@ -1507,13 +1507,14 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
       : ();
 
     # Open source and target and write header to target
-    my $bam_in  = Bio::DB::Bam->open( $arg_ref->{source_bam_file}, q{r} );
-    my $bam_out = Bio::DB::Bam->open( $arg_ref->{target_bam_file}, q{w} );
-    $bam_out->header_write( $bam_in->header );
+    my $bam_in  = Bio::DB::HTSfile->open( $arg_ref->{source_bam_file}, q{r} );
+    my $bam_out = Bio::DB::HTSfile->open( $arg_ref->{target_bam_file}, q{w} );
+    my $header  = $bam_in->header_read;
+    $bam_out->header_write($header);
 
     # Convert skip sequences to BAM refID
     my $i = 0;
-    my %sam_to_bam = map { $_ => $i++ } @{ $bam_in->header->target_name };
+    my %sam_to_bam = map { $_ => $i++ } @{ $bam_in->header_read->target_name };
     my %is_skip_sequence =
       map { $sam_to_bam{$_} => 1 } @{ $arg_ref->{skip_sequences} || [] };
 
@@ -1529,7 +1530,7 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
     my $total_half_kept = 0;
 
     # Get all reads
-    while ( my $alignment = $bam_in->read1 ) {
+    while ( my $alignment = $bam_in->read1($header) ) {
         last
           if $total_kept == $arg_ref->{target_read_count} && !$total_half_kept;
 
@@ -1546,7 +1547,7 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
         # Write read if kept mate
         if ( exists $keep{ $alignment->qname } ) {
             delete $keep{ $alignment->qname };
-            $bam_out->write1($alignment);
+            $bam_out->write1( $header, $alignment );
             $total_kept++;
             $total_half_kept--;
             next;
@@ -1577,7 +1578,7 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
 
         if ( rand() < $keep_chance ) {
             $keep{ $alignment->qname } = 1;
-            $bam_out->write1($alignment);
+            $bam_out->write1( $header, $alignment );
             $total_kept++;
             $total_half_kept++;
         }
@@ -1585,6 +1586,8 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
             $discard{ $alignment->qname } = 1;
         }
     }
+
+    $bam_out->close();
 
     return $total_kept;
 }
@@ -1643,7 +1646,7 @@ sub mark_duplicates {    ## no critic (ProhibitExcessComplexity)
     my %re_for = @tags ? DETCT::Misc::Tag::convert_tag_to_regexp(@tags) : ();
 
     # Open input (for first pass)
-    my $sam_in = Bio::DB::Sam->new( -bam => $arg_ref->{input_bam_file} );
+    my $hts_in = Bio::DB::HTS->new( -bam => $arg_ref->{input_bam_file} );
 
     # Track signatures of each read pair and separately of each read
     # Value is best total base quality or, in the case of reads from mapped
@@ -1652,7 +1655,7 @@ sub mark_duplicates {    ## no critic (ProhibitExcessComplexity)
     my %is_se_dupe;
 
     # Get all reads in pairs where both reads are mapped
-    my $alignments_pe = $sam_in->features(
+    my $alignments_pe = $hts_in->features(
         ## no critic (RequireInterpolationOfMetachars)
         -filter => 'return if $a->unmapped || $a->munmapped',
         ## use critic
@@ -1708,7 +1711,7 @@ sub mark_duplicates {    ## no critic (ProhibitExcessComplexity)
     }
 
     # Get all reads where at least one of pair isn't mapped
-    my $alignments_se = $sam_in->features(
+    my $alignments_se = $hts_in->features(
         ## no critic (RequireInterpolationOfMetachars)
         -filter => 'return if !$a->unmapped && !$a->munmapped',
         ## use critic
@@ -1760,14 +1763,15 @@ sub mark_duplicates {    ## no critic (ProhibitExcessComplexity)
     my $metrics = _init_duplication_metrics(@tags);
 
     # Open input (for second pass) and output and write header to output
-    $sam_in = undef;
-    my $bam_in  = Bio::DB::Bam->open( $arg_ref->{input_bam_file},  q{r} );
-    my $bam_out = Bio::DB::Bam->open( $arg_ref->{output_bam_file}, q{w} );
-    $bam_out->header_write( $bam_in->header );
+    $hts_in = undef;
+    my $bam_in  = Bio::DB::HTSfile->open( $arg_ref->{input_bam_file},  q{r} );
+    my $bam_out = Bio::DB::HTSfile->open( $arg_ref->{output_bam_file}, q{w} );
+    my $header  = $bam_in->header_read;
+    $bam_out->header_write($header);
 
     # Get all reads in pairs
-    while ( my $alignment1 = $bam_in->read1 ) {
-        my $alignment2 = $bam_in->read1;
+    while ( my $alignment1 = $bam_in->read1($header) ) {
+        my $alignment2 = $bam_in->read1($header);
 
         my $is_dupe          = 0;
         my $num_reads_mapped = 0;
@@ -1891,9 +1895,11 @@ sub mark_duplicates {    ## no critic (ProhibitExcessComplexity)
         );
 
         # Write reads
-        $bam_out->write1($alignment1);
-        $bam_out->write1($alignment2);
+        $bam_out->write1( $header, $alignment1 );
+        $bam_out->write1( $header, $alignment2 );
     }
+
+    $bam_out->close();
 
     # Calculate derived metrics
     $metrics = _calc_derived_duplication_metrics($metrics);
@@ -1913,7 +1919,7 @@ sub _sort_sig {
   Usage       : my $pos = get_five_prime_pos_plus_soft_clip( $alignment );
   Purpose     : Get 5' end position adjusted for soft-clipped bases
   Returns     : Int (the adjusted 5' position)
-  Parameters  : Bio::DB::Bam::Alignment or Bio::DB::Bam::AlignWrapper
+  Parameters  : Bio::DB::HTS::Alignment or Bio::DB::HTS::AlignWrapper
   Throws      : No exceptions
   Comments    : None
 
@@ -1950,7 +1956,7 @@ sub get_five_prime_pos_plus_soft_clip {
   Usage       : my $score = get_base_qual_sum( $alignment );
   Purpose     : Get total base quality (15+) for a read
   Returns     : Int (the total base quality)
-  Parameters  : Bio::DB::Bam::Alignment or Bio::DB::Bam::AlignWrapper
+  Parameters  : Bio::DB::HTS::Alignment or Bio::DB::HTS::AlignWrapper
   Throws      : No exceptions
   Comments    : None
 
@@ -1969,7 +1975,7 @@ sub get_base_qual_sum {
   Usage       : my $tag_bytes = get_tag_for_signature( $alignment );
   Purpose     : Get tag as bytes
   Returns     : String (the tag as bytes)
-  Parameters  : Bio::DB::Bam::Alignment or Bio::DB::Bam::AlignWrapper
+  Parameters  : Bio::DB::HTS::Alignment or Bio::DB::HTS::AlignWrapper
   Throws      : No exceptions
   Comments    : None
 
@@ -2267,15 +2273,18 @@ sub filter_by_tag {
     my %re_for = DETCT::Misc::Tag::convert_tag_to_regexp(@tags);
 
     # Open source and target and write header to target
-    my $bam_in  = Bio::DB::Bam->open( $arg_ref->{source_bam_file}, q{r} );
-    my $bam_out = Bio::DB::Bam->open( $arg_ref->{target_bam_file}, q{w} );
-    $bam_out->header_write( $bam_in->header );
+    my $bam_in  = Bio::DB::HTSfile->open( $arg_ref->{source_bam_file}, q{r} );
+    my $bam_out = Bio::DB::HTSfile->open( $arg_ref->{target_bam_file}, q{w} );
+    my $header  = $bam_in->header_read;
+    $bam_out->header_write($header);
 
     # Get all reads
-    while ( my $alignment = $bam_in->read1 ) {
+    while ( my $alignment = $bam_in->read1($header) ) {
         next if !matched_tag( $alignment, \%re_for );
-        $bam_out->write1($alignment);
+        $bam_out->write1( $header, $alignment );
     }
+
+    $bam_out->close();
 
     return;
 }
@@ -2285,7 +2294,7 @@ sub filter_by_tag {
   Usage       : next if !matched_tag($alignment, \%re_for);
   Purpose     : Get tag matching alignment
   Returns     : String (the matched tag) or undef
-  Parameters  : Bio::DB::Bam::Alignment or Bio::DB::Bam::AlignWrapper
+  Parameters  : Bio::DB::HTS::Alignment or Bio::DB::HTS::AlignWrapper
               : Hashref of regular expressions
   Throws      : No exceptions
   Comments    : None
@@ -2316,7 +2325,7 @@ sub matched_tag {
   Usage       : next if is_read2($alignment);
   Purpose     : Check if alignment is from read 2 (not read 1)
   Returns     : 1 or 0
-  Parameters  : Bio::DB::Bam::AlignWrapper
+  Parameters  : Bio::DB::HTS::AlignWrapper
   Throws      : No exceptions
   Comments    : None
 
@@ -2335,7 +2344,7 @@ sub is_read2 {
   Usage       : next if is_duplicate($alignment);
   Purpose     : Check if alignment is marked as a duplicate
   Returns     : 1 or 0
-  Parameters  : Bio::DB::Bam::AlignWrapper
+  Parameters  : Bio::DB::HTS::AlignWrapper
   Throws      : No exceptions
   Comments    : None
 
@@ -2354,7 +2363,7 @@ sub is_duplicate {
   Usage       : next if is_paired($alignment);
   Purpose     : Check if alignment represents a read paired in sequencing
   Returns     : 1 or 0
-  Parameters  : Bio::DB::Bam::AlignWrapper
+  Parameters  : Bio::DB::HTS::AlignWrapper
   Throws      : No exceptions
   Comments    : None
 
@@ -2371,7 +2380,7 @@ sub is_paired {
   Usage       : next if is_mapped_pair($alignment);
   Purpose     : Check if alignment represents a pair of mapped reads
   Returns     : 1 or 0
-  Parameters  : Bio::DB::Bam::AlignWrapper
+  Parameters  : Bio::DB::HTS::AlignWrapper
   Throws      : No exceptions
   Comments    : None
 
@@ -2388,7 +2397,7 @@ sub is_mapped_pair {
   Usage       : next if is_properly_paired($alignment);
   Purpose     : Check if alignment represents a properly paired read
   Returns     : 1 or 0
-  Parameters  : Bio::DB::Bam::AlignWrapper
+  Parameters  : Bio::DB::HTS::AlignWrapper
   Throws      : No exceptions
   Comments    : None
 
@@ -2407,7 +2416,7 @@ sub is_properly_paired {
   Usage       : next if above_mismatch_threshold($alignment, 2);
   Purpose     : Check if alignment has too many mismatches
   Returns     : 1 or 0
-  Parameters  : Bio::DB::Bam::Alignment or Bio::DB::Bam::AlignWrapper
+  Parameters  : Bio::DB::HTS::Alignment or Bio::DB::HTS::AlignWrapper
               : Int (mismatch threshold)
   Throws      : No exceptions
   Comments    : None

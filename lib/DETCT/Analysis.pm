@@ -41,7 +41,7 @@ private sample        => my %sample;         # arrayref of samples
 private sequence      => my %sequence;       # arrayref of sequences
 private total_bp      => my %total_bp;       # e.g. 1412464843
 private ref_fasta     => my %ref_fasta;      # e.g. zv9.fa
-private fasta_index   => my %fasta_index;    # Bio::DB::Sam::Fai
+private fasta_index   => my %fasta_index;    # Bio::DB::HTS::Fai
 private ensembl_host  => my %ensembl_host;   # e.g. ensembldb.ensembl.org
 private ensembl_port  => my %ensembl_port;   # e.g. 3306
 private ensembl_user  => my %ensembl_user;   # e.g. anonymous
@@ -423,7 +423,9 @@ sub validate {
 
     # Check for missing BAM file index
     foreach my $bam_file (@bam_files) {
-        if ( !Bio::DB::Bam->index_open($bam_file) ) {
+        if (
+            !Bio::DB::HTSfile->index_load( Bio::DB::HTSfile->open($bam_file) ) )
+        {
             confess "$bam_file has no index";
         }
     }
@@ -474,8 +476,8 @@ sub validate {
 
     # If BAM file contains read groups then check sample tags are present
     foreach my $bam_file (@bam_files) {
-        my $bam        = Bio::DB::Bam->open( $bam_file, q{r} );
-        my $header     = $bam->header->text;
+        my $bam        = Bio::DB::HTSfile->open( $bam_file, q{r} );
+        my $header     = $bam->header_read->text;
         my %tag_in_bam = map { $_ => 1 }
           $header =~ m/\@RG .*? LB: [NRYKMSWBDHV]* ([AGCT]+)/xmsg;
         if ( keys %tag_in_bam ) {
@@ -565,7 +567,7 @@ sub _check_ref_fasta {
 
   Usage       : my $fai = $analysis->fasta_index;
   Purpose     : Getter for FASTA index attribute
-  Returns     : Bio::DB::Sam::Fai
+  Returns     : Bio::DB::HTS::Fai
   Parameters  : None
   Throws      : No exceptions
   Comments    : None
@@ -578,7 +580,7 @@ sub fasta_index {
     if ( !defined $fasta_index{ id $self} && $self->ref_fasta ) {
 
         # We can create a FASTA index object
-        $self->set_fasta_index( Bio::DB::Sam::Fai->load( $self->ref_fasta ) );
+        $self->set_fasta_index( Bio::DB::HTS::Fai->load( $self->ref_fasta ) );
     }
 
     return $fasta_index{ id $self};
@@ -589,7 +591,7 @@ sub fasta_index {
   Usage       : $analysis->set_fasta_index($fai);
   Purpose     : Setter for FASTA index attribute
   Returns     : undef
-  Parameters  : Bio::DB::Sam::Fai
+  Parameters  : Bio::DB::HTS::Fai
   Throws      : No exceptions
   Comments    : None
 
@@ -603,19 +605,19 @@ sub set_fasta_index {
 
 # Usage       : $fai = _check_fasta_index($fai);
 # Purpose     : Check for valid FASTA index
-# Returns     : Bio::DB::Sam::Fai
-# Parameters  : Bio::DB::Sam::Fai
+# Returns     : Bio::DB::HTS::Fai
+# Parameters  : Bio::DB::HTS::Fai
 # Throws      : If FASTA index is missing or invalid (i.e. not a
-#               Bio::DB::Sam::Fai object)
+#               Bio::DB::HTS::Fai object)
 # Comments    : None
 sub _check_fasta_index {
     my ($fasta_index) = @_;
     return $fasta_index
       if defined $fasta_index
-      && $fasta_index->isa('Bio::DB::Sam::Fai');
+      && $fasta_index->isa('Bio::DB::HTS::Fai');
     confess 'No FASTA index specified' if !defined $fasta_index;
     confess 'Class of FASTA index (', ref $fasta_index,
-      ') not Bio::DB::Sam::Fai';
+      ') not Bio::DB::HTS::Fai';
 }
 
 =method ensembl_host

@@ -31,7 +31,7 @@ use DETCT::Misc::BAM qw(
 );
 
 use File::Temp qw( tempdir );
-use Bio::DB::Sam;
+use Bio::DB::HTS;
 
 =for comment
 
@@ -2557,11 +2557,11 @@ qr/No tags specified/ms, 'No tags';
 sub count_reads_1_and_2 {
     my ($bam_file) = @_;
 
-    my $sam = Bio::DB::Sam->new( -bam => $bam_file );
-    my $alignments  = $sam->features( -iterator => 1, );
+    my $bam_in      = Bio::DB::HTSfile->open( $bam_file, q{r} );
+    my $header      = $bam_in->header_read;
     my $read1_count = 0;
     my $read2_count = 0;
-    while ( my $alignment = $alignments->next_seq ) {
+    while ( my $alignment = $bam_in->read1($header) ) {
         if ( $alignment->get_tag_values('FLAGS') =~ m/\bFIRST_MATE\b/xms ) {
             $read1_count++;
         }
@@ -2577,10 +2577,10 @@ sub count_reads_1_and_2 {
 sub count_duplicates {
     my ($bam_file) = @_;
 
-    my $sam = Bio::DB::Sam->new( -bam => $bam_file );
-    my $alignments = $sam->features( -iterator => 1, );
+    my $bam_in     = Bio::DB::HTSfile->open( $bam_file, q{r} );
+    my $header     = $bam_in->header_read;
     my $dupe_count = 0;
-    while ( my $alignment = $alignments->next_seq ) {
+    while ( my $alignment = $bam_in->read1($header) ) {
         if ( $alignment->get_tag_values('FLAGS') =~ m/\bDUPLICATE\b/xms ) {
             $dupe_count++;
         }
@@ -2593,12 +2593,13 @@ sub count_duplicates {
 sub count_seq_names {
     my ($bam_file) = @_;
 
-    my $sam = Bio::DB::Sam->new( -bam => $bam_file );
-    my $alignments = $sam->features( -iterator => 1, );
+    my $bam_in = Bio::DB::HTSfile->open( $bam_file, q{r} );
+    my $header = $bam_in->header_read;
     my %seq_name_count;
-    while ( my $alignment = $alignments->next_seq ) {
-        next if !$alignment->seq_id;
-        $seq_name_count{ $alignment->seq_id }++;
+    while ( my $alignment = $bam_in->read1($header) ) {
+        next if !$alignment->tid;
+        my $seq_id = $header->target_name->[ $alignment->tid ];
+        $seq_name_count{$seq_id}++;
     }
 
     return \%seq_name_count;
