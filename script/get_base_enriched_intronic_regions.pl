@@ -144,8 +144,9 @@ foreach my $gene ( @{$genes} ) {
             my @enriched_bases = check_enrichment($window_seq);
             if (@enriched_bases) {
                 printf_or_die(
-                    "%s\t%d\t%d\t%d\t%s\t%s\n",
+                    "%s\t%s\t%d\t%d\t%d\t%s\t%s\n",
                     $gene->stable_id,
+                    $gene->seq_region_name,
                     $gene->seq_region_strand,
                     $intron_start + $window_start,
                     $intron_start + $window_start + $WINDOW_SIZE - 1,
