@@ -188,15 +188,17 @@ sub get_enriched_windows {
             my $window_seq = substr $intron_seq, $window_start, $WINDOW_SIZE;
             my @enriched_bases = check_enrichment($window_seq);
             if (@enriched_bases) {
+                my $start = $intron_start + $window_start;
+                my $end   = $intron_start + $window_start + $WINDOW_SIZE - 1;
+                if ( $gene->seq_region_strand < 0 ) {
+                    $start = $intron_end - $window_start - $WINDOW_SIZE + 1;
+                    $end   = $intron_end - $window_start;
+                }
                 printf_or_die(
-                    "%s\t%s\t%d\t%d\t%d\t%s\t%s\n",
-                    $gene->stable_id,
-                    $gene->seq_region_name,
-                    $gene->seq_region_strand,
-                    $intron_start + $window_start,
-                    $intron_start + $window_start + $WINDOW_SIZE - 1,
-                    ( join q{,}, @enriched_bases ),
-                    $window_seq
+                    "%s\t%s\t%d\t%d\t%d\t%s\t%s\n", $gene->stable_id,
+                    $gene->seq_region_name,         $gene->seq_region_strand,
+                    $start,                         $end,
+                    ( join q{,}, @enriched_bases ), $window_seq
                 );
             }
             $window_start += $WINDOW_SIZE;
