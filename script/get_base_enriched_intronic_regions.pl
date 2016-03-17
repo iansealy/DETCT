@@ -21,6 +21,7 @@ use Getopt::Long;
 use Pod::Usage;
 use Readonly;
 use Bio::EnsEMBL::Registry;
+use Sort::Naturally;
 use DETCT::Misc qw( printf_or_die );
 
 =head1 DESCRIPTION
@@ -46,6 +47,7 @@ my $ensembl_dbhost = 'ensembldb.ensembl.org';
 my $ensembl_dbport;
 my $ensembl_dbuser = 'anonymous';
 my $ensembl_dbpass;
+my $slice_regexp;
 my ( $debug, $help, $man );
 
 # Get and check command line options
@@ -64,7 +66,6 @@ my $genebuild_version = 'e' . Bio::EnsEMBL::ApiVersion::software_version();
 warn 'Genebuild version: ', $genebuild_version, "\n" if $debug;
 
 # Get Ensembl adaptors
-my $ga = Bio::EnsEMBL::Registry->get_adaptor( $species, 'core', 'Gene' );
 my $sa = Bio::EnsEMBL::Registry->get_adaptor( $species, 'core', 'Slice' );
 
 # Ensure database connection isn't lost; Ensembl 64+ can do this more elegantly
@@ -78,8 +79,33 @@ else {
 }
 
 # Iterate over each gene
-my $genes = $ga->fetch_all();
-foreach my $gene ( @{$genes} ) {
+my $slices = $sa->fetch_all('toplevel');
+warn scalar @{$slices}, " slices\n" if $debug;
+if ($slice_regexp) {
+    @{$slices} =
+      grep { $_->seq_region_name =~ m/\A $slice_regexp \z/xms } @{$slices};
+    warn scalar @{$slices}, " slices after filtering\n" if $debug;
+}
+foreach my $slice ( sort { ncmp( $a->seq_region_name, $b->seq_region_name ) }
+    @{$slices} )
+{
+    warn 'Slice: ', $slice->name, "\n" if $debug;
+
+    my $genes = $slice->get_all_Genes();
+    foreach my $gene ( @{$genes} ) {
+
+        # Get non-redundant introns
+        my $nr_introns = get_nr_introns($gene);
+
+        # Get windows in each intron
+        get_windows( $gene, $nr_introns );
+
+        $gene->flush_Transcripts();    # Save memory
+    }
+}
+
+sub get_nr_introns {
+    my ($gene) = @_;
 
     # Get coordinates for all introns of all transcripts of a gene
     my @intron_coords;
@@ -93,7 +119,7 @@ foreach my $gene ( @{$genes} ) {
     }
 
     # Ignore genes without introns
-    next if !@intron_coords;
+    return [] if !@intron_coords;
 
     # Collapse to non-overlapping set of intron coordinates
     @intron_coords =
@@ -133,10 +159,14 @@ foreach my $gene ( @{$genes} ) {
             $end, $gene->seq_region_strand );
         push @{$coords}, $slice->seq;
     }
-    my @nr_introns = @nr_intron_coords;
 
-    # Get windows for each intron
-    foreach my $intron (@nr_introns) {
+    return \@nr_intron_coords;
+}
+
+sub get_windows {
+    my ( $gene, $nr_introns ) = @_;
+
+    foreach my $intron ( @{$nr_introns} ) {
         my ( $intron_start, $intron_end, $intron_seq ) = @{$intron};
         my $window_start = 0;
         while ( $intron_start + $window_start + $WINDOW_SIZE <= $intron_end ) {
@@ -158,7 +188,7 @@ foreach my $gene ( @{$genes} ) {
         }
     }
 
-    $gene->flush_Transcripts();    # Save memory
+    return;
 }
 
 sub check_enrichment {
@@ -210,6 +240,7 @@ sub get_and_check_options {
         'ensembl_dbport=i' => \$ensembl_dbport,
         'ensembl_dbuser=s' => \$ensembl_dbuser,
         'ensembl_dbpass=s' => \$ensembl_dbpass,
+        'slice_regexp=s'   => \$slice_regexp,
         'debug'            => \$debug,
         'help'             => \$help,
         'man'              => \$man,
@@ -234,6 +265,7 @@ sub get_and_check_options {
         [--ensembl_dbport port]
         [--ensembl_dbuser username]
         [--ensembl_dbpass password]
+        [--slice_regexp regexp]
         [--debug]
         [--help]
         [--man]
@@ -261,6 +293,10 @@ Ensembl MySQL database username.
 =item B<--ensembl_dbpass PASSWORD>
 
 Ensembl MySQL database password.
+
+=item B<--slice_regexp REGEXP>
+
+Regular expression for matching slice names.
 
 =item B<--debug>
 
