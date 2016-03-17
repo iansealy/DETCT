@@ -152,15 +152,30 @@ sub get_nr_introns {
     }
 
     # Add sequence to each intron
+    my @nr_introns;
     foreach my $coords (@nr_intron_coords) {
         my ( $start, $end ) = @{$coords};
         my $slice =
           $sa->fetch_by_region( 'toplevel', $gene->seq_region_name, $start,
             $end, $gene->seq_region_strand );
         push @{$coords}, $slice->seq;
+
+        # Ignore introns with genes on opposite strand
+        my $opposite_count    = 0;
+        my $overlapping_genes = $slice->get_all_Genes();
+        foreach my $overlapping_gene ( @{$overlapping_genes} ) {
+            next if $overlapping_gene->stable_id eq $gene->stable_id;
+            next
+              if $overlapping_gene->seq_region_strand ==
+              $gene->seq_region_strand;
+            $opposite_count++;
+        }
+        next if $opposite_count;
+
+        push @nr_introns, $coords;
     }
 
-    return \@nr_intron_coords;
+    return \@nr_introns;
 }
 
 sub get_enriched_windows {
