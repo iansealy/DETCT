@@ -97,8 +97,8 @@ foreach my $slice ( sort { ncmp( $a->seq_region_name, $b->seq_region_name ) }
         # Get non-redundant introns
         my $nr_introns = get_nr_introns($gene);
 
-        # Get windows in each intron
-        get_windows( $gene, $nr_introns );
+        # Get enriched windows in each intron
+        get_enriched_windows( $gene, $nr_introns );
 
         $gene->flush_Transcripts();    # Save memory
     }
@@ -163,7 +163,7 @@ sub get_nr_introns {
     return \@nr_intron_coords;
 }
 
-sub get_windows {
+sub get_enriched_windows {
     my ( $gene, $nr_introns ) = @_;
 
     foreach my $intron ( @{$nr_introns} ) {
