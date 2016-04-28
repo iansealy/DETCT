@@ -147,7 +147,14 @@ sub output_regions {
         @output_fields = map { defined $_ ? $_       : q{-} } @output_fields;
         @output_fields = map { /\s/xms    ? qq{"$_"} : $_ } @output_fields;
         @output_fields =
-          map { /\A [\d.]+e[-]?\d+ \z/xms ? uc $_ : $_ } @output_fields;
+          map {
+            /\A ([\d.]+)(e[-]?\d+) \z/xms
+              ? ( sprintf '%.8f', $1 ) . uc $2
+              : $_
+          } @output_fields;
+        @output_fields =
+          map { /\A [-]?\d+[.]\d+ \z/xms ? sprintf '%.8f', $_ : $_ }
+          @output_fields;
 
         printf_or_die( "%s\n", join "\t", @output_fields );
     }
