@@ -55,6 +55,7 @@ sub output_header {
         confess sprintf '%s is not .csv or .tsv file', $input_file;
     }
 
+    # Get input headings
     open my $input_fh, '<', $input_file;
     my $header = <$input_fh>;
     $header =~ s/\A [#]//xms;
@@ -98,20 +99,45 @@ sub output_header {
     my @columns = split /\s+/xms, $header;
     close $samples_fh;
 
+    # Get all sample headings
     my $cols_before_samples =
       scalar @FIELDS_BEFORE_LFC + scalar @lfc_cols + scalar @FIELDS_AFTER_LFC;
+    my @all_sample_headings;
     foreach my $col ( 1 .. scalar @columns ) {
-        @headings = ( $columns[ $col - 1 ], (q{}) x $cols_before_samples );
+        my @sample_headings =
+          ( $columns[ $col - 1 ], (q{}) x $cols_before_samples );
         open my $samples_fh, '<', $samples_file;
         $header = <$samples_fh>;
         while ( my $line = <$samples_fh> ) {
             chomp $line;
             my @fields = split /\s+/xms, $line;
-            push @headings, $fields[$col];
+            push @sample_headings, $fields[$col];
         }
         close $samples_fh;
-        @headings = map { /\s/xms ? qq{"$_"} : $_ } @headings;
-        printf_or_die( "%s\n", join "\t", @headings );
+        @sample_headings = map { /\s/xms ? qq{"$_"} : $_ } @sample_headings;
+        push @all_sample_headings, \@sample_headings;
+    }
+
+    # Concatenate all factors if more than one
+    if ( scalar @all_sample_headings > 1 ) {
+        my @concat_headings = ( join q{_}, @columns );
+        push @concat_headings, (q{}) x scalar $cols_before_samples;
+        foreach my $sample_idx (
+            scalar $cols_before_samples +
+            1 .. scalar @{ $all_sample_headings[0] } -
+            1 )
+        {
+            my @values;
+            foreach my $factor_idx ( 0 .. scalar @columns - 1 ) {
+                push @values, $all_sample_headings[$factor_idx][$sample_idx];
+            }
+            push @concat_headings, join q{_}, @values;
+        }
+        unshift @all_sample_headings, \@concat_headings;
+    }
+
+    foreach my $headings (@all_sample_headings) {
+        printf "%s\n", join "\t", @{$headings};
     }
 
     return \@sample_cols, \@lfc_cols;
