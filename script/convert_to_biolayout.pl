@@ -161,6 +161,7 @@ sub output_regions {
 
         # Get ID by joining gene name, chr, start, end, 3' end position & strand
         ## no critic (ProhibitMagicNumbers)
+        $fields[13] = $fields[13] || q{};
         my $id = join q{:}, @fields[ 13, 0, 1, 2, 4 ];
         ## use critic
 
