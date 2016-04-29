@@ -38,17 +38,22 @@ Readonly our @FIELDS_AFTER_LFC  => ( 9 .. 14 );
 # Default options
 my $input_file;
 my $samples_file;
+my $config_file;
+my @metadata_files;
 my ( $help, $man );
 
 # Get and check command line options
 get_and_check_options();
 
-my ( $sample_cols, $lfc_cols ) = output_header( $input_file, $samples_file );
+my ( $sample_cols, $lfc_cols ) =
+  output_header( $input_file, $samples_file, $config_file, @metadata_files );
 output_regions( $input_file, $sample_cols, $lfc_cols );
 
 # Output header
 sub output_header {
-    my ( $input_file, $samples_file ) = @_;   ## no critic (ProhibitReusedNames)
+    ## no critic (ProhibitReusedNames)
+    my ( $input_file, $samples_file, $config_file, @metadata_files ) = @_;
+    ## use critic
 
     my ($extension) = $input_file =~ m/[.] ([[:lower:]]{3}) \z/xms;
     if ( !$extension || ( $extension ne 'csv' && $extension ne 'tsv' ) ) {
@@ -64,11 +69,15 @@ sub output_header {
 
     my @sample_cols;
     my @lfc_cols;
-    my $i = -1;    ## no critic (ProhibitMagicNumbers)
+    my %sample_to_col;
+    my $col = 0;
+    my $i   = -1;    ## no critic (ProhibitMagicNumbers)
     foreach my $heading (@headings) {
         $i++;
         if ( $heading =~ m/normalised \s count \z/xms ) {
             push @sample_cols, $i;
+            $heading =~ s/\s normalised \s count \z//xms;
+            $sample_to_col{$heading} = ++$col;
         }
         if ( $heading =~ m/\A Log2 \s fold \s change/xms ) {
             push @lfc_cols, $i;
@@ -91,12 +100,16 @@ sub output_header {
 
     printf_or_die( "%s\n", join "\t", @output_headings );
 
+    my $cols_before_samples =
+      scalar @FIELDS_BEFORE_LFC + scalar @lfc_cols + scalar @FIELDS_AFTER_LFC;
     if ($samples_file) {
-        my $cols_before_samples =
-          scalar @FIELDS_BEFORE_LFC +
-          scalar @lfc_cols +
-          scalar @FIELDS_AFTER_LFC;
         output_samples_header( $samples_file, $cols_before_samples );
+    }
+    if (@metadata_files) {
+        output_metadata_header(
+            $cols_before_samples, $config_file,
+            \%sample_to_col,      @metadata_files
+        );
     }
 
     return \@sample_cols, \@lfc_cols;
@@ -110,6 +123,7 @@ sub output_samples_header {
 
     open my $samples_fh, '<', $samples_file;
     my $header = <$samples_fh>;
+    chomp $header;
     $header =~ s/\A \s+//xms;
     my @columns = split /\s+/xms, $header;
     close $samples_fh;
@@ -151,6 +165,69 @@ sub output_samples_header {
 
     foreach my $headings (@all_sample_headings) {
         printf "%s\n", join "\t", @{$headings};
+    }
+
+    return;
+}
+
+# Output metadata header
+sub output_metadata_header {
+    ## no critic (ProhibitReusedNames)
+    my ( $cols_before_samples, $config_file, $sample_to_col, @metadata_files )
+      = @_;
+    ## use critic
+
+    my %round;
+    my %skip;
+    if ($config_file) {
+        open my $fh, '<', $config_file;    ## no critic (RequireBriefOpen)
+        while ( my $line = <$fh> ) {
+            chomp $line;
+            my ( $type, $value ) = split /\s+/xms, $line;
+            if ( $value eq q{X} ) {
+                $skip{$type} = 1;
+            }
+            elsif ( $value =~ m/\A [\d.]+ \z/xms ) {
+                $round{$type} = $value;
+            }
+        }
+        close $fh;
+    }
+
+    foreach my $file (@metadata_files) {
+        open my $fh, '<', $file;
+        my $header = <$fh>;
+        chomp $header;
+        my @columns = split /\t/xms, $header;
+        shift @columns;    # Ignore sample name column
+        close $fh;
+
+        # Get all metadata headings
+        foreach my $col ( 1 .. scalar @columns ) {
+            next if exists $skip{ $columns[ $col - 1 ] };
+            my @headings =
+              ( $columns[ $col - 1 ], (q{}) x $cols_before_samples );
+            open my $fh, '<', $file;    ## no critic (RequireBriefOpen)
+            $header = <$fh>;
+            while ( my $line = <$fh> ) {
+                chomp $line;
+                my @fields = split /\t/xms, $line;
+                my $sample = $fields[0];
+                confess sprintf "Sample %s unknown\n", $sample
+                  if !exists $sample_to_col->{$sample};
+                if ( exists $round{ $columns[ $col - 1 ] } ) {
+                    my $round_to = $round{ $columns[ $col - 1 ] };
+                    $fields[$col] =
+                      int( ( $fields[$col] + $round_to / 2 ) / $round_to ) *
+                      $round_to;
+                }
+                $headings[ $sample_to_col->{$sample} + $cols_before_samples ] =
+                  $fields[$col];
+            }
+            close $fh;
+            @headings = map { /\s/xms ? qq{"$_"} : $_ } @headings;
+            printf "%s\n", join "\t", @headings;
+        }
     }
 
     return;
@@ -208,10 +285,12 @@ sub get_and_check_options {
 
     # Get options
     GetOptions(
-        'input_file=s'   => \$input_file,
-        'samples_file=s' => \$samples_file,
-        'help'           => \$help,
-        'man'            => \$man,
+        'input_file=s'         => \$input_file,
+        'samples_file=s'       => \$samples_file,
+        'config_file=s'        => \$config_file,
+        'metadata_files=s@{,}' => \@metadata_files,
+        'help'                 => \$help,
+        'man'                  => \$man,
     ) or pod2usage(2);
 
     # Documentation
@@ -235,6 +314,8 @@ sub get_and_check_options {
     convert_to_biolayout.pl
         [--input_file file]
         [--samples_file file]
+        [--config_file file]
+        [--metadata_files files]
         [--help]
         [--man]
 
@@ -249,6 +330,16 @@ Differential expression pipeline output file (e.g. all.tsv).
 =item B<--samples_file FILE>
 
 Differential expression pipeline DESeq2 samples file (e.g. samples.txt).
+
+=item B<--config_file FILE>
+
+Metadata config file. One data type per row with name in first column and either
+an integer (specifying how to round values) or X (indicating types to ignore) in
+second column.
+
+=item B<--metadata_files FILES>
+
+QC metadata files (e.g. QC_all_stages_lab.tsv).
 
 =item B<--help>
 
