@@ -46,7 +46,7 @@ get_and_check_options();
 my ( $sample_cols, $lfc_cols ) = output_header( $input_file, $samples_file );
 output_regions( $input_file, $sample_cols, $lfc_cols );
 
-# Get regions of interest
+# Output header
 sub output_header {
     my ( $input_file, $samples_file ) = @_;   ## no critic (ProhibitReusedNames)
 
@@ -91,17 +91,30 @@ sub output_header {
 
     printf_or_die( "%s\n", join "\t", @output_headings );
 
-    return \@sample_cols, \@lfc_cols if !$samples_file;
+    if ($samples_file) {
+        my $cols_before_samples =
+          scalar @FIELDS_BEFORE_LFC +
+          scalar @lfc_cols +
+          scalar @FIELDS_AFTER_LFC;
+        output_samples_header( $samples_file, $cols_before_samples );
+    }
+
+    return \@sample_cols, \@lfc_cols;
+}
+
+# Output samples header
+sub output_samples_header {
+    ## no critic (ProhibitReusedNames)
+    my ( $samples_file, $cols_before_samples ) = @_;
+    ## use critic
 
     open my $samples_fh, '<', $samples_file;
-    $header = <$samples_fh>;
+    my $header = <$samples_fh>;
     $header =~ s/\A \s+//xms;
     my @columns = split /\s+/xms, $header;
     close $samples_fh;
 
     # Get all sample headings
-    my $cols_before_samples =
-      scalar @FIELDS_BEFORE_LFC + scalar @lfc_cols + scalar @FIELDS_AFTER_LFC;
     my @all_sample_headings;
     foreach my $col ( 1 .. scalar @columns ) {
         my @sample_headings =
@@ -140,7 +153,7 @@ sub output_header {
         printf "%s\n", join "\t", @{$headings};
     }
 
-    return \@sample_cols, \@lfc_cols;
+    return;
 }
 
 # Output regions of interest
