@@ -124,7 +124,11 @@ sub output_samples_header {
     open my $samples_fh, '<', $samples_file;
     my $header = <$samples_fh>;
     chomp $header;
-    $header =~ s/\A \s+//xms;
+    if ($header =~ m/\A \s/xms) {
+        $header =~ s/\A \s+//xms;
+    } else {
+        $header =~ s/\A \S+ \s+//xms;
+    }
     my @columns = split /\s+/xms, $header;
     close $samples_fh;
 
