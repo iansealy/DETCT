@@ -38,6 +38,7 @@ Readonly our @FIELDS_AFTER_LFC  => ( 9 .. 14 );
 # Default options
 my $input_file;
 my $samples_file;
+my $readable_samples;
 my $config_file;
 my @metadata_files;
 my ( $help, $man );
@@ -45,14 +46,19 @@ my ( $help, $man );
 # Get and check command line options
 get_and_check_options();
 
-my ( $sample_cols, $lfc_cols ) =
-  output_header( $input_file, $samples_file, $config_file, @metadata_files );
+my ( $sample_cols, $lfc_cols ) = output_header(
+    $input_file,  $samples_file, $readable_samples,
+    $config_file, @metadata_files
+);
 output_regions( $input_file, $sample_cols, $lfc_cols );
 
 # Output header
 sub output_header {
     ## no critic (ProhibitReusedNames)
-    my ( $input_file, $samples_file, $config_file, @metadata_files ) = @_;
+    my (
+        $input_file,  $samples_file, $readable_samples,
+        $config_file, @metadata_files
+    ) = @_;
     ## use critic
 
     my ($extension) = $input_file =~ m/[.] ([[:lower:]]{3}) \z/xms;
@@ -98,18 +104,37 @@ sub output_header {
     @output_headings = @tmp_headings;
     @output_headings = map { /\s/xms ? qq{"$_"} : $_ } @output_headings;
 
-    printf_or_die( "%s\n", join "\t", @output_headings );
+    my @all_output_headings = ( \@output_headings );
 
     my $cols_before_samples =
       scalar @FIELDS_BEFORE_LFC + scalar @lfc_cols + scalar @FIELDS_AFTER_LFC;
     if ($samples_file) {
-        output_samples_header( $samples_file, $cols_before_samples );
+        push @all_output_headings,
+          output_samples_header( $samples_file, $cols_before_samples );
     }
     if (@metadata_files) {
-        output_metadata_header(
+        push @all_output_headings,
+          output_metadata_header(
             $cols_before_samples, $config_file,
             \%sample_to_col,      @metadata_files
-        );
+          );
+    }
+
+    if ($readable_samples) {
+
+        # Swap first two sample headings
+        ( $all_output_headings[0], $all_output_headings[1] ) =
+          ( $all_output_headings[1], $all_output_headings[0] );
+        @tmp_headings =
+          @{ $all_output_headings[0] }[ 0 .. $cols_before_samples ];
+        @{ $all_output_headings[0] }[ 0 .. $cols_before_samples ] =
+          @{ $all_output_headings[1] }[ 0 .. $cols_before_samples ];
+        @{ $all_output_headings[1] }[ 0 .. $cols_before_samples ] =
+          @tmp_headings;
+    }
+
+    foreach my $output_headings (@all_output_headings) {
+        printf "%s\n", join "\t", @{$output_headings};
     }
 
     return \@sample_cols, \@lfc_cols;
@@ -121,12 +146,13 @@ sub output_samples_header {
     my ( $samples_file, $cols_before_samples ) = @_;
     ## use critic
 
-    open my $samples_fh, '<', $samples_file;
+    open my $samples_fh, '<', $samples_file;    ## no critic (RequireBriefOpen)
     my $header = <$samples_fh>;
     chomp $header;
-    if ($header =~ m/\A \s/xms) {
+    if ( $header =~ m/\A \s/xms ) {
         $header =~ s/\A \s+//xms;
-    } else {
+    }
+    else {
         $header =~ s/\A \S+ \s+//xms;
     }
     my @columns = split /\s+/xms, $header;
@@ -167,11 +193,19 @@ sub output_samples_header {
         unshift @all_sample_headings, \@concat_headings;
     }
 
-    foreach my $headings (@all_sample_headings) {
-        printf "%s\n", join "\t", @{$headings};
+    # Convert to unique readable sample names
+    my @headings = @{ $all_sample_headings[0] };
+    my @readable = ('Sample');
+    shift @headings;
+    push @readable, (q{}) x scalar $cols_before_samples;
+    my %heading_ordinal;
+    foreach my $heading (@headings) {
+        next if !$heading;
+        push @readable, $heading . q{_} . ++$heading_ordinal{$heading};
     }
+    unshift @all_sample_headings, \@readable;
 
-    return;
+    return @all_sample_headings;
 }
 
 # Output metadata header
@@ -198,6 +232,7 @@ sub output_metadata_header {
         close $fh;
     }
 
+    my @all_metadata_headings;
     foreach my $file (@metadata_files) {
         open my $fh, '<', $file;
         my $header = <$fh>;
@@ -230,11 +265,11 @@ sub output_metadata_header {
             }
             close $fh;
             @headings = map { /\s/xms ? qq{"$_"} : $_ } @headings;
-            printf "%s\n", join "\t", @headings;
+            push @all_metadata_headings, \@headings;
         }
     }
 
-    return;
+    return @all_metadata_headings;
 }
 
 # Output regions of interest
@@ -291,6 +326,7 @@ sub get_and_check_options {
     GetOptions(
         'input_file=s'         => \$input_file,
         'samples_file=s'       => \$samples_file,
+        'readable_samples'     => \$readable_samples,
         'config_file=s'        => \$config_file,
         'metadata_files=s@{,}' => \@metadata_files,
         'help'                 => \$help,
@@ -309,6 +345,9 @@ sub get_and_check_options {
     if ( !$input_file ) {
         pod2usage("--input_file must be specified\n");
     }
+    if ( $readable_samples && !$samples_file ) {
+        pod2usage("--readable_samples specified without --samples_file\n");
+    }
 
     return;
 }
@@ -318,6 +357,7 @@ sub get_and_check_options {
     convert_to_biolayout.pl
         [--input_file file]
         [--samples_file file]
+        [--readable_samples]
         [--config_file file]
         [--metadata_files files]
         [--help]
@@ -334,6 +374,10 @@ Differential expression pipeline output file (e.g. all.tsv).
 =item B<--samples_file FILE>
 
 Differential expression pipeline DESeq2 samples file (e.g. samples.txt).
+
+=item B<--readable_samples>
+
+Force sample names to be readable.
 
 =item B<--config_file FILE>
 
