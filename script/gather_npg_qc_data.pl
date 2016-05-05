@@ -74,10 +74,10 @@ SQL
     foreach ( @{$ary_ref} ) {
         my ( $name, $supplier_name ) = @{$_};
         if ( $name =~ m/\A $expt [^[:alpha:]\d] /xms ) {
-            push @samples, $name,;
+            push @samples, $name;
         }
         elsif ( $supplier_name =~ m/\A $expt [^[:alpha:]\d] /xms ) {
-            push @samples, $supplier_name,;
+            push @samples, $supplier_name;
         }
     }
 
