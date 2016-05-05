@@ -191,7 +191,7 @@ sub get_stats_files {
 sub get_file_data {
     my ( $files, $file_name, $col, $sample_for ) = @_;
 
-    my %data_for = map { $_ => 0 } values %{$sample_for};
+    my %data_for = map { $_ => q{} } values %{$sample_for};
 
     my ($file) = grep { m/$file_name \z/xms } @{$files};
     return %data_for if !$file;
