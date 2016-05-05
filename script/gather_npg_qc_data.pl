@@ -93,7 +93,8 @@ SQL
 SQL
         );
         foreach ( @{$ary_ref} ) {
-            printf_or_die( "%s\n", join "\t", $sample, @{$_} );
+            my @values = map { !defined $_ ? q{} : $_ } @{$_};
+            printf_or_die( "%s\n", join "\t", $sample, @values );
         }
     }
 }
