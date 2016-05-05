@@ -222,6 +222,7 @@ sub output_metadata_header {
         while ( my $line = <$fh> ) {
             chomp $line;
             my ( $type, $value ) = split /\s+/xms, $line;
+            next if !$value;
             if ( $value eq q{X} ) {
                 $skip{$type} = 1;
             }
