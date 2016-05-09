@@ -255,7 +255,7 @@ sub output_metadata_header {
                 my $sample = $fields[0];
                 confess sprintf "Sample %s unknown\n", $sample
                   if !exists $sample_to_col->{$sample};
-                if ( exists $round{ $columns[ $col - 1 ] } ) {
+                if ( $fields[$col] && exists $round{ $columns[ $col - 1 ] } ) {
                     my $round_to = $round{ $columns[ $col - 1 ] };
                     $fields[$col] =
                       int( ( $fields[$col] + $round_to / 2 ) / $round_to ) *
