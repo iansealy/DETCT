@@ -102,7 +102,6 @@ sub output_header {
         push @tmp_headings, $heading;
     }
     @output_headings = @tmp_headings;
-    @output_headings = map { /\s/xms ? qq{"$_"} : $_ } @output_headings;
 
     my @all_output_headings = ( \@output_headings );
 
@@ -134,7 +133,7 @@ sub output_header {
     }
 
     foreach my $output_headings (@all_output_headings) {
-        printf "%s\n", join "\t", @{$output_headings};
+        printf "%s\n", join "\t", tidy_output( @{$output_headings} );
     }
 
     return \@sample_cols, \@lfc_cols;
@@ -171,7 +170,6 @@ sub output_samples_header {
             push @sample_headings, $fields[$col];
         }
         close $samples_fh;
-        @sample_headings = map { /\s/xms ? qq{"$_"} : $_ } @sample_headings;
         push @all_sample_headings, \@sample_headings;
     }
 
@@ -265,7 +263,6 @@ sub output_metadata_header {
                   $fields[$col];
             }
             close $fh;
-            @headings = map { /\s/xms ? qq{"$_"} : $_ } @headings;
             push @all_metadata_headings, \@headings;
         }
     }
@@ -301,23 +298,27 @@ sub output_regions {
         push @output_fields, @fields[@FIELDS_AFTER_LFC];
         push @output_fields, @fields[ @{$sample_cols} ];
 
-        @output_fields = map { defined $_ ? $_       : q{-} } @output_fields;
-        @output_fields = map { /\s/xms    ? qq{"$_"} : $_ } @output_fields;
-        @output_fields =
-          map {
-            /\A ([\d.]+)(e[-]?\d+) \z/xms
-              ? ( sprintf '%.8f', $1 ) . uc $2
-              : $_
-          } @output_fields;
-        @output_fields =
-          map { /\A [-]?\d+[.]\d+ \z/xms ? sprintf '%.8f', $_ : $_ }
-          @output_fields;
-
-        printf_or_die( "%s\n", join "\t", @output_fields );
+        printf_or_die( "%s\n", join "\t", tidy_output(@output_fields) );
     }
     close $fh;
 
     return;
+}
+
+sub tidy_output {
+    my (@fields) = @_;
+
+    @fields = map { defined $_ ? $_       : q{-} } @fields;
+    @fields = map { /\s/xms    ? qq{"$_"} : $_ } @fields;
+    @fields = map {
+        /\A ([-]?[\d.]+)(e[-]?\d+) \z/xms
+          ? ( sprintf '%.8f', $1 ) . uc $2
+          : $_
+    } @fields;
+    @fields =
+      map { /\A [-]?\d+[.]\d+ \z/xms ? sprintf '%.8f', $_ : $_ } @fields;
+
+    return @fields;
 }
 
 # Get and check command line options
