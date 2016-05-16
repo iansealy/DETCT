@@ -251,8 +251,7 @@ sub output_metadata_header {
                 chomp $line;
                 my @fields = split /\t/xms, $line;
                 my $sample = $fields[0];
-                confess sprintf "Sample %s unknown\n", $sample
-                  if !exists $sample_to_col->{$sample};
+                next if !exists $sample_to_col->{$sample};
                 if ( $fields[$col] && exists $round{ $columns[ $col - 1 ] } ) {
                     my $round_to = $round{ $columns[ $col - 1 ] };
                     $fields[$col] =
