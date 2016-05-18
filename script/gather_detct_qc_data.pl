@@ -76,6 +76,7 @@ foreach my $expt (@expts) {
         WHERE  npi.sample_id = cs.internal_id
         AND    (name LIKE $expt_q OR supplier_name LIKE $expt_q)
         AND    description LIKE '%polyT%'
+        AND    tag_sequence IS NOT NULL
 SQL
     );
     my %sample_for;
