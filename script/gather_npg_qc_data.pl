@@ -40,7 +40,7 @@ Readonly our $PASS => q{};
 Readonly our $NAME => 'sequencescape_warehouse';
 
 Readonly our @COMMON_NAMES =>
-  qw( tag_index tag_sequence insert_size_quartile1 insert_size_median insert_size_quartile3 gc_percent_forward_read gc_percent_reverse_read sequence_mismatch_percent_forward_read sequence_mismatch_percent_reverse_read adapters_percent_forward_read adapters_percent_reverse_read tag_decode_percent tag_decode_count bam_num_reads bam_percent_mapped bam_percent_duplicate );
+  qw( tag_index tag_sequence insert_size_quartile1 insert_size_median insert_size_quartile3 gc_percent_forward_read gc_percent_reverse_read sequence_mismatch_percent_forward_read sequence_mismatch_percent_reverse_read adapters_percent_forward_read adapters_percent_reverse_read tag_decode_percent tag_decode_count bam_num_reads bam_percent_mapped bam_percent_duplicate accession_number );
 Readonly our $OUTPUT_NAMES => join "\t",
   ( qw( sample run lane ), @COMMON_NAMES );
 Readonly our $FIELD_NAMES => join q{, },
