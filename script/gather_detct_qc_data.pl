@@ -198,7 +198,6 @@ sub get_file_data {
     return %data_for if !$file;
 
     open my $fh, '<', $file;    ## no critic (RequireBriefOpen)
-    my $header = <$fh>;
     while ( my $line = <$fh> ) {
         chomp $line;
         my @fields = split /\s+/xms, $line;
