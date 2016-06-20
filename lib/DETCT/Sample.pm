@@ -1,5 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Sample;
+# VERSION
 ## use critic
 
 # ABSTRACT: Object representing a sample

@@ -1,5 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Misc::Picard;
+# VERSION
 ## use critic
 
 # ABSTRACT: Miscellaneous functions wrapping Picard

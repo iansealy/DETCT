@@ -1,5 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Misc;
+# VERSION
 ## use critic
 
 # ABSTRACT: Miscellaneous functions

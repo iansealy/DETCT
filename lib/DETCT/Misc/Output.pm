@@ -1,5 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Misc::Output;
+# VERSION
 ## use critic
 
 # ABSTRACT: Miscellaneous functions for outputting data

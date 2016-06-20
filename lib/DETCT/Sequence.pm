@@ -1,5 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Sequence;
+# VERSION
 ## use critic
 
 # ABSTRACT: Object representing a sequence (a component of a reference sequence)

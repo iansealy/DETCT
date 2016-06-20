@@ -1,5 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Pipeline::DiffExpr;
+# VERSION
 ## use critic
 
 # ABSTRACT: Object representing a differential expression pipeline

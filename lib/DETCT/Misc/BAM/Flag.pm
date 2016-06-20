@@ -1,5 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Misc::BAM::Flag;
+# VERSION
 ## use critic
 
 # ABSTRACT: BAM flag field bits

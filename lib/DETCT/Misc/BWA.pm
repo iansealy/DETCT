@@ -1,5 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Misc::BWA;
+# VERSION
 ## use critic
 
 # ABSTRACT: Miscellaneous functions wrapping BWA

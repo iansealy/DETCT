@@ -1,5 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::GeneOntologyTerm;
+# VERSION
 ## use critic
 
 # ABSTRACT: Object representing a GO term

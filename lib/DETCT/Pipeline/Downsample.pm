@@ -1,5 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Pipeline::Downsample;
+# VERSION
 ## use critic
 
 # ABSTRACT: Object representing a downsampling pipeline

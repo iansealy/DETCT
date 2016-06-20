@@ -1,5 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Pipeline::Stage;
+# VERSION
 ## use critic
 
 # ABSTRACT: Object representing a pipeline stage
