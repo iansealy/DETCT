@@ -141,8 +141,7 @@ is( $analysis->filter_percentile,         0,     'Get filter percentile' );
 is( $analysis->set_filter_percentile(40), undef, 'Set filter percentile' );
 is( $analysis->filter_percentile,         40,    'Get new filter percentile' );
 throws_ok { $analysis->set_filter_percentile(-1) }
-qr/Invalid filter percentile/ms,
-  'Invalid filter percentile';
+qr/Invalid filter percentile/ms, 'Invalid filter percentile';
 
 # Test spike prefix attribute
 is( $analysis->spike_prefix,             undef,  'Get spike prefix' );
