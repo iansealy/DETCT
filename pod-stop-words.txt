@@ -2,9 +2,11 @@ aln
 API
 BAM
 BedGraph
+BioLayout
 biotype
 bp
 BWA
+config
 contig
 csv
 detagging
@@ -17,6 +19,7 @@ dirs
 downsample
 downsampling
 Ensembl
+expts
 FASTA
 FASTQ
 FixMateInformation
@@ -26,8 +29,11 @@ intronic
 json
 lsf
 MarkDuplicates
+Metadata
+metadata
 MySQL
 namespace
+NPG
 Ns
 Picard
 picard
@@ -42,6 +48,7 @@ sig
 SortSam
 subsetting
 tsv
+txt
 USERNAME
 username
 WGS
