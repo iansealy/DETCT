@@ -727,8 +727,7 @@ sub dump_html {
             $datum = defined $datum ? $datum : q{};
 
             # Make a link if there's a link and all data for the link is defined
-            if ( $link && $datum_to_link && all { defined $_ }
-                @{$datum_to_link} )
+            if ( $link && $datum_to_link && all { defined } @{$datum_to_link} )
             {
                 $datum = sprintf $link, @{$datum_to_link};
             }
