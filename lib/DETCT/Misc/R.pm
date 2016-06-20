@@ -1,6 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Misc::R;
-# VERSION
+## VERSION
 ## use critic
 
 # ABSTRACT: Miscellaneous functions for running R

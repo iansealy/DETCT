@@ -1,6 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::GeneOntologyEvidenceCode;
-# VERSION
+## VERSION
 ## use critic
 
 # ABSTRACT: GO evidence codes

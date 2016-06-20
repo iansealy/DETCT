@@ -1,6 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Misc::BAM;
-# VERSION
+## VERSION
 ## use critic
 
 # ABSTRACT: Miscellaneous functions for interacting with BAM files

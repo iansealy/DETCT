@@ -1,6 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Analysis;
-# VERSION
+## VERSION
 ## use critic
 
 # ABSTRACT: Object representing an analysis of a collection of samples

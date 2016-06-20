@@ -1,6 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Misc::Tag;
-# VERSION
+## VERSION
 ## use critic
 
 # ABSTRACT: Miscellaneous functions for interacting with DETCT read tags

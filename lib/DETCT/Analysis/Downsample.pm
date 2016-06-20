@@ -1,6 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Analysis::Downsample;
-# VERSION
+## VERSION
 ## use critic
 
 # ABSTRACT: Object representing downsampling analysis

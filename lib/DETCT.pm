@@ -1,6 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT;
-# VERSION
+## VERSION
 ## use critic
 
 # ABSTRACT: Transcript Counting API

@@ -1,6 +1,6 @@
 ## no critic (RequireUseStrict, RequireUseWarnings, RequireTidyCode)
 package DETCT::Analysis::DiffExpr;
-# VERSION
+## VERSION
 ## use critic
 
 # ABSTRACT: Object representing differential expression analysis
