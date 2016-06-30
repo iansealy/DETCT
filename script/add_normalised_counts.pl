@@ -39,7 +39,7 @@ my ( $help, $man );
 get_and_check_options();
 
 # Read in size factors
-my @size_factors = path($size_factors_file)->lines({chomp => 1});
+my @size_factors = path($size_factors_file)->lines( { chomp => 1 } );
 
 open my $fh, '<', $input_file;
 print_header($fh);

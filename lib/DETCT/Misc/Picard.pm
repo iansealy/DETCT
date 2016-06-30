@@ -165,7 +165,7 @@ sub extract_mark_duplicates_metrics {
     confess 'No metrics file specified'
       if !defined $arg_ref->{metrics_file} || !-r $arg_ref->{metrics_file};
 
-    my @metrics = path( $arg_ref->{metrics_file} )->lines({chomp => 1});
+    my @metrics = path( $arg_ref->{metrics_file} )->lines( { chomp => 1 } );
 
     my $output;
 

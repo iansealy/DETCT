@@ -402,7 +402,7 @@ sub run_peak_hmm {
     my $log_hmm_sig_level = log $arg_ref->{hmm_sig_level};
     my @hmm_output        = ();
     if ( -r $hmm_file ) {    # Peak HMM can fail
-        foreach my $line ( path($hmm_file)->lines({chomp => 1}) ) {
+        foreach my $line ( path($hmm_file)->lines( { chomp => 1 } ) ) {
             my ( $bin, undef, undef, $read_count, $log_prob ) = split /\t/xms,
               $line;
             next if $log_prob >= $log_hmm_sig_level;

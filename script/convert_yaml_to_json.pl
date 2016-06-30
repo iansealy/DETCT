@@ -43,7 +43,7 @@ get_and_check_options();
 foreach my $file (@files) {
     my $data = YAML::LoadFile($file);
     rename $file, $file . '.orig';
-    path( $file )->spew(JSON::to_json( $data, { pretty => 1 } ) );
+    path($file)->spew( JSON::to_json( $data, { pretty => 1 } ) );
 }
 
 # Get and check command line options

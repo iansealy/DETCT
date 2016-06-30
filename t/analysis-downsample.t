@@ -21,15 +21,15 @@ my $picard_dir = 'picard-tools-1.110-detct';
 make_path($picard_dir);
 my $mark_duplicates_jar = $picard_dir . '/MarkDuplicates.jar';
 if ( !-e $mark_duplicates_jar ) {
-    path( $mark_duplicates_jar )->spew('MarkDuplicates');
+    path($mark_duplicates_jar)->spew('MarkDuplicates');
 }
 my $merge_sam_files_jar = $picard_dir . '/MergeSamFiles.jar';
 if ( !-e $merge_sam_files_jar ) {
-    path( $merge_sam_files_jar )->spew('MergeSamFiles');
+    path($merge_sam_files_jar)->spew('MergeSamFiles');
 }
 my $sort_bam_jar = $picard_dir . '/SortSam.jar';
 if ( !-e $sort_bam_jar ) {
-    path( $sort_bam_jar )->spew('SortSam');
+    path($sort_bam_jar)->spew('SortSam');
 }
 
 my $is_ensembl_reachable = is_ensembl_reachable();

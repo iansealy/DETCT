@@ -1178,7 +1178,7 @@ sub _run_cycle {
         }
 
         if ( $stage->all_jobs_run ) {
-            path( $done_marker_file )->spew('1');
+            path($done_marker_file)->spew('1');
             $self->summarise_memory_usage( $stage, $component );
         }
         else {
@@ -1523,7 +1523,7 @@ sub dump_serialised {
     my ( $self, $file, $data ) = @_;
 
     if ( $self->serialiser_format eq 'json' ) {
-        path( $file )->spew(JSON::to_json( $data, { pretty => 1 } ) );
+        path($file)->spew( JSON::to_json( $data, { pretty => 1 } ) );
     }
     elsif ( $self->serialiser_format eq 'yaml' ) {
         YAML::DumpFile( $file, $data );
@@ -1615,7 +1615,7 @@ sub write_log_file {
     my ( $self, $filename, @output ) = @_;
 
     my $log_file = File::Spec->catfile( $self->analysis_dir, $filename );
-    path( $log_file )->spew(@output);
+    path($log_file)->spew(@output);
 
     return;
 }
@@ -1642,7 +1642,7 @@ sub _create_lock {
 
     my $hostname  = hostname();
     my $timestamp = localtime;
-    path( $lock_file )->spew($hostname . "\n" . $timestamp . "\n");
+    path($lock_file)->spew( $hostname . "\n" . $timestamp . "\n" );
 
     return;
 }
@@ -1719,7 +1719,7 @@ sub clean_up {
         @stage_dirs
     );
 
-    path( $done_marker_file )->spew('1');
+    path($done_marker_file)->spew('1');
 
     print 'Done' . "\n";
 
