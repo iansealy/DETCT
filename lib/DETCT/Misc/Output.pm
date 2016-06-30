@@ -20,7 +20,7 @@ use Carp;
 use Try::Tiny;
 
 use Readonly;
-use File::Slurp;
+use Path::Tiny;
 use File::Spec;
 use File::Path qw( make_path );
 use Text::CSV;
@@ -851,7 +851,7 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
     }
 
     # Get table
-    my @rows = read_file( $arg_ref->{table_file} );
+    my @rows = path( $arg_ref->{table_file} )->lines;
 
     # Get headings
     my $line = shift @rows;
@@ -1154,7 +1154,7 @@ sub dump_duplication_metrics {
         ) . "\n";
     }
 
-    write_file( $arg_ref->{output_file}, $metrics_output );
+    path( $arg_ref->{output_file} )->spew($metrics_output);
 
     return;
 }

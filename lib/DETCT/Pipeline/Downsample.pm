@@ -24,7 +24,6 @@ use parent qw(DETCT::Pipeline);
 use Class::InsideOut qw( private register id );
 use List::Util qw( min sum );
 use File::Spec;
-use File::Slurp;
 use DETCT::Misc::BAM qw(
   stats_by_tag
   stats_all_reads

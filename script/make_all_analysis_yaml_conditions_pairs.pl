@@ -20,7 +20,7 @@ use Try::Tiny;
 use Getopt::Long;
 use Pod::Usage;
 use YAML::Tiny;
-use File::Slurp;
+use Path::Tiny;
 use DETCT::Misc qw( write_or_die );
 
 =head1 DESCRIPTION
@@ -44,7 +44,7 @@ get_and_check_options();
 # Read analysis config
 confess "YAML file ($base_yaml) does not exist or cannot be read"
   if !-r $base_yaml;
-my $yaml      = read_file($base_yaml);
+my $yaml      = path($base_yaml)->slurp;
 my $yaml_tiny = YAML::Tiny->read_string($yaml);
 if ( !$yaml_tiny ) {
     confess sprintf 'YAML file (%s) is invalid: %s', $base_yaml,

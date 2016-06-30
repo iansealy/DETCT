@@ -13,7 +13,7 @@ plan tests => 216;
 use DETCT::Analysis::DiffExpr;
 
 use File::Temp qw( tempdir );
-use File::Slurp;
+use Path::Tiny;
 use IO::Socket::INET;
 
 my $is_ensembl_reachable = is_ensembl_reachable();
@@ -175,7 +175,7 @@ throws_ok { $analysis->set_output_sig_level(1) }
 qr/Invalid output significance level/ms, 'Invalid output significance level';
 
 # Test table file attribute
-write_file( $tmp_dir . '/all.tsv', 'all.tsv' );
+path( $tmp_dir . '/all.tsv' )->spew('all.tsv');
 is( $analysis->table_file, undef, 'Get table file' );
 is( $analysis->set_table_file( $tmp_dir . '/all.tsv' ),
     undef, 'Set table file' );

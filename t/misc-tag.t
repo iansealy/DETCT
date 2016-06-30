@@ -16,7 +16,7 @@ use DETCT::Misc::Tag qw(
 );
 
 use File::Temp qw( tempdir );
-use File::Slurp;
+use Path::Tiny;
 
 =for comment
 
@@ -68,24 +68,24 @@ is(
 
 my @fastq;
 
-@fastq = read_file( $tmp_dir . '/test1_NNNNBGAGGC_1.fastq' );
+@fastq = path( $tmp_dir . '/test1_NNNNBGAGGC_1.fastq' )->lines;
 is( scalar @fastq / 4, 25, '25 read 1s' );
-@fastq = read_file( $tmp_dir . '/test1_NNNNBGAGGC_2.fastq' );
+@fastq = path( $tmp_dir . '/test1_NNNNBGAGGC_2.fastq' )->lines;
 is( scalar @fastq / 4, 25, '25 read 2s' );
-@fastq = read_file( $tmp_dir . '/test1_NNNNBAGAAG_1.fastq' );
+@fastq = path( $tmp_dir . '/test1_NNNNBAGAAG_1.fastq' )->lines;
 is( scalar @fastq / 4, 24, '24 read 1s' );
-@fastq = read_file( $tmp_dir . '/test1_NNNNBAGAAG_2.fastq' );
+@fastq = path( $tmp_dir . '/test1_NNNNBAGAAG_2.fastq' )->lines;
 is( scalar @fastq / 4, 24, '24 read 2s' );
-@fastq = read_file( $tmp_dir . '/test1_XXXXXXXXXX_1.fastq' );
+@fastq = path( $tmp_dir . '/test1_XXXXXXXXXX_1.fastq' )->lines;
 is( scalar @fastq / 4, 51, '51 read 1s' );
-@fastq = read_file( $tmp_dir . '/test1_XXXXXXXXXX_2.fastq' );
+@fastq = path( $tmp_dir . '/test1_XXXXXXXXXX_2.fastq' )->lines;
 is( scalar @fastq / 4, 51, '51 read 2s' );
 
 my $read_name;
 my $read_seq;
 my $read_qual;
 
-@fastq     = read_file( $tmp_dir . '/test1_NNNNBGAGGC_1.fastq' );
+@fastq     = path( $tmp_dir . '/test1_NNNNBGAGGC_1.fastq' )->lines;
 $read_name = $fastq[0];
 chomp $read_name;
 is( substr( $read_name, -7 ), 'GAGGC/1', 'Tag added to read name' );
@@ -96,7 +96,7 @@ $read_qual = $fastq[3];
 chomp $read_qual;
 is( length $read_qual, 30, 'Quality trimmed to 30 bp' );
 
-@fastq     = read_file( $tmp_dir . '/test1_NNNNBGAGGC_2.fastq' );
+@fastq     = path( $tmp_dir . '/test1_NNNNBGAGGC_2.fastq' )->lines;
 $read_name = $fastq[0];
 chomp $read_name;
 is( substr( $read_name, -7 ), 'GAGGC/2', 'Tag added to read name' );
@@ -107,7 +107,7 @@ $read_qual = $fastq[3];
 chomp $read_qual;
 is( length $read_qual, 54, 'Quality trimmed to 54 bp' );
 
-@fastq     = read_file( $tmp_dir . '/test1_XXXXXXXXXX_1.fastq' );
+@fastq     = path( $tmp_dir . '/test1_XXXXXXXXXX_1.fastq' )->lines;
 $read_name = $fastq[0];
 chomp $read_name;
 is( substr( $read_name, -13 ), '#XXXXXXXXXX/1', 'Tag added to read name' );
@@ -118,7 +118,7 @@ $read_qual = $fastq[3];
 chomp $read_qual;
 is( length $read_qual, 54, 'Quality trimmed to 54 bp' );
 
-@fastq     = read_file( $tmp_dir . '/test1_XXXXXXXXXX_2.fastq' );
+@fastq     = path( $tmp_dir . '/test1_XXXXXXXXXX_2.fastq' )->lines;
 $read_name = $fastq[0];
 chomp $read_name;
 is( substr( $read_name, -13 ), '#XXXXXXXXXX/2', 'Tag added to read name' );
@@ -147,17 +147,17 @@ is(
     'Detag and trim FASTQ'
 );
 
-@fastq = read_file( $tmp_dir . '/test2_NNNNBGAGGC_1.fastq' );
+@fastq = path( $tmp_dir . '/test2_NNNNBGAGGC_1.fastq' )->lines;
 is( scalar @fastq / 4, 24, '30 read 1s' );
-@fastq = read_file( $tmp_dir . '/test2_NNNNBGAGGC_2.fastq' );
+@fastq = path( $tmp_dir . '/test2_NNNNBGAGGC_2.fastq' )->lines;
 is( scalar @fastq / 4, 24, '30 read 2s' );
-@fastq = read_file( $tmp_dir . '/test2_NNNNBAGAAG_1.fastq' );
+@fastq = path( $tmp_dir . '/test2_NNNNBAGAAG_1.fastq' )->lines;
 is( scalar @fastq / 4, 35, '24 read 1s' );
-@fastq = read_file( $tmp_dir . '/test2_NNNNBAGAAG_2.fastq' );
+@fastq = path( $tmp_dir . '/test2_NNNNBAGAAG_2.fastq' )->lines;
 is( scalar @fastq / 4, 35, '24 read 2s' );
-@fastq = read_file( $tmp_dir . '/test2_XXXXXXXXXX_1.fastq' );
+@fastq = path( $tmp_dir . '/test2_XXXXXXXXXX_1.fastq' )->lines;
 is( scalar @fastq / 4, 41, '46 read 1s' );
-@fastq = read_file( $tmp_dir . '/test2_XXXXXXXXXX_2.fastq' );
+@fastq = path( $tmp_dir . '/test2_XXXXXXXXXX_2.fastq' )->lines;
 is( scalar @fastq / 4, 41, '46 read 2s' );
 
 throws_ok {
@@ -194,7 +194,7 @@ is(
     'Detag and trim FASTQ'
 );
 
-@fastq     = read_file( $tmp_dir . '/test3_NNNNBBBBNNNNATCACGTT_1.fastq' );
+@fastq     = path( $tmp_dir . '/test3_NNNNBBBBNNNNATCACGTT_1.fastq' )->lines;
 $read_name = $fastq[0];
 chomp $read_name;
 is( substr( $read_name, -10 ), 'ATCACGTT/1', 'Tag added to read name' );
@@ -205,7 +205,7 @@ $read_qual = $fastq[3];
 chomp $read_qual;
 is( length $read_qual, 30, 'Quality trimmed to 30 bp' );
 
-@fastq     = read_file( $tmp_dir . '/test3_NNNNBBBBNNNNATCACGTT_2.fastq' );
+@fastq     = path( $tmp_dir . '/test3_NNNNBBBBNNNNATCACGTT_2.fastq' )->lines;
 $read_name = $fastq[0];
 chomp $read_name;
 is( substr( $read_name, -10 ), 'ATCACGTT/2', 'Tag added to read name' );
@@ -252,10 +252,10 @@ is(
     'Detag and trim FASTQ'
 );
 
-my @fastq_read1        = read_file( $tmp_dir . '/test5_NNNNBGAGGC_1.fastq' );
-my @fastq_5prime_read1 = read_file( $tmp_dir . '/test4_NNNNBGAGGC_1.fastq' );
-my @fastq_read2        = read_file( $tmp_dir . '/test4_NNNNBGAGGC_2.fastq' );
-my @fastq_5prime_read2 = read_file( $tmp_dir . '/test5_NNNNBGAGGC_2.fastq' );
+my @fastq_read1        = path( $tmp_dir . '/test5_NNNNBGAGGC_1.fastq' )->lines;
+my @fastq_5prime_read1 = path( $tmp_dir . '/test4_NNNNBGAGGC_1.fastq' )->lines;
+my @fastq_read2        = path( $tmp_dir . '/test4_NNNNBGAGGC_2.fastq' )->lines;
+my @fastq_5prime_read2 = path( $tmp_dir . '/test5_NNNNBGAGGC_2.fastq' )->lines;
 
 chomp @fastq_read1;
 chomp @fastq_5prime_read1;

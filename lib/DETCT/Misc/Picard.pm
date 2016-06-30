@@ -23,7 +23,7 @@ use English qw( -no_match_vars );
 use POSIX qw( WIFEXITED);
 use File::Spec;
 use File::Path qw( make_path );
-use File::Slurp;
+use Path::Tiny;
 
 use base qw( Exporter );
 our @EXPORT_OK = qw(
@@ -165,14 +165,13 @@ sub extract_mark_duplicates_metrics {
     confess 'No metrics file specified'
       if !defined $arg_ref->{metrics_file} || !-r $arg_ref->{metrics_file};
 
-    my @metrics = read_file( $arg_ref->{metrics_file} );
+    my @metrics = path( $arg_ref->{metrics_file} )->lines({chomp => 1});
 
     my $output;
 
     my $get_data = 0;
     foreach my $line (@metrics) {
         if ($get_data) {
-            chomp $line;
             my (
                 undef,
                 $mapped_reads_without_mapped_mate,
@@ -554,10 +553,10 @@ sub sort_bam {
 sub check_for_error {
     my ( $stdout_file, $stderr_file ) = @_;
 
-    my $stderr = read_file($stderr_file);
+    my $stderr = path($stderr_file)->slurp;
     return 1 if $stderr =~ m/\A Error/xms;
 
-    my $stdout = read_file($stdout_file);
+    my $stdout = path($stdout_file)->slurp;
     return 1
       if $stdout =~ m/\A Error/xms || $stdout =~ m/insufficient \s memory/xms;
 

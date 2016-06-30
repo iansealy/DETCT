@@ -19,7 +19,6 @@ use Try::Tiny;
 
 use Getopt::Long;
 use Pod::Usage;
-use File::Slurp;
 use File::Spec;
 use File::Path qw( make_path );
 use DETCT::Misc::BAM;

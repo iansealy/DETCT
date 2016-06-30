@@ -13,7 +13,7 @@ plan tests => 156;
 use DETCT::Analysis::Downsample;
 
 use File::Path qw( make_path );
-use File::Slurp;
+use Path::Tiny;
 use IO::Socket::INET;
 
 # If Picard JAR files don't exist then create text files (which won't be run)
@@ -21,15 +21,15 @@ my $picard_dir = 'picard-tools-1.110-detct';
 make_path($picard_dir);
 my $mark_duplicates_jar = $picard_dir . '/MarkDuplicates.jar';
 if ( !-e $mark_duplicates_jar ) {
-    write_file( $mark_duplicates_jar, { no_clobber => 1 }, 'MarkDuplicates' );
+    path( $mark_duplicates_jar )->spew('MarkDuplicates');
 }
 my $merge_sam_files_jar = $picard_dir . '/MergeSamFiles.jar';
 if ( !-e $merge_sam_files_jar ) {
-    write_file( $merge_sam_files_jar, { no_clobber => 1 }, 'MergeSamFiles' );
+    path( $merge_sam_files_jar )->spew('MergeSamFiles');
 }
 my $sort_bam_jar = $picard_dir . '/SortSam.jar';
 if ( !-e $sort_bam_jar ) {
-    write_file( $sort_bam_jar, { no_clobber => 1 }, 'SortSam' );
+    path( $sort_bam_jar )->spew('SortSam');
 }
 
 my $is_ensembl_reachable = is_ensembl_reachable();

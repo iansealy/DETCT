@@ -22,7 +22,7 @@ use Getopt::Long;
 use Pod::Usage;
 use English qw( -no_match_vars );
 use File::Spec;
-use File::Slurp;
+use Path::Tiny;
 use DETCT::Analysis::DiffExpr;
 use DETCT::Analysis::Downsample;
 use DETCT::Pipeline::DiffExpr;
@@ -113,8 +113,8 @@ if ( $pipeline->stage_to_run && $pipeline->component_to_run ) {
 # Write overview of pipeline input and config files to log file
 if ( !$pipeline->stage_to_run && !$pipeline->component_to_run ) {
     my @log = map { "$_\n" } $pipeline->input_overview;
-    push @log, "\nYAML analysis config file:\n\n", read_file($analysis_yaml);
-    push @log, "\nYAML stages config file:\n\n",   read_file($stages_yaml);
+    push @log, "\nYAML analysis config file:\n\n", path($analysis_yaml)->slurp;
+    push @log, "\nYAML stages config file:\n\n",   path($stages_yaml)->slurp;
     $pipeline->write_log_file( $pipeline_type . '.log', @log );
 }
 

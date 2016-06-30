@@ -25,7 +25,7 @@ use Scalar::Util qw( refaddr );
 use English qw( -no_match_vars );
 use IPC::System::Simple qw( capture );
 use POSIX qw( WIFEXITED WIFSIGNALED WTERMSIG );
-use File::Slurp;
+use Path::Tiny;
 use File::Spec;
 use File::Path qw( make_path );
 use Hash::Merge;
@@ -1178,7 +1178,7 @@ sub _run_cycle {
         }
 
         if ( $stage->all_jobs_run ) {
-            write_file( $done_marker_file, '1' );
+            path( $done_marker_file )->spew('1');
             $self->summarise_memory_usage( $stage, $component );
         }
         else {
@@ -1436,7 +1436,7 @@ sub submit_job {
         WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
         # Extract LSF job id from bsub output and store with other parameters
-        my $bsub_stdout = read_file($bsub_stdout_file);
+        my $bsub_stdout = path($bsub_stdout_file)->slurp;
         if ( $bsub_stdout =~ m/Job \s <(\d+)> \s is \s submitted/xms ) {
             my $id = $1;
             $job->set_lsf_job_id($id);
@@ -1523,7 +1523,7 @@ sub dump_serialised {
     my ( $self, $file, $data ) = @_;
 
     if ( $self->serialiser_format eq 'json' ) {
-        write_file( $file, JSON::to_json( $data, { pretty => 1 } ) );
+        path( $file )->spew(JSON::to_json( $data, { pretty => 1 } ) );
     }
     elsif ( $self->serialiser_format eq 'yaml' ) {
         YAML::DumpFile( $file, $data );
@@ -1547,7 +1547,7 @@ sub load_serialised {
     my ( $self, $file ) = @_;
 
     if ( $self->serialiser_format eq 'json' ) {
-        return JSON::from_json( read_file($file) );
+        return JSON::from_json( path($file)->slurp );
     }
     elsif ( $self->serialiser_format eq 'yaml' ) {
         return YAML::LoadFile($file);
@@ -1615,7 +1615,7 @@ sub write_log_file {
     my ( $self, $filename, @output ) = @_;
 
     my $log_file = File::Spec->catfile( $self->analysis_dir, $filename );
-    write_file( $log_file, @output );
+    path( $log_file )->spew(@output);
 
     return;
 }
@@ -1636,13 +1636,13 @@ sub _create_lock {
             "\nERROR: Is another pipeline running?\n"
           . "Make sure before deleting $lock_file and restarting.\n"
           . "Lock file contains:\n\n";
-        $message .= read_file($lock_file);
+        $message .= path($lock_file)->slurp;
         die $message . "\n";
     }
 
     my $hostname  = hostname();
     my $timestamp = localtime;
-    write_file( $lock_file, $hostname . "\n" . $timestamp . "\n" );
+    path( $lock_file )->spew($hostname . "\n" . $timestamp . "\n");
 
     return;
 }
@@ -1719,7 +1719,7 @@ sub clean_up {
         @stage_dirs
     );
 
-    write_file( $done_marker_file, '1' );
+    path( $done_marker_file )->spew('1');
 
     print 'Done' . "\n";
 

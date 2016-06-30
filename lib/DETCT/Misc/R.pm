@@ -21,7 +21,7 @@ use Try::Tiny;
 
 use English qw( -no_match_vars );
 use POSIX qw( WIFEXITED);
-use File::Slurp;
+use Path::Tiny;
 use File::Spec;
 use File::Path qw( make_path );
 use Sort::Naturally;
@@ -213,14 +213,12 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
     # Get size factors for each sample
-    my @size_factors = read_file($size_factors_file);
-    chomp @size_factors;
+    my @size_factors = path($size_factors_file)->lines({chomp => 1});
 
     # Get output
     my %pval_for;
     my %padj_for;
-    foreach my $line ( read_file($output_file) ) {
-        chomp $line;
+    foreach my $line ( path($output_file)->lines({chomp => 1}) ) {
         my ( $region_text, $pval, $padj ) = split /\t/xms, $line;
         $pval_for{$region_text} = $pval;
         $padj_for{$region_text} = $padj;

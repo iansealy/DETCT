@@ -19,7 +19,7 @@ use Try::Tiny;
 
 use Getopt::Long;
 use Pod::Usage;
-use File::Slurp;
+use Path::Tiny;
 use DETCT::Misc qw( print_or_die );
 
 =head1 DESCRIPTION
@@ -39,8 +39,7 @@ my ( $help, $man );
 get_and_check_options();
 
 # Read in size factors
-my @size_factors = read_file($size_factors_file);
-chomp @size_factors;
+my @size_factors = path($size_factors_file)->lines({chomp => 1});
 
 open my $fh, '<', $input_file;
 print_header($fh);
