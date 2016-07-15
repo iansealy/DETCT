@@ -189,7 +189,9 @@ sub _fill_cache_from_ensembl {
                                 String (upstream 14 bp),
                                 String (downstream 14 bp),
                                 Int (distance hexamer upstream) or undef,
-                                String (hexamer sequence)
+                                String (hexamer sequence),
+                                Int (distance to nearest transposon),
+                                Int (position of nearest transposon)
                             ],
                             ... (3' ends)
                         ],
