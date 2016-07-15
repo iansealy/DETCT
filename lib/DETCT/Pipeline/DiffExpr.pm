@@ -23,6 +23,7 @@ use parent qw(DETCT::Pipeline);
 
 use Class::InsideOut qw( private register id );
 use Scalar::Util qw( refaddr );
+use DETCT::TransposonFinder;
 use DETCT::GeneFinder;
 use DETCT::Misc::BAM qw(
   count_tags
@@ -850,6 +851,76 @@ sub run_filter_three_prime_ends {
         );
         %chunk_regions =
           %{ $self->hash_merge->merge( \%chunk_regions, $seq_regions ) };
+    }
+
+    my $output_file = $job->base_filename . '.out';
+
+    $self->dump_serialised( $output_file, \%chunk_regions );
+
+    return;
+}
+
+=method all_parameters_for_add_transposon_annotation
+
+  Usage       : all_parameters_for_add_transposon_annotation();
+  Purpose     : Get all parameters for add_transposon_annotation stage
+  Returns     : Array of arrayrefs
+  Parameters  : DETCT::Pipeline::Stage
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_add_transposon_annotation {
+    my ( $self, $stage ) = @_;
+
+    my @all_parameters;
+
+    my $chunks = $self->analysis->get_all_chunks();
+
+    my $prerequisite_stage_name = $stage->get_all_prerequisites->[0]->name;
+
+    my $component = 0;
+    foreach my $chunk ( @{$chunks} ) {
+        $component++;
+        my $prerequisite_output_file =
+          $self->get_and_check_output_file( $prerequisite_stage_name,
+            $component );
+        push @all_parameters, [ $chunk, $prerequisite_output_file ];
+    }
+
+    return @all_parameters;
+}
+
+=method run_add_transposon_annotation
+
+  Usage       : run_add_transposon_annotation();
+  Purpose     : Run function for add_transposon_annotation stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_add_transposon_annotation {
+    my ( $self, $job ) = @_;
+
+    my ( $chunk, $prerequisite_output_file ) = @{ $job->parameters };
+
+    # Get regions
+    my $regions = $self->load_serialised($prerequisite_output_file);
+
+    my %chunk_regions;
+
+    # Annotate 3' ends with transposons
+    my $transposon_finder = DETCT::TransposonFinder->new(
+        { slice_adaptor => $self->analysis->slice_adaptor } );
+    foreach my $seq ( @{$chunk} ) {
+        my $annotated_regions =
+          $transposon_finder->add_transposon_annotation(
+            $regions->{ $seq->name } );
+        $chunk_regions{ $seq->name } = $annotated_regions;
     }
 
     my $output_file = $job->base_filename . '.out';

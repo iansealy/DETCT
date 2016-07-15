@@ -44,10 +44,15 @@
   prerequisites:
     - merge_three_prime_ends
 -
+  name:           add_transposon_annotation
+  default_memory: 250
+  prerequisites:
+    - filter_three_prime_ends
+-
   name:           choose_three_prime_end
   default_memory: 75
   prerequisites:
-    - filter_three_prime_ends
+    - add_transposon_annotation
 -
   name:           count_reads
   default_memory: 200
