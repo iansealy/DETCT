@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 124;
+plan tests => 136;
 
 use DETCT::Analysis;
 
@@ -415,6 +415,28 @@ qr/No sequence end specified/ms, 'No sequence end';
 throws_ok { $analysis->get_subsequence( '1', 1, 10 ); }
 qr/No sequence strand specified/ms, 'No sequence strand';
 
+# Get upstream subsequence with missing parameters
+$analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis_de12.yaml');
+throws_ok { $analysis->get_upstream_subsequence(); }
+qr/No sequence name specified/ms, 'No sequence name';
+throws_ok { $analysis->get_upstream_subsequence('1'); }
+qr/No sequence position specified/ms, 'No sequence position';
+throws_ok { $analysis->get_upstream_subsequence( '1', 100 ); }
+qr/No sequence strand specified/ms, 'No sequence strand';
+throws_ok { $analysis->get_upstream_subsequence( '1', 100, 1 ); }
+qr/No subsequence length specified/ms, 'No subsequence length';
+
+# Get downstream subsequence with missing parameters
+$analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis_de12.yaml');
+throws_ok { $analysis->get_downstream_subsequence(); }
+qr/No sequence name specified/ms, 'No sequence name';
+throws_ok { $analysis->get_downstream_subsequence('1'); }
+qr/No sequence position specified/ms, 'No sequence position';
+throws_ok { $analysis->get_downstream_subsequence( '1', 100 ); }
+qr/No sequence strand specified/ms, 'No sequence strand';
+throws_ok { $analysis->get_downstream_subsequence( '1', 100, 1 ); }
+qr/No subsequence length specified/ms, 'No subsequence length';
+
 # Check getting sequence from test FASTA file
 # First 10 bp of chromosome 1 should be CCAGGCGCGG according to:
 
@@ -440,6 +462,26 @@ is( $seq,        'C', 'Negative start and end FASTA subsequence' );
 $seq = $analysis->get_subsequence( '1', 1_000_000_001, 1_000_000_010, 1 );
 is( length $seq, 0,  'Large start and end FASTA subsequence length' );
 is( $seq,        '', 'Large start and end FASTA subsequence' );
+
+# Check getting upstream and downstream sequences from test FASTA file
+# 10 bp upstream of position 11 of chromosome 1 should be CCAGGCGCGG and 10 bp
+# downstream of position 1 should be CAGGCGCGGA according to:
+
+=for comment
+head -2 t/data/test12.fa
+=cut
+
+$analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis_de12.yaml');
+$seq = $analysis->get_upstream_subsequence( '1', 11, 1, 10 );
+is( $seq, 'CCAGGCGCGG', 'FASTA upstream subsequence' );
+$seq = $analysis->get_upstream_subsequence( '1', 1, -1, 10 );
+is( $seq, 'TCCGCGCCTG', 'FASTA reverse complement upstream subsequence' );
+
+$analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis_de12.yaml');
+$seq = $analysis->get_downstream_subsequence( '1', 1, 1, 10 );
+is( $seq, 'CAGGCGCGGA', 'FASTA downstream subsequence' );
+$seq = $analysis->get_downstream_subsequence( '1', 11, -1, 10 );
+is( $seq, 'CCGCGCCTGG', 'FASTA reverse complement downstream subsequence' );
 
 # Check getting sequence from Ensembl database
 # First 10 bp of chromosome 1 should be TTCTTCTGGG according to:

@@ -1264,9 +1264,87 @@ sub list_all_groups {
     return uniq( nsort(@groups) );
 }
 
+=method get_upstream_subsequence
+
+  Usage       : $seq = $analysis->get_upstream_subsequence('1', 100, 1, 10);
+  Purpose     : Get upstream subsequence from reference
+  Returns     : String (sequence)
+  Parameters  : String (the sequence name)
+                Int (the sequence position)
+                Int (the sequence strand)
+                Int (the subsequence length)
+  Throws      : If sequence name is missing
+                If sequence position is missing
+                If sequence strand is missing
+                If subsequence length is missing
+  Comments    : None
+
+=cut
+
+sub get_upstream_subsequence {
+    my ( $self, $seq_name, $pos, $strand, $len ) = @_;
+
+    confess 'No sequence name specified'      if !defined $seq_name;
+    confess 'No sequence position specified'  if !defined $pos;
+    confess 'No sequence strand specified'    if !defined $strand;
+    confess 'No subsequence length specified' if !defined $len;
+
+    my $start;
+    my $end;
+    if ( $strand == 1 ) {
+        $start = $pos - $len;
+        $end   = $pos - 1;
+    }
+    else {
+        $start = $pos + 1;
+        $end   = $pos + $len;
+    }
+
+    return $self->get_subsequence( $seq_name, $start, $end, $strand );
+}
+
+=method get_downstream_subsequence
+
+  Usage       : $seq = $analysis->get_downstream_subsequence('1', 100, 1, 10);
+  Purpose     : Get downstream subsequence from reference
+  Returns     : String (sequence)
+  Parameters  : String (the sequence name)
+                Int (the sequence position)
+                Int (the sequence strand)
+                Int (the subsequence length)
+  Throws      : If sequence name is missing
+                If sequence position is missing
+                If sequence strand is missing
+                If subsequence length is missing
+  Comments    : None
+
+=cut
+
+sub get_downstream_subsequence {
+    my ( $self, $seq_name, $pos, $strand, $len ) = @_;
+
+    confess 'No sequence name specified'      if !defined $seq_name;
+    confess 'No sequence position specified'  if !defined $pos;
+    confess 'No sequence strand specified'    if !defined $strand;
+    confess 'No subsequence length specified' if !defined $len;
+
+    my $start;
+    my $end;
+    if ( $strand == 1 ) {
+        $start = $pos + 1;
+        $end   = $pos + $len;
+    }
+    else {
+        $start = $pos - $len;
+        $end   = $pos - 1;
+    }
+
+    return $self->get_subsequence( $seq_name, $start, $end, $strand );
+}
+
 =method get_subsequence
 
-  Usage       : $seq = $analysis->get_subsequence('1', 1, 10);
+  Usage       : $seq = $analysis->get_subsequence('1', 1, 10, 1);
   Purpose     : Get subsequence from reference
   Returns     : String (sequence)
   Parameters  : String (the sequence name)
