@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 416;
+plan tests => 418;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -1159,7 +1159,8 @@ my $analysis;
 # Mock analysis object returning non-polyA
 $analysis = Test::MockObject->new();
 $analysis->set_isa('DETCT::Analysis');
-$analysis->set_always( 'get_subsequence', 'TTTTTTTTTT' );
+$analysis->set_always( 'get_upstream_subsequence',   'TTTTTTTTTT' );
+$analysis->set_always( 'get_downstream_subsequence', 'TTTTTTTTTT' );
 
 # Check filtering 3' ends required parameters
 throws_ok {
@@ -1215,16 +1216,18 @@ is( $three_prime_ends->{'1'}->[0]->[1],   1000, 'Region end' );
 is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
 is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
 is( $three_prime_ends->{'1'}->[0]->[4],   1,    'Region strand' );
-is( @{ $three_prime_ends->{'1'}->[0]->[5] },      2,    q{2 3' ends} );
+is( @{ $three_prime_ends->{'1'}->[0]->[5] },      4,    q{4 3' ends} );
 is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[0], '1',  q{3' end sequence} );
 is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[1], 1000, q{3' end position} );
 is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[2], 1,    q{3' end strand} );
 is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[3], 20,   q{3' end read count} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[4], 0,    q{3' end not polyA} );
 
 # Mock analysis object returning polyA
 $analysis = Test::MockObject->new();
 $analysis->set_isa('DETCT::Analysis');
-$analysis->set_always( 'get_subsequence', 'AAAATTTTTT' );
+$analysis->set_always( 'get_upstream_subsequence',   'AAAATTTTTT' );
+$analysis->set_always( 'get_downstream_subsequence', 'AAAATTTTTT' );
 
 # Test filtering 3' ends
 $three_prime_ends = filter_three_prime_ends(
@@ -1251,7 +1254,8 @@ is( $three_prime_ends->{'1'}->[0]->[1],   1000, 'Region end' );
 is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
 is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
 is( $three_prime_ends->{'1'}->[0]->[4],   1,    'Region strand' );
-is( @{ $three_prime_ends->{'1'}->[0]->[5] }, 0, q{0 3' ends} );
+is( @{ $three_prime_ends->{'1'}->[0]->[5] },      4, q{4 3' ends} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[0]->[4], 1, q{3' end polyA} );
 
 # Check choosing 3' end required parameters
 throws_ok {

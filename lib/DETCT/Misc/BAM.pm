@@ -55,6 +55,12 @@ our @EXPORT_OK = qw(
 =cut
 
 # Constants
+Readonly our $SEQ_TO_CHECK_FOR_HEXAMER => 40;
+
+# From http://www.ncbi.nlm.nih.gov/pmc/articles/PMC310884/
+my @PRIMARY_HEXAMERS = qw( AATAAA ATTAAA );
+my @SECONDARY_HEXAMERS =
+  qw( AGTAAA TATAAA CATAAA GATAAA AATATA AATACA AATAGA ACTAAA AAGAAA AATGAA );
 
 # Regexps for checking for polyA
 Readonly our @POLYA_REGEXP => (
@@ -797,7 +803,7 @@ sub merge_three_prime_ends {
                     seq_name => '1',
                     regions  => $regions_ary_ref,
                 } );
-  Purpose     : Filter list of regions with 3' ends
+  Purpose     : Add data for filtering 3' ends
   Returns     : Hashref {
                     String (sequence name) => Arrayref [
                         Arrayref [
@@ -812,6 +818,11 @@ sub merge_three_prime_ends {
                                     Int (3' end position),
                                     Int (3' end strand),
                                     Int (3' end read count),
+                                    Boolean (whether polyA),
+                                    String (upstream 14 bp),
+                                    String (downstream 14 bp),
+                                    Int (distance hexamer upstream) or undef,
+                                    String (hexamer sequence)
                                 ],
                                 ... (3' ends)
                             ],
@@ -841,6 +852,9 @@ sub filter_three_prime_ends {
 
     my @regions_with_three_prime_ends;
 
+    my @primary_hexamers   = map { scalar reverse } @PRIMARY_HEXAMERS;
+    my @secondary_hexamers = map { scalar reverse } @SECONDARY_HEXAMERS;
+
     # Iterate over regions
     foreach my $region ( @{ $arg_ref->{regions} } ) {
         my ( $region_start, $region_end, $region_max_read_count,
@@ -848,32 +862,63 @@ sub filter_three_prime_ends {
             $unfiltered_three_prime_ends )
           = @{$region};
 
-        # Filter 3' ends
+        # Get data for filtering 3' ends
         my @three_prime_ends;
         foreach my $three_prime_end ( @{$unfiltered_three_prime_ends} ) {
             my ( $seq_name, $pos, $strand, $read_count ) = @{$three_prime_end};
 
-            # Must be supported by more than 3 reads
-            next if $read_count <= 3;    ## no critic (ProhibitMagicNumbers)
-
-            # Check 10 bp downstream of 3' end for polyA
-            my $ten_bp_start;
-            my $ten_bp_end;
-            if ( $strand == 1 ) {
-                $ten_bp_start = $pos + 1;
-                $ten_bp_end   = $pos + 10;   ## no critic (ProhibitMagicNumbers)
-            }
-            else {
-                $ten_bp_start = $pos - 10;   ## no critic (ProhibitMagicNumbers)
-                $ten_bp_end   = $pos - 1;
-            }
-            my $ten_bp_seq =
-              $arg_ref->{analysis}
-              ->get_subsequence( $seq_name, $ten_bp_start, $ten_bp_end,
-                $strand );
+            # Get 10 bp downstream of 3' end
+            ## no critic (ProhibitMagicNumbers)
+            my $ten_bp_seq = $arg_ref->{analysis}
+              ->get_downstream_subsequence( $seq_name, $pos, $strand, 10 );
+            ## use critic
 
             # Check if 10 bp downstream is polyA
-            next if is_polya($ten_bp_seq);
+            push @{$three_prime_end}, is_polya($ten_bp_seq);
+
+            # Get 14 bp upstream and downstream of 3' end
+            ## no critic (ProhibitMagicNumbers)
+            my $upstream_seq = $arg_ref->{analysis}
+              ->get_upstream_subsequence( $seq_name, $pos, $strand, 14 );
+            my $downstream_seq = $arg_ref->{analysis}
+              ->get_downstream_subsequence( $seq_name, $pos, $strand, 14 );
+            ## use critic
+
+            push @{$three_prime_end}, $upstream_seq, $downstream_seq;
+
+            # Check if 40 bp upstream contains hexamer
+            my $hexamer_upstream_seq =
+              reverse $arg_ref->{analysis}
+              ->get_upstream_subsequence( $seq_name, $pos, $strand,
+                $SEQ_TO_CHECK_FOR_HEXAMER );
+            my $nearest_pos;
+            my $nearest_hexamer;
+            foreach my $hexamer (@primary_hexamers) {
+                my $pos_idx = index $hexamer_upstream_seq, $hexamer;
+                ## no critic (ProhibitMagicNumbers)
+                if ( $pos_idx != -1 ) {
+                    $nearest_pos = $pos_idx + 5;
+                    ## use critic
+                    $nearest_hexamer = scalar reverse $hexamer;
+                }
+            }
+            if ( !defined $nearest_hexamer ) {
+                foreach my $hexamer (@secondary_hexamers) {
+                    my $pos_idx = index $hexamer_upstream_seq, $hexamer;
+                    ## no critic (ProhibitMagicNumbers)
+                    if (
+                        $pos_idx != -1
+                        && ( !defined $nearest_pos
+                            || $pos_idx + 5 < $nearest_pos )
+                      )
+                    {
+                        $nearest_pos = $pos_idx + 5;
+                        ## use critic
+                        $nearest_hexamer = scalar reverse $hexamer;
+                    }
+                }
+            }
+            push @{$three_prime_end}, $nearest_pos, $nearest_hexamer;
 
             push @three_prime_ends, $three_prime_end;
         }
