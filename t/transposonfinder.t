@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 16;
+plan tests => 22;
 
 use DETCT::TransposonFinder;
 
@@ -83,3 +83,22 @@ is( $nearest_transposon_pos, 50, q{Transposon starts at 50 bp} );
   $transposon_finder->get_nearest_transposon( '1', 41, -1 );
 is( $distance,               -9, q{Transposon is 9 bp upstream} );
 is( $nearest_transposon_pos, 50, q{Transposon starts at 50 bp} );
+
+# Adding transposon annotation
+my $regions = [
+    [
+        1, 10, 10, -10, 1,
+        [
+            [ '1', 10, 1,  20, 1, 'A', 'A', 1, 'A' ],
+            [ '1', 20, -1, 10, 1, 'T', 'T', 0, 'C' ],
+            [ '1', 30, 1,  10, 1, 'A', 'A', 1, 'A' ],
+        ]
+    ]
+];
+my $annotated_regions = $transposon_finder->add_transposon_annotation($regions);
+is( $annotated_regions->[0]->[-1]->[0]->[-2], 0,   'Distance to transposon' );
+is( $annotated_regions->[0]->[-1]->[0]->[-1], 10,  'Position of transposon' );
+is( $annotated_regions->[0]->[-1]->[1]->[-2], 0,   'Distance to transposon' );
+is( $annotated_regions->[0]->[-1]->[1]->[-1], 20,  'Position of transposon' );
+is( $annotated_regions->[0]->[-1]->[2]->[-2], -10, 'Distance to transposon' );
+is( $annotated_regions->[0]->[-1]->[2]->[-1], 20,  'Position of transposon' );

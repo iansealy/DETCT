@@ -167,4 +167,63 @@ sub _fill_cache_from_ensembl {
     return;
 }
 
+=method add_transposon_annotation
+
+  Usage       : my $regions_ref
+                    = $finder->add_transposon_annotation($regions_ary_ref);
+  Purpose     : Add transposon annotation to 3' ends
+  Returns     : Arrayref [
+                    Arrayref [
+                        Int (region start),
+                        Int (region end),
+                        Int (region maximum read count),
+                        Float (region log probability sum),
+                        Int ( 1 or -1 ) (3' end strand)
+                        Arrayref [
+                            Arrayref [
+                                String (3' end sequence name),
+                                Int (3' end position),
+                                Int (3' end strand),
+                                Int (3' end read count),
+                                Boolean (whether polyA),
+                                String (upstream 14 bp),
+                                String (downstream 14 bp),
+                                Int (distance hexamer upstream) or undef,
+                                String (hexamer sequence)
+                            ],
+                            ... (3' ends)
+                        ],
+                    ],
+                    ... (regions)
+                ]
+  Parameters  : Arrayref (of regions)
+  Throws      : If regions are missing
+  Comments    : None
+
+=cut
+
+sub add_transposon_annotation {
+    my ( $self, $regions ) = @_;
+
+    confess 'No regions specified' if !defined $regions;
+
+    my @output;
+
+    foreach my $region ( @{$regions} ) {
+        my ( undef, undef, undef, undef, undef, $three_prime_ends ) =
+          @{$region};
+
+        foreach my $three_prime_end ( @{$three_prime_ends} ) {
+            my ( $seq_name, $pos, $strand ) = @{$three_prime_end};
+            my ( $distance, $nearest_transposon_pos ) =
+              $self->get_nearest_transposon( $seq_name, $pos, $strand );
+            push @{$three_prime_end}, $distance, $nearest_transposon_pos;
+        }
+
+        push @output, $region;
+    }
+
+    return \@output;
+}
+
 1;
