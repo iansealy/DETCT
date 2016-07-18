@@ -42,6 +42,9 @@ use DETCT::Misc::PeakHMM qw(
   run_peak_hmm
   join_hmm_bins
 );
+use DETCT::Misc::Exonerate qw(
+  add_region_alignments
+);
 use DETCT::Misc::R qw(
   run_deseq
 );
@@ -926,6 +929,75 @@ sub run_add_transposon_annotation {
     my $output_file = $job->base_filename . '.out';
 
     $self->dump_serialised( $output_file, \%chunk_regions );
+
+    return;
+}
+
+=method all_parameters_for_add_region_alignments
+
+  Usage       : all_parameters_for_add_region_alignments();
+  Purpose     : Get all parameters for add_region_alignments stage
+  Returns     : Array of arrayrefs
+  Parameters  : DETCT::Pipeline::Stage
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_add_region_alignments {
+    my ( $self, $stage ) = @_;
+
+    my @all_parameters;
+
+    my $chunks = $self->analysis->get_all_chunks();
+
+    my $prerequisite_stage_name = $stage->get_all_prerequisites->[0]->name;
+
+    my $component = 0;
+    foreach my $chunk ( @{$chunks} ) {
+        $component++;
+        my $prerequisite_output_file =
+          $self->get_and_check_output_file( $prerequisite_stage_name,
+            $component );
+        push @all_parameters, [ $chunk, $prerequisite_output_file ];
+    }
+
+    return @all_parameters;
+}
+
+=method run_add_region_alignments
+
+  Usage       : run_add_region_alignments();
+  Purpose     : Run function for add_region_alignments stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_add_region_alignments {
+    my ( $self, $job ) = @_;
+
+    my ( $chunk, $prerequisite_output_file ) = @{ $job->parameters };
+
+    # Get regions
+    my $regions = $self->load_serialised($prerequisite_output_file);
+
+    # Annotate regions with alignments
+    my $chunk_regions = add_region_alignments(
+        {
+            regions          => $regions,
+            dir              => $job->base_filename,
+            ref_fasta        => $self->analysis->ref_fasta,
+            analysis         => $self->analysis,
+            exonerate_binary => $self->analysis->exonerate_binary,
+        }
+    );
+
+    my $output_file = $job->base_filename . '.out';
+
+    $self->dump_serialised( $output_file, $chunk_regions );
 
     return;
 }

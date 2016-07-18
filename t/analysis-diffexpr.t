@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 228;
+plan tests => 231;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -119,6 +119,13 @@ is( $analysis->set_hmm_binary('chiphmmnew'), undef,        'Set HMM binary' );
 is( $analysis->hmm_binary, 'chiphmmnew', 'Get new HMM binary' );
 throws_ok { $analysis->set_hmm_binary() } qr/No HMM binary specified/ms,
   'No HMM binary';
+
+# Test spike prefix attribute
+is( $analysis->exonerate_binary, undef, 'Get Exonerate binary' );
+is( $analysis->set_exonerate_binary('exonerate'),
+    undef, 'Set Exonerate binary' );
+is( $analysis->exonerate_binary, 'exonerate', 'Get new Exonerate binary' );
+$analysis->set_exonerate_binary();
 
 # Test R binary attribute
 is( $analysis->r_binary,          'R',   'Get R binary' );

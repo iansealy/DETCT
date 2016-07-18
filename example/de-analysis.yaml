@@ -7,6 +7,7 @@ bin_size: 100
 peak_buffer_width: 100
 hmm_sig_level: 0.001
 hmm_binary: chiphmmnew
+exonerate_binary: exonerate
 r_binary: R
 deseq_script: script/run_deseq.R
 output_sig_level: 0.05

@@ -49,10 +49,15 @@
   prerequisites:
     - filter_three_prime_ends
 -
+  name:           add_region_alignments
+  default_memory: 250
+  prerequisites:
+    - add_transposon_annotation
+-
   name:           choose_three_prime_end
   default_memory: 75
   prerequisites:
-    - add_transposon_annotation
+    - add_region_alignments
 -
   name:           count_reads
   default_memory: 200
