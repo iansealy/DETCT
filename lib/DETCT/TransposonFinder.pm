@@ -142,6 +142,14 @@ sub get_nearest_transposon {
     return $distance, $nearest_transposon_pos;
 }
 
+# Usage       : $self->_fill_cache_from_ensembl( $seq_name );
+# Purpose     : Fill the cache from Ensembl for a particular sequence
+# Returns     : undef
+# Parameters  : String (the sequence name)
+# Throws      : No exceptions
+# Comments    : Cache is a hashref (keyed by sequence name) of arrayrefs of
+#               transposon outermost coordinates
+
 sub _fill_cache_from_ensembl {
     my ( $self, $seq_name ) = @_;
 
