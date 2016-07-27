@@ -13,6 +13,7 @@ deseq_script: script/run_deseq.R
 output_sig_level: 0.05
 ref_fasta: example/example.fa
 ensembl_species: danio_rerio
+ensembl_transcript_table_file: example/example_transcripts.tsv
 samples:
   -
     name:        zmp_ph1_1m

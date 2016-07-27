@@ -68,7 +68,11 @@ our @EXPORT_OK = qw(
                                     Int (distance hexamer upstream) or undef,
                                     String (hexamer sequence),
                                     Int (distance to nearest transposon),
-                                    Int (position of nearest transposon)
+                                    Int (position of nearest transposon),
+                                    Arrayref [
+                                        String (transcript stable id),
+                                        ... (continuous RNA-Seq transcript ids)
+                                    ]
                                 ],
                                 ... (3' ends)
                             ],

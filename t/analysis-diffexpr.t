@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 231;
+plan tests => 240;
 
 use DETCT::Analysis::DiffExpr;
 
@@ -240,6 +240,43 @@ is(
 );
 is( scalar @{ $analysis->get_all_skip_transcripts },
     2, 'Get new skip transcripts' );
+
+# Test Ensembl transcript table file attribute
+path( $tmp_dir . '/transcripts.tsv' )->spew('transcripts.tsv');
+is( $analysis->ensembl_transcript_table_file,
+    undef, 'Get Ensembl transcript table file' );
+is(
+    $analysis->set_ensembl_transcript_table_file(
+        $tmp_dir . '/transcripts.tsv'
+    ),
+    undef,
+    'Set Ensembl transcript table file'
+);
+is(
+    $analysis->ensembl_transcript_table_file,
+    $tmp_dir . '/transcripts.tsv',
+    'Get new Ensembl transcript table file'
+);
+throws_ok { $analysis->set_ensembl_transcript_table_file('nonexistent') }
+qr/cannot be read/ms, 'Unreadable Ensembl transcript table file';
+$analysis->set_ensembl_transcript_table_file();
+
+# Test Ensembl transcript table format attribute
+is( $analysis->ensembl_transcript_table_format,
+    undef, 'Get Ensembl transcript table format' );
+is( $analysis->set_ensembl_transcript_table_format('tsv'),
+    undef, 'Set Ensembl transcript table format' );
+is( $analysis->ensembl_transcript_table_format,
+    'tsv', 'Get new Ensembl transcript table format' );
+throws_ok { $analysis->set_ensembl_transcript_table_format('invalid') }
+qr/Invalid Ensembl transcript table format/ms,
+  'Invalid Ensembl transcript table format';
+$analysis->set_ensembl_transcript_table_format();
+
+# Test guessing Ensembl transcript table format from Ensembl transcript table file
+$analysis->set_ensembl_transcript_table_file( $tmp_dir . '/transcripts.tsv' );
+is( $analysis->ensembl_transcript_table_format,
+    'tsv', 'Get guessed Ensembl transcript table format' );
 
 # Test reference FASTA attribute
 is( $analysis->ref_fasta, undef, 'Get reference FASTA' );

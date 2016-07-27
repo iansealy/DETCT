@@ -49,10 +49,15 @@
   prerequisites:
     - filter_three_prime_ends
 -
-  name:           add_region_alignments
+  name:           add_continuous_rnaseq
   default_memory: 250
   prerequisites:
     - add_transposon_annotation
+-
+  name:           add_region_alignments
+  default_memory: 250
+  prerequisites:
+    - add_continuous_rnaseq
 -
   name:           choose_three_prime_end
   default_memory: 75

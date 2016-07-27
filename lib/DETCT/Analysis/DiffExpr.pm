@@ -54,6 +54,10 @@ private table_format           => my %table_format;           # e.g. tsv
 private control_condition      => my %control_condition;      # e.g. sibling
 private experimental_condition => my %experimental_condition; # e.g. mutant
 private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
+private ensembl_transcript_table_file =>
+  my %ensembl_transcript_table_file;            # e.g. transcripts.tsv
+private ensembl_transcript_table_format =>
+  my %ensembl_transcript_table_format;          # e.g. tsv
 
 # Constants
 Readonly our $MAX_CONDITION_LENGTH => 128;
@@ -78,36 +82,38 @@ Readonly our $MAX_CONDITION_LENGTH => 128;
   Purpose     : Constructor for analysis objects
   Returns     : DETCT::Analysis::DiffExpr
   Parameters  : Hashref {
-                    name                   => String,
-                    read1_length           => Int,
-                    read2_length           => Int,
-                    mismatch_threshold     => Int,
-                    mapq_threshold         => Int,
-                    bin_size               => Int,
-                    peak_buffer_width      => Int,
-                    hmm_sig_level          => Float,
-                    hmm_binary             => String,
-                    exonerate_binary       => String,
-                    r_binary               => String,
-                    deseq_script           => String,
-                    filter_percentile      => Int,
-                    spike_prefix           => String,
-                    normalisation_method   => String,
-                    deseq_model            => String,
-                    output_sig_level       => Float,
-                    table_file             => String,
-                    table_format           => String,
-                    control_condition      => String,
-                    experimental_condition => String,
-                    ref_fasta              => String or undef,
-                    ensembl_host           => String or undef,
-                    ensembl_port           => Int or undef,
-                    ensembl_user           => String or undef,
-                    ensembl_pass           => String or undef,
-                    ensembl_name           => String or undef,
-                    ensembl_species        => String or undef,
-                    chunk_total            => Int,
-                    test_chunk             => Int or undef,
+                    name                            => String,
+                    read1_length                    => Int,
+                    read2_length                    => Int,
+                    mismatch_threshold              => Int,
+                    mapq_threshold                  => Int,
+                    bin_size                        => Int,
+                    peak_buffer_width               => Int,
+                    hmm_sig_level                   => Float,
+                    hmm_binary                      => String,
+                    exonerate_binary                => String,
+                    r_binary                        => String,
+                    deseq_script                    => String,
+                    filter_percentile               => Int,
+                    spike_prefix                    => String,
+                    normalisation_method            => String,
+                    deseq_model                     => String,
+                    output_sig_level                => Float,
+                    table_file                      => String,
+                    table_format                    => String,
+                    control_condition               => String,
+                    experimental_condition          => String,
+                    ensembl_transcript_table_file   => String,
+                    ensembl_transcript_table_format => String,
+                    ref_fasta                       => String or undef,
+                    ensembl_host                    => String or undef,
+                    ensembl_port                    => Int or undef,
+                    ensembl_user                    => String or undef,
+                    ensembl_pass                    => String or undef,
+                    ensembl_name                    => String or undef,
+                    ensembl_species                 => String or undef,
+                    chunk_total                     => Int,
+                    test_chunk                      => Int or undef,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -137,6 +143,10 @@ sub new {
     $self->set_table_format( $arg_ref->{table_format} );
     $self->set_control_condition( $arg_ref->{control_condition} );
     $self->set_experimental_condition( $arg_ref->{experimental_condition} );
+    $self->set_ensembl_transcript_table_file(
+        $arg_ref->{ensembl_transcript_table_file} );
+    $self->set_ensembl_transcript_table_format(
+        $arg_ref->{ensembl_transcript_table_format} );
     return $self;
 }
 
@@ -187,6 +197,10 @@ sub new_from_yaml {
     $self->set_control_condition( $yaml->[0]->{control_condition} );
     $self->set_experimental_condition( $yaml->[0]->{experimental_condition} );
     $self->add_all_skip_transcripts( $yaml->[0]->{skip_transcripts} );
+    $self->set_ensembl_transcript_table_file(
+        $yaml->[0]->{ensembl_transcript_table_file} );
+    $self->set_ensembl_transcript_table_format(
+        $yaml->[0]->{ensembl_transcript_table_format} );
 
     return $self;
 }
@@ -1160,6 +1174,120 @@ sub get_all_skip_transcripts {
     my ($self) = @_;
 
     return [ sort keys %{ $skip_transcript{ id $self} || {} } ];
+}
+
+=method ensembl_transcript_table_file
+
+  Usage       : my $ens_trans_file = $analysis->ensembl_transcript_table_file;
+  Purpose     : Getter for Ensembl transcript table file attribute
+  Returns     : String
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub ensembl_transcript_table_file {
+    my ($self) = @_;
+    return $ensembl_transcript_table_file{ id $self};
+}
+
+=method set_ensembl_transcript_table_file
+
+  Usage       : $analysis->set_ensembl_transcript_table_file('transcripts.tsv');
+  Purpose     : Setter for Ensembl transcript table file attribute
+  Returns     : undef
+  Parameters  : String (the Ensembl transcript table file)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_ensembl_transcript_table_file {
+    my ( $self, $arg ) = @_;
+    $ensembl_transcript_table_file{ id $self} =
+      _check_ensembl_transcript_table_file($arg);
+    return;
+}
+
+# Usage       : $ens_trans_file
+#                   = _check_ensembl_transcript_table_file($ens_trans_file);
+# Purpose     : Check for valid Ensembl transcript table file
+# Returns     : String (the valid Ensembl transcript table file)
+# Parameters  : String (the Ensembl transcript table file)
+# Throws      : If Ensembl transcript table file is defined but not readable
+# Comments    : None
+sub _check_ensembl_transcript_table_file {
+    my ($ensembl_transcript_table_file) = @_;
+    return $ensembl_transcript_table_file
+      if !defined $ensembl_transcript_table_file
+      || -r $ensembl_transcript_table_file;
+    confess sprintf 'Ensembl transcript table file (%s) cannot be read',
+      $ensembl_transcript_table_file;
+}
+
+=method ensembl_transcript_table_format
+
+  Usage       : my $ens_trans_format = $analysis->ensembl_transcript_table_format;
+  Purpose     : Getter for Ensembl transcript table format attribute
+  Returns     : String ('csv' or 'tsv')
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub ensembl_transcript_table_format {
+    my ($self) = @_;
+
+    if (  !$ensembl_transcript_table_format{ id $self}
+        && $ensembl_transcript_table_file{ id $self} )
+    {
+
+        # Attempt to guess format from filename
+        my ($extension) = $ensembl_transcript_table_file{ id $self} =~
+          m/[.] ([[:lower:]]{3}) \z/xms;
+
+        try {
+            $self->set_ensembl_transcript_table_format($extension);
+        };
+    }
+
+    return $ensembl_transcript_table_format{ id $self};
+}
+
+=method set_ensembl_transcript_table_format
+
+  Usage       : $analysis->set_ensembl_transcript_table_format('tsv');
+  Purpose     : Setter for Ensembl transcript table format attribute
+  Returns     : undef
+  Parameters  : String (the Ensembl transcript table format)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_ensembl_transcript_table_format {
+    my ( $self, $arg ) = @_;
+    $ensembl_transcript_table_format{ id $self} =
+      _check_ensembl_transcript_table_format($arg);
+    return;
+}
+
+# Usage       : $ens_trans_format
+#                   = _check_ensembl_transcript_table_format($ens_trans_format);
+# Purpose     : Check for valid Ensembl transcript table format
+# Returns     : String (the valid Ensembl transcript table format)
+# Parameters  : String (the Ensembl transcript table format)
+# Throws      : If Ensembl transcript table format is defined but invalid
+# Comments    : None
+sub _check_ensembl_transcript_table_format {
+    my ($ensembl_transcript_table_format) = @_;
+    return $ensembl_transcript_table_format
+      if !defined $ensembl_transcript_table_format
+      || any { $_ eq $ensembl_transcript_table_format } qw(csv tsv);
+    confess sprintf 'Invalid Ensembl transcript table format (%s) specified',
+      $ensembl_transcript_table_format;
 }
 
 =method validate

@@ -33,6 +33,7 @@ our @EXPORT_OK = qw(
   dump_as_table
   dump_duplication_metrics
   parse_table
+  parse_ensembl_transcripts_table
   convert_table_for_deseq
 );
 
@@ -1007,6 +1008,81 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
     }
 
     return \@regions;
+}
+
+=func parse_ensembl_transcripts_table
+
+  Usage       : $transcripts = parse_ensembl_transcripts_table( {
+                    table_file   => 'transcripts.tsv',
+                    table_format => 'tsv',
+                } );
+  Purpose     : Parse table of Ensembl transcripts
+  Returns     : Arrayref [
+                    Arrayref [
+                        String (sequence name),
+                        String (transcript stable id),
+                        Int (transcript strand),
+                        Int (CDS end position),
+                        Int (continuous RNA-Seq end position)
+                    ],
+                    ... (transcripts)
+                ]
+  Parameters  : Hashref {
+                    table_file   => String (the table file),
+                    table_format => String (the table format),
+                }
+  Throws      : If table file is missing
+                If table format is missing or invalid or HTML
+  Comments    : None
+
+=cut
+
+sub parse_ensembl_transcripts_table {
+    my ($arg_ref) = @_;
+
+    confess 'No table file specified'   if !defined $arg_ref->{table_file};
+    confess 'No table format specified' if !defined $arg_ref->{table_format};
+    confess 'Cannot handle HTML format' if $arg_ref->{table_format} eq 'html';
+    if ( all { $_ ne $arg_ref->{table_format} } @FORMATS ) {
+        confess sprintf 'Invalid table format (%s) specified',
+          $arg_ref->{table_format};
+    }
+
+    # Get table
+    my @rows = path( $arg_ref->{table_file} )->lines;
+
+    # Get headings
+    my $line = shift @rows;
+    my @headings = parse_line( $line, $arg_ref->{table_format} );
+
+    # Parse rows
+    my @transcripts;
+    foreach my $row (@rows) {
+        my @row = parse_line( $row, $arg_ref->{table_format} );
+
+        ## no critic (ProhibitMagicNumbers)
+        next if !defined $row[20] || !defined $row[21];    # No CDS or RNA-Seq
+        my @transcript;
+        push @transcript, $row[0];                         # Sequence name
+        push @transcript, $row[4];                         # Transcript ID
+        push @transcript, $row[3];                         # Strand
+        my $strand = $row[3];
+        if ( $strand > 0 ) {
+
+            # Transcript End - Distance to Transcript CDS End
+            push @transcript, $row[2] - $row[20];          # CDS End
+        }
+        else {
+            # Transcript Start + Distance to Transcript CDS End
+            push @transcript, $row[1] + $row[20];          # CDS End
+        }
+        push @transcript, $row[21];    # Continuous RNA-Seq End
+        ## use critic
+
+        push @transcripts, \@transcript;
+    }
+
+    return \@transcripts;
 }
 
 =func parse_line
