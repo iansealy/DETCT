@@ -59,6 +59,11 @@
   prerequisites:
     - add_continuous_rnaseq
 -
+  name:           dump_ends_as_table
+  default_memory: 3000
+  prerequisites:
+    - add_region_alignments
+-
   name:           choose_three_prime_end
   default_memory: 75
   prerequisites:

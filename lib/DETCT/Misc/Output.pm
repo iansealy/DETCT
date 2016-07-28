@@ -25,6 +25,7 @@ use File::Spec;
 use File::Path qw( make_path );
 use Text::CSV;
 use List::MoreUtils qw( uniq all );
+use Sort::Naturally;
 use DETCT::Misc qw( write_or_die );
 use DETCT::Misc::R;
 
@@ -35,6 +36,7 @@ our @EXPORT_OK = qw(
   parse_table
   parse_ensembl_transcripts_table
   convert_table_for_deseq
+  dump_ends_as_table
 );
 
 =head1 SYNOPSIS
@@ -51,7 +53,8 @@ Readonly our $INT    => 2;
 Readonly our $FLOAT  => 3;
 
 # Output formats
-Readonly our @FORMATS => qw( csv tsv html );
+Readonly our @FORMATS      => qw( csv tsv html );
+Readonly our @ENDS_FORMATS => qw( csv tsv );
 
 =func dump_as_table
 
@@ -117,7 +120,8 @@ sub dump_as_table {    ## no critic (ProhibitExcessComplexity)
     }
 
     # Open filehandles and begin all output files
-    my $fh = begin_output( $arg_ref->{dir}, $definition );
+    my $fh =
+      begin_output( $arg_ref->{dir}, $definition, \@FORMATS, [qw(all sig)] );
 
     foreach my $region ( @{$regions} ) {
         my @row;
@@ -237,11 +241,11 @@ sub dump_as_table {    ## no critic (ProhibitExcessComplexity)
         {
             push @levels, 'sig';
         }
-        dump_output( \@levels, $fh, $definition, \@row );
+        dump_output( \@FORMATS, \@levels, $fh, $definition, \@row );
     }
 
     # End all output files and close filehandles
-    end_output($fh);
+    end_output( $fh, \@FORMATS, [qw(all sig)] );
 
     return;
 }
@@ -358,24 +362,26 @@ sub get_definition {
 
 =func begin_output
 
-  Usage       : my $fh = begin_output( $dir, $defintion );
+  Usage       : my $fh = begin_output( $dir, $defintion, \@formats, \@levels );
   Purpose     : Open filehandles and begin all output files
   Returns     : undef
   Parameters  : String (the directory)
                 Arrayref (the definition)
+                Arrayref (the formats)
+                Arrayref (the levels)
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub begin_output {
-    my ( $dir, $definition ) = @_;
+    my ( $dir, $definition, $formats, $levels ) = @_;
 
     my %fh;
-    foreach my $format (@FORMATS) {
+    foreach my $format ( @{$formats} ) {
 
         # Level determines whether output all regions or just significant ones
-        foreach my $level (qw( all sig )) {
+        foreach my $level ( @{$levels} ) {
             my $file = File::Spec->catfile( $dir, $level . q{.} . $format );
             open my $fh, '>', $file;    ## no critic (RequireBriefOpen)
             $fh{$format}{$level} = $fh;
@@ -390,20 +396,22 @@ sub begin_output {
 
 =func end_output
 
-  Usage       : end_output( $fh );
+  Usage       : end_output( $fh, \@formats, \@levels );
   Purpose     : End all output files and close filehandles
   Returns     : undef
   Parameters  : Hashref (of filehandles)
+                Arrayref (the formats)
+                Arrayref (the levels)
   Throws      : No exceptions
   Comments    : None
 
 =cut
 
 sub end_output {
-    my ($fh) = @_;
+    my ( $fh, $formats, $levels ) = @_;
 
-    foreach my $format (@FORMATS) {
-        foreach my $level (qw( all sig )) {
+    foreach my $format ( @{$formats} ) {
+        foreach my $level ( @{$levels} ) {
             my $end_sub_name = 'end_' . $format;
             my $sub_ref      = \&{$end_sub_name};
             &{$sub_ref}( $fh->{$format}{$level} );
@@ -416,10 +424,11 @@ sub end_output {
 
 =func dump_output
 
-  Usage       : dump_output( $levels, $fh, $definition, $row );
+  Usage       : dump_output( \@formats, \@levels, $fh, $definition, $row );
   Purpose     : Dump row in all required formats at all required levels
   Returns     : undef
-  Parameters  : Arrayref (of levels)
+  Parameters  : Arrayref (of formats)
+                Arrayref (of levels)
                 Hashref (of filehandles)
                 Arrayref (the definition)
                 Arrayref (of row data)
@@ -429,9 +438,9 @@ sub end_output {
 =cut
 
 sub dump_output {
-    my ( $levels, $fh, $definition, $row ) = @_;
+    my ( $formats, $levels, $fh, $definition, $row ) = @_;
 
-    foreach my $format (@FORMATS) {
+    foreach my $format ( @{$formats} ) {
         foreach my $level ( @{$levels} ) {
             my $dump_sub_name = 'dump_' . $format;
             my $sub_ref       = \&{$dump_sub_name};
@@ -1233,6 +1242,142 @@ sub dump_duplication_metrics {
     path( $arg_ref->{output_file} )->spew($metrics_output);
 
     return;
+}
+
+=func dump_ends_as_table
+
+  Usage       : DETCT::Misc::Output::dump_ends_as_table( {
+                    dir     => '.',
+                    regions => $regions_hash_ref,
+                } );
+  Purpose     : Dump 3' ends in tabular format
+  Returns     : undef
+  Parameters  : Hashref {
+                    dir     => String (the working directory),
+                    regions => Hashref (of regions),
+                }
+  Throws      : If regions are missing
+                If directory is missing
+  Comments    : None
+
+=cut
+
+sub dump_ends_as_table {
+    my ($arg_ref) = @_;
+
+    confess 'No directory specified' if !defined $arg_ref->{dir};
+    confess 'No regions specified'   if !defined $arg_ref->{regions};
+
+    # Get definition for all columns (which determines formatting)
+    my $definition = get_ends_definition();
+
+    # Make sure working directory exists
+    if ( !-d $arg_ref->{dir} ) {
+        make_path( $arg_ref->{dir} );
+    }
+
+    my @levels = ('ends');
+
+    # Open filehandles and begin all output files
+    my $fh =
+      begin_output( $arg_ref->{dir}, $definition, \@ENDS_FORMATS, \@levels );
+
+    foreach my $seq_name ( sort keys %{ $arg_ref->{regions} } ) {
+        foreach my $region ( @{ $arg_ref->{regions}->{$seq_name} } ) {
+            my @row;
+
+            # Region
+            my $start = $region->[0];
+            my $end   = $region->[1];
+            push @row, [ $seq_name, [ $seq_name, $start, $end, $seq_name ] ];
+            push @row, [ $start,    [ $seq_name, $start, $end, $start ] ];
+            push @row, [ $end,      [ $seq_name, $start, $end, $end ] ];
+            my $tpe_strand = $region->[4];   ## no critic (ProhibitMagicNumbers)
+            push @row, [$tpe_strand];
+
+            # Alignments of region
+            my @alignments;
+            ## no critic (ProhibitMagicNumbers)
+            foreach my $alignment ( @{ $region->[6] } ) {
+                ## use critic
+
+                # sequence name, start, end, strand,
+                # percent ID, alignment length, query length
+                # e.g. 5:230-200:-:100:30/30
+                push @alignments, sprintf '%s:%d-%d:%s:%d:%d/%d', @{$alignment};
+            }
+            push @row, [ \@alignments ];
+
+            # 3' ends
+            my @ends;
+            ## no critic (ProhibitMagicNumbers)
+            foreach my $end ( @{ $region->[5] } ) {
+                ## use critic
+
+                # sequence name, position, strand, read count, polyA?,
+                # 14bp upstream, 14bp downstream, hexamer distance, hexamer,
+                # transposon distance, transposon position,
+                # continuous RNA-Seq transcripts
+                # e.g. 314:+:10/y:AGTTAG:TTCGTA/10:AATAAA/263:577/ENSDART130040
+                my (
+                    undef,           $pos,
+                    $strand,         $count,
+                    $polya,          $up,
+                    $down,           $hexamer_distance,
+                    $hexamer,        $transposon_distance,
+                    $transposon_pos, $rnaseq_transcripts
+                ) = @{$end};
+                $rnaseq_transcripts = join q{|}, @{$rnaseq_transcripts};
+                $strand = $strand > 0 ? q{+} : q{-};
+                $polya  = $polya      ? q{y} : q{n};
+                if ( !defined $hexamer_distance ) {
+                    $hexamer_distance = q{};
+                    $hexamer          = q{};
+                }
+                if ( !defined $transposon_distance ) {
+                    $transposon_distance = q{};
+                    $transposon_pos      = q{};
+                }
+                push @ends, sprintf '%d:%s:%d/%s:%s:%s/%s:%s/%s:%s/%s', $pos,
+                  $strand, $count, $polya, $up, $down, $hexamer_distance,
+                  $hexamer, $transposon_distance, $transposon_pos,
+                  $rnaseq_transcripts;
+            }
+            push @row, [ \@ends ];
+
+            # Dump row in all required formats
+            dump_output( \@ENDS_FORMATS, \@levels, $fh, $definition, \@row );
+        }
+    }
+
+    # End all output files and close filehandles
+    end_output( $fh, \@ENDS_FORMATS, \@levels );
+
+    return;
+}
+
+=func get_ends_definition
+
+  Usage       : $definition = get_ends_definition();
+  Purpose     : Return the definitions for all columns of the table
+  Returns     : Arrayref (of column definitions)
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub get_ends_definition {
+    my @def;
+
+    push @def, [ 'Chr',               $STRING, ];
+    push @def, [ 'Region start',      $INT, ];
+    push @def, [ 'Region end',        $INT, ];
+    push @def, [ q{3' end strand},    $INT, ];
+    push @def, [ 'Region alignments', $STRING, ];
+    push @def, [ q{3' ends},          $STRING, ];
+
+    return \@def;
 }
 
 1;

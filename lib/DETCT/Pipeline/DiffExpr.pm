@@ -50,6 +50,7 @@ use DETCT::Misc::R qw(
   run_deseq
 );
 use DETCT::Misc::Output qw(
+  dump_ends_as_table
   dump_as_table
   parse_table
   convert_table_for_deseq
@@ -1069,6 +1070,78 @@ sub run_add_region_alignments {
     my $output_file = $job->base_filename . '.out';
 
     $self->dump_serialised( $output_file, $chunk_regions );
+
+    return;
+}
+
+=method all_parameters_for_dump_ends_as_table
+
+  Usage       : all_parameters_for_dump_ends_as_table();
+  Purpose     : Get all parameters for dump_ends_as_table stage
+  Returns     : Array of arrayrefs
+  Parameters  : DETCT::Pipeline::Stage
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_dump_ends_as_table {
+    my ( $self, $stage ) = @_;
+
+    my @all_parameters;
+
+    my $chunks = $self->analysis->get_all_chunks();
+
+    my $prerequisite_stage_name = $stage->get_all_prerequisites->[0]->name;
+
+    my @prerequisite_output_files;
+    my $component = 0;
+    foreach my $chunk ( @{$chunks} ) {
+        $component++;
+        push @prerequisite_output_files,
+          $self->get_and_check_output_file( $prerequisite_stage_name,
+            $component );
+    }
+    push @all_parameters, \@prerequisite_output_files;
+
+    return @all_parameters;
+}
+
+=method run_dump_ends_as_table
+
+  Usage       : run_dump_ends_as_table();
+  Purpose     : Run function for dump_ends_as_table stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_dump_ends_as_table {
+    my ( $self, $job ) = @_;
+
+    my (@prerequisite_output_files) = @{ $job->parameters };
+
+    # Join regions
+    my %regions;
+    foreach my $output_file (@prerequisite_output_files) {
+        %regions = %{
+            $self->hash_merge->merge( \%regions,
+                $self->load_serialised($output_file) )
+        };
+    }
+
+    dump_ends_as_table(
+        {
+            dir     => $job->base_filename,
+            regions => \%regions,
+        }
+    );
+
+    my $output_file = $job->base_filename . '.out';
+
+    $self->dump_serialised( $output_file, \1 );
 
     return;
 }
