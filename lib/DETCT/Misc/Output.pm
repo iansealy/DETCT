@@ -1303,7 +1303,7 @@ sub dump_ends_as_table {
 
                 # sequence name, start, end, strand,
                 # percent ID, alignment length, query length
-                # e.g. 5:230-200:-:100:30/30
+                # e.g. 5:200-230:-:100:30/30
                 push @alignments, sprintf '%s:%d-%d:%s:%d:%d/%d', @{$alignment};
             }
             push @row, [ \@alignments ];

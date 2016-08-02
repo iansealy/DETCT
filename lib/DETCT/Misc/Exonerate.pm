@@ -264,6 +264,10 @@ sub parse_exonerate {
             $target_length
         ) = split /\s/xms, $line;
         my ( $seq_name, $index ) = split /:/xms, $query_id;
+        if ( $target_start > $target_end ) {
+            ( $target_start, $target_end ) = ( $target_end, $target_start );
+        }
+        $percent_id = int $percent_id + 0.5; ## no critic (ProhibitMagicNumbers)
         push @{ $alignments{$seq_name}{$index} },
           [
             $target_id,  $target_start,
