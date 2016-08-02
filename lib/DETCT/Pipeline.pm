@@ -919,6 +919,7 @@ sub add_stages_from_yaml {
             {
                 name           => $stage_hash->{name},
                 default_memory => $stage_hash->{default_memory},
+                threads        => $stage_hash->{threads},
             }
         );
         foreach my $prerequisite_name ( @{ $stage_hash->{prerequisites} } ) {
@@ -1415,9 +1416,12 @@ sub submit_job {
         my $bsub_stdout_file = $job->base_filename . '.bsub.o';
         my $bsub_stderr_file = $job->base_filename . '.bsub.e';
         my $queue_clause     = sprintf q{ -q %s }, $job->queue;
-        my $memory_clause = sprintf q{ -R'select[mem>%d] rusage[mem=%d]' -M%d },
+        my $memory_clause =
+          sprintf q{ -R'span[hosts=1] select[mem>%d] rusage[mem=%d]' -M%d },
           $job->memory, $job->memory,
           $job->memory * $self->memory_limit_multiplier;
+        my $threads_clause = $job->threads == 1 ? q{} : sprintf q{ -n%d },
+          $job->threads;
         my $avoid_nodes_clause = q{};
         foreach my $avoid_node ( @{ $self->get_all_avoid_nodes() } ) {
             $avoid_nodes_clause .= sprintf q{ -R"select[hname!='%s']" },
@@ -1429,6 +1433,7 @@ sub submit_job {
           . $stderr_file
           . $queue_clause
           . $memory_clause
+          . $threads_clause
           . $avoid_nodes_clause
           . $cmd . ' 1>'
           . $bsub_stdout_file . ' 2>'

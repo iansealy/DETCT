@@ -30,6 +30,7 @@ use Class::InsideOut qw( private register id );
 # Attributes:
 private name           => my %name;              # e.g. count_tags
 private default_memory => my %default_memory;    # e.g. 3000
+private threads        => my %threads;           # e.g. 1
 private all_jobs_run   => my %all_jobs_run;      # e.g. 1
 private prerequisite   => my %prerequisite;      # arrayref of stages
 
@@ -44,6 +45,7 @@ private prerequisite   => my %prerequisite;      # arrayref of stages
   Parameters  : Hashref {
                     name           => String,
                     default_memory => Int,
+                    threads        => Int,
                 }
   Throws      : No exceptions
   Comments    : None
@@ -55,6 +57,7 @@ sub new {
     my $self = register($class);
     $self->set_name( $arg_ref->{name} );
     $self->set_default_memory( $arg_ref->{default_memory} );
+    $self->set_threads( $arg_ref->{threads} );
     return $self;
 }
 
@@ -150,6 +153,54 @@ sub _check_default_memory {
       if defined $default_memory && $default_memory =~ m/\A \d+ \z/xms;
     confess 'No default memory specified' if !defined $default_memory;
     confess "Invalid default memory ($default_memory) specified";
+}
+
+=method threads
+
+  Usage       : my $threads = $stage->threads;
+  Purpose     : Getter for threads attribute
+  Returns     : +ve Int
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub threads {
+    my ($self) = @_;
+    return $threads{ id $self};
+}
+
+=method set_threads
+
+  Usage       : $stage->set_threads(2);
+  Purpose     : Setter for threads attribute
+  Returns     : undef
+  Parameters  : +ve Int (the threads)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_threads {
+    my ( $self, $arg ) = @_;
+    $threads{ id $self} = _check_threads($arg);
+    return;
+}
+
+# Usage       : $threads = _check_threads($threads);
+# Purpose     : Check for valid threads
+# Returns     : +ve Int (the valid threads)
+# Parameters  : +ve Int (the threads)
+# Throws      : If threads is not a positive integer
+# Comments    : None
+sub _check_threads {
+    my ($threads) = @_;
+
+    confess "Invalid threads ($threads) specified"
+      if defined $threads && $threads !~ m/\A \d+ \z/xms;
+
+    return $threads;
 }
 
 =method all_jobs_run

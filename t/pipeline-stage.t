@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 22;
+plan tests => 26;
 
 use DETCT::Pipeline::Stage;
 
@@ -36,6 +36,12 @@ throws_ok { $stage->set_default_memory() } qr/No default memory specified/ms,
   'No default memory';
 throws_ok { $stage->set_default_memory(-1) } qr/Invalid default memory/ms,
   'Invalid default memory';
+
+# Test threads attribute
+is( $stage->threads,        undef, 'Get threads' );
+is( $stage->set_threads(2), undef, 'Set threads' );
+is( $stage->threads,        2,     'Get new threads' );
+throws_ok { $stage->set_threads(-1) } qr/Invalid threads/ms, 'Invalid threads';
 
 # Test all jobs run attribute
 is( $stage->all_jobs_run,         0,     'Get all jobs run' );
