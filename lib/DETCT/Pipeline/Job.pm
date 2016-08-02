@@ -42,7 +42,6 @@ private retries       => my %retries;          # e.g. 5
 private lsf_job_id    => my %lsf_job_id;       # e.g. 123
 private memory        => my %memory;           # e.g. 3000
 private queue         => my %queue;            # e.g. normal
-private threads       => my %threads;          # e.g. 1
 private status_code   => my %status_code;      # e.g. DONE
 private status_text   => my %status_text;      # e.g. Job killed by owner
 
@@ -525,54 +524,6 @@ sub _check_queue {
     return $queue
       if !defined $queue || any { $_ eq $queue } qw(normal long hugemem);
     confess "Invalid queue ($queue) specified";
-}
-
-=method threads
-
-  Usage       : my $threads = $job->threads;
-  Purpose     : Getter for the threads attribute
-  Returns     : +ve Int
-  Parameters  : None
-  Throws      : No exceptions
-  Comments    : None
-
-=cut
-
-sub threads {
-    my ($self) = @_;
-    return $threads{ id $self} || 1;
-}
-
-=method set_threads
-
-  Usage       : $job->set_threads(2);
-  Purpose     : Setter for the threads attribute
-  Returns     : undef
-  Parameters  : +ve Int (the threads)
-  Throws      : No exceptions
-  Comments    : None
-
-=cut
-
-sub set_threads {
-    my ( $self, $arg ) = @_;
-    $threads{ id $self} = _check_threads($arg);
-    return;
-}
-
-# Usage       : $threads = _check_threads($threads);
-# Purpose     : Check for valid threads
-# Returns     : +ve Int (the valid threads)
-# Parameters  : +ve Int (the threads)
-# Throws      : If threads is not a positive integer
-# Comments    : None
-sub _check_threads {
-    my ($threads) = @_;
-
-    confess "Invalid threads ($threads) specified"
-      if defined $threads && $threads !~ m/\A \d+ \z/xms;
-
-    return $threads;
 }
 
 =method status_code

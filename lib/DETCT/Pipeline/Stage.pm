@@ -168,7 +168,7 @@ sub _check_default_memory {
 
 sub threads {
     my ($self) = @_;
-    return $threads{ id $self};
+    return $threads{ id $self} || 1;
 }
 
 =method set_threads

@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 67;
+plan tests => 61;
 
 use DETCT::Pipeline::Job;
 
@@ -87,14 +87,6 @@ is( $job->queue,                'long',    'Get long queue' );
 is( $job->set_queue('hugemem'), undef,     'Set hugemem queue' );
 is( $job->queue,                'hugemem', 'Get hugemem queue' );
 throws_ok { $job->set_queue('invalid') } qr/Invalid queue/ms, 'Invalid queue';
-
-# Test threads attribute
-is( $job->threads,        1,     'Get threads' );
-is( $job->set_threads,    undef, 'Set undefined threads' );
-is( $job->threads,        1,     'Get threads' );
-is( $job->set_threads(2), undef, 'Set threads' );
-is( $job->threads,        2,     'Get new threads' );
-throws_ok { $job->set_threads(-1) } qr/Invalid threads/ms, 'Invalid threads';
 
 # Test retries attribute
 is( $job->retries,        undef, 'Get retries' );

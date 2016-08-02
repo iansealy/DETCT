@@ -1420,8 +1420,9 @@ sub submit_job {
           sprintf q{ -R'span[hosts=1] select[mem>%d] rusage[mem=%d]' -M%d },
           $job->memory, $job->memory,
           $job->memory * $self->memory_limit_multiplier;
-        my $threads_clause = $job->threads == 1 ? q{} : sprintf q{ -n%d },
-          $job->threads;
+        my $threads_clause =
+          $job->stage->threads == 1 ? q{} : sprintf q{ -n%d },
+          $job->stage->threads;
         my $avoid_nodes_clause = q{};
         foreach my $avoid_node ( @{ $self->get_all_avoid_nodes() } ) {
             $avoid_nodes_clause .= sprintf q{ -R"select[hname!='%s']" },
