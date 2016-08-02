@@ -220,7 +220,7 @@ sub run_ssaha2 {
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";
 
-    if ( -s $stderr_file ) {
+    if ( check_for_error( $stdout_file, $stderr_file ) ) {
         confess "Couldn't run $cmd";
     }
 
@@ -285,6 +285,29 @@ sub parse_ssaha2 {
     close $fh;
 
     return %alignments;
+}
+
+=func check_for_error
+
+  Usage       : confess if check_for_error($stdout_file, $stderr_file);
+  Purpose     : Check STDOUT and STDERR for errors
+  Returns     : Boolean
+  Parameters  : String (the STDOUT file)
+                String (the STDERR file)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub check_for_error {
+    my ( $stdout_file, $stderr_file ) = @_;
+
+    my $stderr = path($stderr_file)->slurp;
+    return 1
+      if $stderr =~ m/\A error/xmsi
+      || $stderr =~ m/ No \s such \s file \s or \s directory /xms;
+
+    return 0;
 }
 
 1;
