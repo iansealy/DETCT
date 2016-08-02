@@ -55,7 +55,7 @@
     - add_transposon_annotation
 -
   name:           add_region_alignments
-  default_memory: 250
+  default_memory: 3000
   prerequisites:
     - add_continuous_rnaseq
 -
