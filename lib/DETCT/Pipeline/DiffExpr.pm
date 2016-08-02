@@ -43,7 +43,7 @@ use DETCT::Misc::PeakHMM qw(
   run_peak_hmm
   join_hmm_bins
 );
-use DETCT::Misc::Exonerate qw(
+use DETCT::Misc::SSAHA2 qw(
   add_region_alignments
 );
 use DETCT::Misc::R qw(
@@ -1059,11 +1059,11 @@ sub run_add_region_alignments {
     # Annotate regions with alignments
     my $chunk_regions = add_region_alignments(
         {
-            regions          => $regions,
-            dir              => $job->base_filename,
-            ref_fasta        => $self->analysis->ref_fasta,
-            analysis         => $self->analysis,
-            exonerate_binary => $self->analysis->exonerate_binary,
+            regions       => $regions,
+            dir           => $job->base_filename,
+            ref_fasta     => $self->analysis->ref_fasta,
+            analysis      => $self->analysis,
+            ssaha2_binary => $self->analysis->ssaha2_binary,
         }
     );
 

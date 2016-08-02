@@ -46,6 +46,7 @@ STDIN
 Sealy
 sig
 SortSam
+SSAHA
 subsetting
 transposons
 tsv

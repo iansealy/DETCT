@@ -4,6 +4,7 @@ example directory):
 perl -Ilib script/make_test_fasta.pl --seed 10 --seq_region_count 10 \
 --seq_region_max_length 500 > example/example.fa
 samtools faidx example/example.fa
+ssaha2Build -save example/example.fa example/example.fa
 perl -Ilib script/make_test_sam.pl --seed 10 --seq_region_count 10 \
 --seq_region_max_length 500 --read_pair_count 50 \
 --read_tags NNNNBGAGGC NNNNBAGAAG \
@@ -19,11 +20,16 @@ ls example/example*.bam | xargs -n1 samtools index
 To run the example differential expression pipeline (again from the top level
 directory):
 
+ssaha2Build -kmer 13 -skip 1 -save example/example.fa example/example.fa
 perl -Ilib script/run_pipeline.pl --pipeline de \
 --scheduler local --dir tmp \
 --analysis_yaml example/de-analysis.yaml \
 --stages_yaml example/de.yaml \
 --sleep_time 1 --verbose
+rm example/example.fa.head
+
+(example/example.fa.head is a large file, so is created before each run and then
+deleted)
 
 To run the example reannotation pipeline (for updating gene annotation):
 

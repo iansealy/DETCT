@@ -42,6 +42,7 @@ private peak_buffer_width      => my %peak_buffer_width;      # e.g. 100
 private hmm_sig_level          => my %hmm_sig_level;          # e.g. 0.001
 private hmm_binary             => my %hmm_binary;             # e.g. chiphmmnew
 private exonerate_binary       => my %exonerate_binary;       # e.g. exonerate
+private ssaha2_binary          => my %ssaha2_binary;          # e.g. ssaha2
 private r_binary               => my %r_binary;               # e.g. R
 private deseq_script           => my %deseq_script;           # e.g. run_deseq.R
 private filter_percentile      => my %filter_percentile;      # e.g. 40
@@ -92,6 +93,7 @@ Readonly our $MAX_CONDITION_LENGTH => 128;
                     hmm_sig_level                   => Float,
                     hmm_binary                      => String,
                     exonerate_binary                => String,
+                    ssaha2_binary                   => String,
                     r_binary                        => String,
                     deseq_script                    => String,
                     filter_percentile               => Int,
@@ -132,6 +134,7 @@ sub new {
     $self->set_hmm_sig_level( $arg_ref->{hmm_sig_level} );
     $self->set_hmm_binary( $arg_ref->{hmm_binary} );
     $self->set_exonerate_binary( $arg_ref->{exonerate_binary} );
+    $self->set_ssaha2_binary( $arg_ref->{ssaha2_binary} );
     $self->set_r_binary( $arg_ref->{r_binary} );
     $self->set_deseq_script( $arg_ref->{deseq_script} );
     $self->set_filter_percentile( $arg_ref->{filter_percentile} );
@@ -185,6 +188,7 @@ sub new_from_yaml {
     $self->set_hmm_sig_level( $yaml->[0]->{hmm_sig_level} );
     $self->set_hmm_binary( $yaml->[0]->{hmm_binary} );
     $self->set_exonerate_binary( $yaml->[0]->{exonerate_binary} );
+    $self->set_ssaha2_binary( $yaml->[0]->{ssaha2_binary} );
     $self->set_r_binary( $yaml->[0]->{r_binary} );
     $self->set_deseq_script( $yaml->[0]->{deseq_script} );
     $self->set_filter_percentile( $yaml->[0]->{filter_percentile} );
@@ -609,6 +613,39 @@ sub exonerate_binary {
 sub set_exonerate_binary {
     my ( $self, $arg ) = @_;
     $exonerate_binary{ id $self} = $arg;
+    return;
+}
+
+=method ssaha2_binary
+
+  Usage       : my $ssaha2_binary = $analysis->ssaha2_binary;
+  Purpose     : Getter for SSAHA2 binary attribute
+  Returns     : String
+  Parameters  : None
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub ssaha2_binary {
+    my ($self) = @_;
+    return $ssaha2_binary{ id $self};
+}
+
+=method set_ssaha2_binary
+
+  Usage       : $analysis->set_ssaha2_binary('ssaha2');
+  Purpose     : Setter for SSAHA2 binary attribute
+  Returns     : undef
+  Parameters  : String (the SSAHA2 binary)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_ssaha2_binary {
+    my ( $self, $arg ) = @_;
+    $ssaha2_binary{ id $self} = $arg;
     return;
 }
 
