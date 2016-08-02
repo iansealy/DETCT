@@ -56,7 +56,6 @@
 -
   name:           add_region_alignments
   default_memory: 250
-  threads: 2
   prerequisites:
     - add_continuous_rnaseq
 -
