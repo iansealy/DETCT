@@ -134,7 +134,7 @@ sub get_nearest_transposon {
     if ( @{$nearest} ) {
         $nearest_transposon_pos = $nearest->[0];
     }
-    return undef, undef if !defined $nearest_transposon_pos;
+    return if !defined $nearest_transposon_pos;
     $distance = $pos - $nearest_transposon_pos;
     if ( $strand > 0 ) {
         $distance *= -1;    ## no critic (ProhibitMagicNumbers)
