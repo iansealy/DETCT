@@ -265,26 +265,37 @@ sub sort_regions {
     my ($regions) = @_;
 
     # Separate regions with no p value from rest
-    my @regions_with_pval;
+    my @regions_with_pval_and_adj_pval;
+    my @regions_with_just_pval;
     my @regions_no_pval;
     foreach my $region ( @{$regions} ) {
         ## no critic (ProhibitMagicNumbers)
-        if ( defined $region->[11] && $region->[11] ne 'NA' ) {
+        if (   defined $region->[11]
+            && $region->[11] ne 'NA'
+            && defined $region->[12]
+            && $region->[12] ne 'NA' )
+        {
             ## use critic
-            push @regions_with_pval, $region;
+            push @regions_with_pval_and_adj_pval, $region;
+        }
+        elsif ( defined $region->[11] && $region->[11] ne 'NA' ) {
+            push @regions_with_just_pval, $region;
         }
         else {
             push @regions_no_pval, $region;
         }
     }
 
-    # Sort by adjusted p value and p value then regions without p value
+    # Sort by adjusted p value (if present) and p value then other regions
     ## no critic (ProhibitMagicNumbers)
     my @regions =
       sort { $a->[12] <=> $b->[12] || $a->[11] <=> $b->[11] }
-      @regions_with_pval;
+      @regions_with_pval_and_adj_pval;
+    @regions_with_just_pval =
+      sort { $a->[11] <=> $b->[11] } @regions_with_just_pval;
     ## use critic
-    push @regions, @regions_no_pval;    # Sorted by location already
+    push @regions, @regions_with_just_pval;
+    push @regions, @regions_no_pval;          # Sorted by location already
 
     return \@regions;
 }
