@@ -57,7 +57,7 @@ sub get_regions {
     while ( my $line = <$fh> ) {
         my @fields = DETCT::Misc::Output::parse_line( $line, $extension );
 
-        # Get region ID by joining chr, start, end, 3' end position and strand
+        # Get region ID by joining chr, start, end and strand
         ## no critic (ProhibitMagicNumbers)
         my $region = join q{:}, @fields[ 0, 1, 2, 4 ];
         ## use critic
@@ -83,7 +83,7 @@ sub output_regions {
     while ( my $line = <$fh> ) {
         my @fields = DETCT::Misc::Output::parse_line( $line, $extension );
 
-        # Get region ID by joining chr, start, end, 3' end position and strand
+        # Get region ID by joining chr, start, end and strand
         ## no critic (ProhibitMagicNumbers)
         my $region = join q{:}, @fields[ 0, 1, 2, 4 ];
         ## use critic
