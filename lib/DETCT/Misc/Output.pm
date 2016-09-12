@@ -141,8 +141,14 @@ sub dump_as_table {    ## no critic (ProhibitExcessComplexity)
         my $tpe_strand     = $region->[7];
         my $tpe_read_count = $region->[8];
         ## use critic
-        push @row,
-          [ $tpe_pos, [ $tpe_seq_name, $tpe_pos, $tpe_pos, $tpe_pos ] ];
+        if ( ref $tpe_pos ne 'ARRAY' ) {
+            $tpe_pos = [$tpe_pos];
+        }
+        my @tpe_pos_to_link;
+        foreach my $pos ( @{$tpe_pos} ) {
+            push @tpe_pos_to_link, [ $tpe_seq_name, $pos, $pos, $pos ];
+        }
+        push @row, [ $tpe_pos, [@tpe_pos_to_link] ];
         push @row, [$tpe_strand];
         push @row, [$tpe_read_count];
 
@@ -919,8 +925,14 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
         push @region, undef;      # Region log probability sum
         ## no critic (ProhibitMagicNumbers)
         push @region, defined $row[3] ? $row[0] : undef;  # 3' end sequence name
+        if ( defined $row[3] && $row[3] =~ m/,/xms ) {
+            $row[3] = [ split /,/xms, $row[3] ];
+        }
         push @region, $row[3];                            # 3' end position
         push @region, $row[4];                            # 3' end strand
+        if ( defined $row[5] && $row[5] =~ m/,/xms ) {
+            $row[5] = [ split /,/xms, $row[5] ];
+        }
         push @region, $row[5];                            # 3' end read count
         ## use critic
 
@@ -1184,15 +1196,6 @@ sub convert_table_for_deseq {
     return \%regions;
 }
 
-# Cache Text::CSV object
-{
-    my $text_csv_object = Text::CSV->new( { empty_is_undef => 1 } );
-
-    sub _csv {
-        return $text_csv_object;
-    }
-}
-
 =func dump_duplication_metrics
 
   Usage       : DETCT::Misc::Output::dump_duplication_metrics( {
@@ -1389,6 +1392,15 @@ sub get_ends_definition {
     push @def, [ q{3' ends},          $STRING, ];
 
     return \@def;
+}
+
+# Cache Text::CSV object
+{
+    my $text_csv_object = Text::CSV->new( { empty_is_undef => 1 } );
+
+    sub _csv {
+        return $text_csv_object;
+    }
 }
 
 1;

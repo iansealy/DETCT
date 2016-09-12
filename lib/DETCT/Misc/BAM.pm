@@ -951,9 +951,9 @@ sub filter_three_prime_ends {
                             Int (region maximum read count),
                             Float (region log probability sum),
                             String (3' end sequence name) or undef,
-                            Int (3' end position) or undef,
+                            Int (3' end position) or arrayref or undef,
                             Int (3' end strand),
-                            Int (3' end read count) or undef,
+                            Int (3' end read count) or arrayref or undef,
                         ],
                         ... (regions)
                 }
@@ -1085,9 +1085,9 @@ sub _sort_three_prime_end {
                             Int (region maximum read count),
                             Float (region log probability sum),
                             String (3' end sequence name) or undef,
-                            Int (3' end position) or undef,
+                            Int (3' end position) or arrayref or undef,
                             Int (3' end strand) or undef,
-                            Int (3' end read count) or undef,
+                            Int (3' end read count) or arrayref or undef,
                             Hashref {
                                 String (tag) => Int (count)
                             }
@@ -1203,9 +1203,9 @@ sub count_reads {
                             Int (region maximum read count),
                             Float (region log probability sum),
                             String (3' end sequence name) or undef,
-                            Int (3' end position) or undef,
+                            Int (3' end position) or arrayref or undef,
                             Int (3' end strand) or undef,
-                            Int (3' end read count) or undef,
+                            Int (3' end read count) or arrayref or undef,
                             Arrayref [
                                 Int (count)
                                 ...

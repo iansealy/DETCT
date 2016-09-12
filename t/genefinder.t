@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 105;
+plan tests => 117;
 
 use DETCT::GeneFinder;
 
@@ -277,6 +277,49 @@ is( $annotated_regions->[3]->[-1]->{$gv}->[0]->[5]->[0]->[0],
     'ENSDART00000133571', 'Transcript stable id' );
 is(
     $annotated_regions->[3]->[-1]->{$gv}->[0]->[5]->[0]->[1],
+    'protein_coding:appris_pi:gencode_basic:tsl3',
+    'Transcript biotype'
+);
+
+# Adding gene annotation if no 3' end
+$regions = [
+    [
+        '1', 1, 1000, 10, -10, undef, undef, undef,
+        undef, [], undef, undef, [], []
+    ],
+];
+$annotated_regions = $gene_finder->add_gene_annotation($regions);
+is( scalar keys %{ $annotated_regions->[0]->[-1] }, 0, '0 genebuilds' );
+
+# Adding gene annotation if multiple 3' end positions for single region
+$regions = [
+    [
+        '1', 1, 1000, 10, -10, '1', [ 110, 120 ],
+        1,                          [ 10,  20 ],
+        [], undef, undef, [], []
+    ],
+];
+$annotated_regions = $gene_finder->add_gene_annotation($regions);
+($gv) = keys %{ $annotated_regions->[0]->[-1] };    # Genebuild version varies
+is( scalar keys %{ $annotated_regions->[0]->[-1] },   1, '1 genebuild' );
+is( scalar @{ $annotated_regions->[0]->[-1]->{$gv} }, 1, '1 gene' );
+is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[0],
+    'ENSDARG00000095747', 'Stable id' );
+is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[1],
+    'g100:1', q{3' end as name} );
+is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[2], undef, 'Description' );
+is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[3],
+    'protein_coding', 'Biotype' );
+is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[4]->[0],
+    10, 'Nearest distance downstream' );
+is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[4]->[1],
+    20, 'Furthest distance downstream' );
+is( scalar @{ $annotated_regions->[0]->[-1]->{$gv}->[0]->[5] },
+    1, '1 transcript' );
+is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[0],
+    'ENSDART00000133571', 'Transcript stable id' );
+is(
+    $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[1],
     'protein_coding:appris_pi:gencode_basic:tsl3',
     'Transcript biotype'
 );

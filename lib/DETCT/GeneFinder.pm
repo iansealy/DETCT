@@ -433,9 +433,9 @@ sub _extend_biotype_with_attributes {
                         Int (region maximum read count),
                         Float (region log probability sum),
                         String (3' end sequence name) or undef,
-                        Int (3' end position) or undef,
+                        Int (3' end position) or arrayref or undef,
                         Int (3' end strand) or undef,
-                        Int (3' end read count) or undef,
+                        Int (3' end read count) or arrayref or undef,
                         Arrayref [
                             Int (count)
                             ...
@@ -464,7 +464,7 @@ sub _extend_biotype_with_attributes {
                                     String (gene name) or undef,
                                     String (gene description) or undef,
                                     String (gene biotype),
-                                    Int (distance to 3' end),
+                                    Int (distance to 3' end) or arrayref,
                                     Arrayref [
                                         Arrayref [
                                             String (transcript stable id),
@@ -516,41 +516,50 @@ sub add_gene_annotation {
         my $nearest_end_pos;
 
         if ( defined $three_prime_seq_name ) {
+            if ( ref $three_prime_pos ne 'ARRAY' ) {
+                $three_prime_pos = [$three_prime_pos];
+            }
+            foreach my $pos ( @{$three_prime_pos} ) {
 
-            # Find nearest genes to 3' end (taking strand into account)
-            ( $genes, $distance, $nearest_end_pos ) =
-              $self->get_nearest_genes( $three_prime_seq_name, $three_prime_pos,
-                $three_prime_strand );
-        }
+                # Find nearest genes to 3' end (taking strand into account)
+                ( $genes, $distance, $nearest_end_pos ) =
+                  $self->get_nearest_genes( $three_prime_seq_name, $pos,
+                    $three_prime_strand );
 
-        # Add annotation if got genes
-        foreach my $gene ( @{$genes} ) {
-            my @transcripts;
-            foreach my $transcript ( @{ $gene->get_all_transcripts() } ) {
+                # Add annotation if got genes
+                foreach my $gene ( @{$genes} ) {
+                    my @transcripts;
+                    foreach my $transcript ( @{ $gene->get_all_transcripts() } )
+                    {
 
-                # Only add those transcripts nearest to 3' end
-                ## no critic (ProhibitMagicNumbers)
-                if (
-                    (
-                           $transcript->strand == 1
-                        && $transcript->end == $nearest_end_pos
-                    )
-                    || (   $transcript->strand == -1
-                        && $transcript->start == $nearest_end_pos )
-                  )
-                {
-                    ## use critic
-                    push @transcripts,
-                      [ $transcript->stable_id, $transcript->biotype, ];
+                        # Only add those transcripts nearest to 3' end
+                        ## no critic (ProhibitMagicNumbers)
+                        if (    ## no critic (ProhibitDeepNests)
+                            (
+                                   $transcript->strand == 1
+                                && $transcript->end == $nearest_end_pos
+                            )
+                            || (   $transcript->strand == -1
+                                && $transcript->start == $nearest_end_pos )
+                          )
+                        {
+                            ## use critic
+                            push @transcripts,
+                              [ $transcript->stable_id, $transcript->biotype, ];
+                        }
+                    }
+                    push @{ $gene_annotation{ $gene->genebuild_version } },
+                      [
+                        $gene->stable_id,   $gene->name,
+                        $gene->description, $gene->biotype,
+                        $distance,          \@transcripts,
+                      ];
                 }
             }
-            push @{ $gene_annotation{ $gene->genebuild_version } },
-              [
-                $gene->stable_id, $gene->name, $gene->description,
-                $gene->biotype,   $distance,   \@transcripts,
-              ];
         }
 
+        %gene_annotation =
+          $self->_deduplicate_gene_annotation(%gene_annotation);
         push @{$region}, \%gene_annotation;
         push @output, $region;
     }
@@ -573,9 +582,9 @@ sub add_gene_annotation {
                         Int (region maximum read count),
                         Float (region log probability sum),
                         String (3' end sequence name) or undef,
-                        Int (3' end position) or undef,
+                        Int (3' end position) or arrayref or undef,
                         Int (3' end strand) or undef,
-                        Int (3' end read count) or undef,
+                        Int (3' end read count) or arrayref or undef,
                         Arrayref [
                             Int (count)
                             ...
@@ -604,7 +613,7 @@ sub add_gene_annotation {
                                     String (gene name) or undef,
                                     String (gene description) or undef,
                                     String (gene biotype),
-                                    Int (distance to 3' end),
+                                    Int (distance to 3' end) or arrayref,
                                     Arrayref [
                                         Arrayref [
                                             String (transcript stable id),
@@ -672,6 +681,95 @@ sub add_existing_gene_annotation {
     }
 
     return $arg_ref->{regions};
+}
+
+# Usage       : $annotation = $self->_deduplicate_gene_annotation($annotation);
+# Purpose     : Deduplicate Ensembl gene annotation
+# Returns     : Hash (
+#                   String (genebuild version) => Arrayref [
+#                       Arrayref [
+#                           String (gene stable id),
+#                           String (gene name) or undef,
+#                           String (gene description) or undef,
+#                           String (gene biotype),
+#                           Int (distance to 3' end) or arrayref,
+#                           Arrayref [
+#                               Arrayref [
+#                                   String (transcript stable id),
+#                                   String (transcript biotype),
+#                               ],
+#                               ... (transcripts)
+#                           ],
+#                       ],
+#                       ... (genes)
+#                   ],
+#               )
+# Parameters  : Hash (
+#                   String (genebuild version) => Arrayref [
+#                       Arrayref [
+#                           String (gene stable id),
+#                           String (gene name) or undef,
+#                           String (gene description) or undef,
+#                           String (gene biotype),
+#                           Int (distance to 3' end) or arrayref,
+#                           Arrayref [
+#                               Arrayref [
+#                                   String (transcript stable id),
+#                                   String (transcript biotype),
+#                               ],
+#                               ... (transcripts)
+#                           ],
+#                       ],
+#                       ... (genes)
+#                   ],
+#               )
+# Throws      : No exceptions
+# Comments    : None
+
+sub _deduplicate_gene_annotation {
+    my ( $self, %gene_annotation ) = @_;
+
+    my %deduplicated_gene_annotation;
+
+    foreach my $gv ( sort keys %gene_annotation ) {
+        my %gene;
+        my %distance;
+        my %transcript;
+        foreach my $gene ( @{ $gene_annotation{$gv} } ) {
+            my $gene_stable_id = $gene->[0];
+            ## no critic (ProhibitMagicNumbers)
+            $gene{$gene_stable_id} = [ @{$gene}[ 1 .. 3 ] ];
+            $distance{$gene_stable_id}{ $gene->[4] } = 1;
+            ## use critic
+            foreach my $transcript ( @{ $gene->[-1] } ) {
+                my $transcript_stable_id = $transcript->[0];
+                $transcript{$gene_stable_id}{$transcript_stable_id} =
+                  [ $transcript->[1] ];
+            }
+        }
+        $deduplicated_gene_annotation{$gv} = [];
+        foreach my $gene_stable_id ( sort keys %gene ) {
+            my $distance =
+              [ sort { abs $a <=> $b } keys %{ $distance{$gene_stable_id} } ];
+            if ( scalar @{$distance} == 1 ) {
+                $distance = $distance->[0];
+            }
+            my $gene =
+              [ $gene_stable_id, @{ $gene{$gene_stable_id} }, $distance, [] ];
+            foreach my $transcript_stable_id (
+                sort keys %{ $transcript{$gene_stable_id} } )
+            {
+                push @{ $gene->[-1] },
+                  [
+                    $transcript_stable_id,
+                    @{ $transcript{$gene_stable_id}{$transcript_stable_id} }
+                  ];
+            }
+            push @{ $deduplicated_gene_annotation{$gv} }, $gene;
+        }
+    }
+
+    return %deduplicated_gene_annotation;
 }
 
 1;
