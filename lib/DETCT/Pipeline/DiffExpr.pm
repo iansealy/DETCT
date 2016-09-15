@@ -1164,13 +1164,15 @@ sub all_parameters_for_choose_three_prime_end {
 
     my $chunks = $self->analysis->get_all_chunks();
 
+    my $prerequisite_stage_name = $stage->get_all_prerequisites->[0]->name;
+
     my $component = 0;
     foreach my $chunk ( @{$chunks} ) {
         $component++;
-        my $filter_three_prime_ends_output_file =
-          $self->get_and_check_output_file( 'filter_three_prime_ends',
+        my $prerequisite_output_file =
+          $self->get_and_check_output_file( $prerequisite_stage_name,
             $component );
-        push @all_parameters, [ $chunk, $filter_three_prime_ends_output_file ];
+        push @all_parameters, [ $chunk, $prerequisite_output_file ];
     }
 
     return @all_parameters;
@@ -1190,10 +1192,10 @@ sub all_parameters_for_choose_three_prime_end {
 sub run_choose_three_prime_end {
     my ( $self, $job ) = @_;
 
-    my ( $chunk, $filter_three_prime_ends_output_file ) = @{ $job->parameters };
+    my ( $chunk, $prerequisite_output_file ) = @{ $job->parameters };
 
     # Get regions
-    my $regions = $self->load_serialised($filter_three_prime_ends_output_file);
+    my $regions = $self->load_serialised($prerequisite_output_file);
 
     my %chunk_regions;
 
