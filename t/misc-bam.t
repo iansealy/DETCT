@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 418;
+plan tests => 420;
 
 use DETCT::Misc::BAM qw(
   get_reference_sequence_lengths
@@ -1455,9 +1455,11 @@ is( $three_prime_ends->{'1'}->[0]->[1],   2000, 'Region end' );
 is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
 is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
 is( $three_prime_ends->{'1'}->[0]->[4],   '1',  q{3' end sequence} );
-is( $three_prime_ends->{'1'}->[0]->[5],   900,  q{3' end position} );
-is( $three_prime_ends->{'1'}->[0]->[6],   -1,   q{3' end strand} );
-is( $three_prime_ends->{'1'}->[0]->[7],   20,   q{3' end read count} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[0], 900,  q{3' end position} );
+is( $three_prime_ends->{'1'}->[0]->[5]->[1], 2200, q{3' end position} );
+is( $three_prime_ends->{'1'}->[0]->[6],      -1,   q{3' end strand} );
+is( $three_prime_ends->{'1'}->[0]->[7]->[0], 20,   q{3' end read count} );
+is( $three_prime_ends->{'1'}->[0]->[7]->[1], 20,   q{3' end read count} );
 $three_prime_ends = choose_three_prime_end(
     {
         seq_name => '1',
@@ -1477,7 +1479,7 @@ is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
 is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
 is( $three_prime_ends->{'1'}->[0]->[4],   '1',  q{3' end sequence} );
 is( $three_prime_ends->{'1'}->[0]->[6],   -1,   q{3' end strand} );
-is( $three_prime_ends->{'1'}->[0]->[7],   20,   q{3' end read count} );
+is( $three_prime_ends->{'1'}->[0]->[7]->[0], 20, q{3' end read count} );
 $three_prime_ends = choose_three_prime_end(
     {
         seq_name => '1',
@@ -1497,7 +1499,7 @@ is( $three_prime_ends->{'1'}->[0]->[2],   10,   'Region maximum read count' );
 is( $three_prime_ends->{'1'}->[0]->[3],   -10,  'Region log probability sum' );
 is( $three_prime_ends->{'1'}->[0]->[4],   '2',  q{3' end sequence} );
 is( $three_prime_ends->{'1'}->[0]->[6],   -1,   q{3' end strand} );
-is( $three_prime_ends->{'1'}->[0]->[7],   20,   q{3' end read count} );
+is( $three_prime_ends->{'1'}->[0]->[7]->[0], 20, q{3' end read count} );
 
 # Test checking for polyA
 is( DETCT::Misc::BAM::is_polya('TTTTTTTTTT'), 0, 'PolyT' );

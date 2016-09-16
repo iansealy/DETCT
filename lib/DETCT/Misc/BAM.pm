@@ -21,11 +21,12 @@ use Try::Tiny;
 
 use Readonly;
 use Bio::DB::HTS;
-use List::Util qw( min sum );
+use List::Util qw( min max sum );
 use List::MoreUtils qw( all );
 use Data::Compare;
 use DETCT::Misc::Tag;
 use DETCT::Misc::BAM::Flag;
+use Math::Derivative qw(Derivative1 Derivative2);
 
 use base qw( Exporter );
 our @EXPORT_OK = qw(
@@ -55,7 +56,8 @@ our @EXPORT_OK = qw(
 =cut
 
 # Constants
-Readonly our $SEQ_TO_CHECK_FOR_HEXAMER => 40;
+Readonly our $SEQ_TO_CHECK_FOR_HEXAMER    => 40;
+Readonly our $SECOND_DERIVATIVE_THRESHOLD => 50;
 
 # From http://www.ncbi.nlm.nih.gov/pmc/articles/PMC310884/
 my @PRIMARY_HEXAMERS = qw( AATAAA ATTAAA );
@@ -983,48 +985,73 @@ sub choose_three_prime_end {
             $region_log_prob_sum, $strand, $three_prime_ends )
           = @{$region};
 
+        # Limit 3' ends to peaks
+        my @peaks = _call_three_prime_end_peaks_in_region($three_prime_ends);
+        my %is_peak = map { $_ => 1 } @peaks;
+        @{$three_prime_ends} =
+          grep { $is_peak{ $_->[1] } } @{$three_prime_ends};
+
         my (
-            $three_prime_seq_name, $three_prime_pos,
-            $three_prime_strand,   $three_prime_read_count
+            $three_prime_seq_name,   $three_prime_pos,
+            @three_prime_pos,        $three_prime_strand,
+            $three_prime_read_count, @three_prime_read_count
         );
+        my ( @reduced_region_start, @reduced_region_end );
 
         @{$three_prime_ends} = reverse sort {
             _sort_three_prime_end( $a, $b, $arg_ref->{seq_name}, $region_start,
                 $region_end )
         } @{$three_prime_ends};
 
-        # Get best 3' end (highest read count)
-        if ( @{$three_prime_ends} ) {
+        # Summarise 3' ends and reduce size of region if appropriate
+        foreach my $three_prime_end ( @{$three_prime_ends} ) {
             (
                 $three_prime_seq_name, $three_prime_pos,
                 $three_prime_strand,   $three_prime_read_count
-            ) = @{ $three_prime_ends->[0] };
-        }
+            ) = @{$three_prime_end};
+            push @three_prime_pos,        $three_prime_pos;
+            push @three_prime_read_count, $three_prime_read_count;
 
-        # Reduce size of region if appropriate
-        ## no critic (ProhibitMagicNumbers)
-        if ( defined $three_prime_seq_name
-            && $three_prime_seq_name eq $arg_ref->{seq_name} )
-        {
-            if (   $three_prime_strand == 1
-                && $three_prime_pos < $region_end
-                && $three_prime_pos > $region_start )
+            if ( defined $three_prime_seq_name
+                && $three_prime_seq_name eq $arg_ref->{seq_name} )
             {
-                $region_end = $three_prime_pos;
-            }
-            elsif ($three_prime_strand == -1
-                && $three_prime_pos > $region_start
-                && $three_prime_pos < $region_end )
-            {
-                $region_start = $three_prime_pos;
+                if (   $three_prime_strand > 0
+                    && $three_prime_pos < $region_end
+                    && $three_prime_pos > $region_start )
+                {
+                    push @reduced_region_end, $three_prime_pos;
+                }
+                elsif ($three_prime_strand < 0
+                    && $three_prime_pos > $region_start
+                    && $three_prime_pos < $region_end )
+                {
+                    push @reduced_region_start, $three_prime_pos;
+                }
             }
         }
-        ## use critic
+        if (@reduced_region_end) {
+            $region_end = max(@reduced_region_end);
+        }
+        if (@reduced_region_start) {
+            $region_start = min(@reduced_region_start);
+        }
 
         # Use strand for region (i.e. based on read 2 alignments) if necessary
         $three_prime_strand = $three_prime_strand || $strand;
 
         # Add three prime ends to regions
+        if ( scalar @three_prime_pos == 1 ) {
+            $three_prime_pos = $three_prime_pos[0];
+        }
+        elsif ( scalar @three_prime_pos > 1 ) {
+            $three_prime_pos = \@three_prime_pos;
+        }
+        if ( scalar @three_prime_read_count == 1 ) {
+            $three_prime_read_count = $three_prime_read_count[0];
+        }
+        elsif ( scalar @three_prime_read_count > 1 ) {
+            $three_prime_read_count = \@three_prime_read_count;
+        }
         push @regions_with_three_prime_ends,
           [
             $region_start,          $region_end,
@@ -1064,6 +1091,105 @@ sub _sort_three_prime_end {
     }
 
     return $read_count_a <=> $read_count_b || $dist_b <=> $dist_a;
+}
+
+# Usage       : my @peaks
+#                   = _call_three_prime_end_peaks_in_region($three_prime_ends);
+# Purpose     : Call 3' end peaks in a single region
+# Returns     : Array of +ve Ints
+# Parameters  : Arrayref of 3' ends
+# Throws      : No exceptions
+# Comments    : None
+sub _call_three_prime_end_peaks_in_region {
+    my ($three_prime_ends) = @_;
+
+    my %count_for;
+    my $strand;
+    my $max_count_in_region = 0;
+    foreach my $three_prime_end ( @{$three_prime_ends} ) {
+        my (
+            $three_prime_seq_name, $three_prime_pos,
+            $three_prime_strand,   $three_prime_read_count
+        ) = @{$three_prime_end};
+        $count_for{$three_prime_pos} = $three_prime_read_count;
+        $strand = $three_prime_strand;
+        if ( $three_prime_read_count > $max_count_in_region ) {
+            $max_count_in_region = $three_prime_read_count;
+        }
+    }
+
+    my @pos = sort { $a <=> $b } keys %count_for;
+    if ( defined $strand && $strand < 0 ) {
+        @pos = reverse @pos;
+    }
+    my @counts = map { $count_for{$_} } @pos;
+
+    if ( scalar @pos <= 1 ) {
+        return @pos;    # No 3' ends or just one
+    }
+
+    # Always include highest peak(s)
+    my %peak =
+      map { $_ => 1 } grep { $count_for{$_} == $max_count_in_region } @pos;
+
+    my @deriv2 = Derivative2( \@pos, \@counts );
+
+    # Peaks roughly where difference between negative second derivative and
+    # preceding second derivative is large
+    foreach my $i ( 1 .. scalar @{$three_prime_ends} - 1 ) {
+        next if $deriv2[$i] >= 0;
+        my $diff = $deriv2[ $i - 1 ] - $deriv2[$i];
+        if ( $diff > $SECOND_DERIVATIVE_THRESHOLD ) {
+            $peak{ $pos[$i] } = 1;
+        }
+    }
+
+    # Get subregions (regions of peaks separated by a maximum of 3 bases) and
+    # then choose position with highest count within subregion
+    my @peaks = sort { $a <=> $b } keys %peak;
+    my $peak = shift @peaks;
+    my @subregions;
+    my $current_start = $peak;
+    my $current_end   = $peak;
+    while ( $peak = shift @peaks ) {
+        if ( $peak - $current_end <= 4 ) {   ## no critic (ProhibitMagicNumbers)
+            $current_end = $peak;
+        }
+        else {
+            push @subregions, [ $current_start, $current_end ];
+            $current_start = $peak;
+            $current_end   = $peak;
+        }
+    }
+    push @subregions, [ $current_start, $current_end ];
+    @peaks = ();
+    foreach my $subregion (@subregions) {
+        my $max_count = 0;
+        my $max_pos;
+        my @subregion = $subregion->[0] .. $subregion->[1];
+        if ( $strand < 0 ) {
+            @subregion = reverse @subregion;
+        }
+        foreach my $pos (@subregion) {
+            if ( exists $count_for{$pos} && $count_for{$pos} > $max_count ) {
+                $max_count = $count_for{$pos};
+                $max_pos   = $pos;
+            }
+        }
+        push @peaks, $max_pos;
+    }
+
+    # Remove peaks with counts less than 5% of the maximum
+    ## no critic (ProhibitMagicNumbers)
+    @peaks = grep { $count_for{$_} / $max_count_in_region > 0.05 } @peaks;
+    ## use critic
+
+    # Remove peaks with fewer than four reads
+    ## no critic (ProhibitMagicNumbers)
+    @peaks = grep { $count_for{$_} > 3 } @peaks;
+    ## use critic
+
+    return @peaks;
 }
 
 =func count_reads
