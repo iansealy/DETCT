@@ -178,7 +178,10 @@ sub dump_as_table {    ## no critic (ProhibitExcessComplexity)
                 my ( $gene_stable_id, $name, $description, $gene_biotype,
                     $distance, $transcripts )
                   = @{$gene};
-                push @distance,       $distance;
+                if ( ref $distance ne 'ARRAY' ) {
+                    $distance = [$distance];
+                }
+                push @distance,       @{$distance};
                 push @gene_stable_id, $gene_stable_id;
                 push @gene_stable_id_to_link,
                   [ $gene_stable_id, $gene_stable_id ];
