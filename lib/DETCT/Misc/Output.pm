@@ -61,7 +61,7 @@ Readonly our @ENDS_FORMATS => qw( csv tsv );
   Usage       : DETCT::Misc::Output::dump_as_table( {
                     analysis => $analysis,
                     dir      => '.',
-                    regions  => $regions_hash_ref,
+                    regions  => $regions_ary_ref,
                 } );
   Purpose     : Dump regions in tabular format
   Returns     : undef
