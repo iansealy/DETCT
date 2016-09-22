@@ -795,9 +795,9 @@ sub dump_html {
                         undef,
                         undef,
                         String (3' end sequence name) or undef,
-                        Int (3' end position) or undef,
+                        Int (3' end position) or arrayref or undef,
                         Int (3' end strand) or undef,
-                        Int (3' end read count) or undef,
+                        Int (3' end read count) or arrayref or undef,
                         Arrayref [
                             Int (count)
                             ...
