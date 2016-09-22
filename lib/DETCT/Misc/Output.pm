@@ -1015,23 +1015,15 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
             push @gene, shift @description;
             push @gene, shift @gene_biotype;
             push @gene, shift @distance;
-            if (@gene_stable_id) {
+            push @gene,
+              [ [ shift @transcript_stable_id, shift @transcript_biotype ] ];
 
-                # Not last gene, so just add one transcript
-                push @gene,
-                  [ [ shift @transcript_stable_id, shift @transcript_biotype ]
-                  ];
-            }
-            else {
-                # Last gene, so add remaining transcripts
+            # If last gene then also add any remaining transcripts
+            if ( !@gene_stable_id ) {
                 while (@transcript_stable_id) {
-                    push @gene,
-                      [
-                        [
-                            shift @transcript_stable_id,
-                            shift @transcript_biotype
-                        ]
-                      ];
+                    push @{ $gene[-1] },
+                      [ shift @transcript_stable_id,
+                        shift @transcript_biotype ];
                 }
             }
 
