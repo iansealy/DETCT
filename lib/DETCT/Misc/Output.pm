@@ -928,8 +928,10 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
         push @region, undef;      # Region log probability sum
         ## no critic (ProhibitMagicNumbers)
         push @region, defined $row[3] ? $row[0] : undef;  # 3' end sequence name
+        my $end_count = 1;
         if ( defined $row[3] && $row[3] =~ m/,/xms ) {
             $row[3] = [ split /,/xms, $row[3] ];
+            $end_count = scalar @{ $row[3] };
         }
         push @region, $row[3];                            # 3' end position
         push @region, $row[4];                            # 3' end strand
@@ -1001,6 +1003,11 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
         my @description = defined $row[14] ? split /,\S/xms, $row[14] : ();
         ## use critic
 
+        my $distance_repeated = 0;
+        my $gene_count        = scalar @gene_stable_id;
+        if ( $gene_count > 1 && $end_count != scalar @distance ) {
+            $distance_repeated = 1;
+        }
         my @genes;
         while (@gene_stable_id) {
             if ( scalar @gene_stable_id == 1 ) {
@@ -1014,7 +1021,23 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
             push @gene, shift @name;
             push @gene, shift @description;
             push @gene, shift @gene_biotype;
-            push @gene, shift @distance;
+            if ($distance_repeated) {
+                if ( $end_count == 1 ) {
+                    push @gene, shift @distance;
+                }
+                else {
+                    push @gene, [ splice @distance, 0, $end_count ];
+                }
+            }
+            else {
+                if ( $end_count == 1 || $end_count / $gene_count == 1 ) {
+                    push @gene, shift @distance;
+                }
+                else {
+                    push @gene,
+                      [ splice @distance, 0, $end_count / $gene_count ];
+                }
+            }
             push @gene,
               [ [ shift @transcript_stable_id, shift @transcript_biotype ] ];
 
