@@ -997,10 +997,10 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
         my @transcript_biotype   = split /,/xms, $row[12];    # Transcript type
 
         # Gene name (can be missing)
-        my @name = defined $row[13] ? split /,\S/xms, $row[13] : ();
+        my @name = defined $row[13] ? split /,(?=\S)/xms, $row[13] : ();
 
         # Gene description (can be missing)
-        my @description = defined $row[14] ? split /,\S/xms, $row[14] : ();
+        my @description = defined $row[14] ? split /,(?=\S)/xms, $row[14] : ();
         ## use critic
 
         my $distance_repeated = 0;
