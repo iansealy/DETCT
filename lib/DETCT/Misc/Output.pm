@@ -1005,7 +1005,10 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
 
         my $distance_repeated = 0;
         my $gene_count        = scalar @gene_stable_id;
-        if ( $gene_count > 1 && $end_count != scalar @distance ) {
+        if (   $gene_count > 1
+            && $end_count != scalar @distance
+            && scalar @distance / $end_count == $gene_count )
+        {
             $distance_repeated = 1;
         }
         my @genes;
@@ -1032,6 +1035,12 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
             else {
                 if ( $end_count == 1 || $end_count / $gene_count == 1 ) {
                     push @gene, shift @distance;
+                }
+                elsif (
+                    $end_count / $gene_count != int $end_count / $gene_count )
+                {
+                    # Just repeat all distances for each gene because can't know
+                    push @gene, \@distance;
                 }
                 else {
                     push @gene,
