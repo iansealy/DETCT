@@ -47,6 +47,8 @@ Readonly our $CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD => 9;
 
 Readonly our $DISTANCE_TO_POLY_A => 10;
 
+Readonly our %IS_PRIMARY_HEXAMER => map { $_ => 1 } qw( AATAAA ATTAAA );
+
 # Default options
 my $analysis_dir = q{.};
 my $analysis_yaml = File::Spec->catfile( $analysis_dir, 'analysis.yaml' );
@@ -54,6 +56,7 @@ my $all_file;
 my $ends_file;
 my $keep_regions_without_ends;
 my $keep_polya_ends;
+my $keep_ends_without_hexamer;
 my ( $help, $man );
 
 # Get and check command line options
@@ -68,6 +71,10 @@ my $regions = get_regions( $all_file, $analysis );
 
 if ( !$keep_polya_ends ) {
     $regions = remove_polya( $regions, $ends_for );
+}
+
+if ( !$keep_ends_without_hexamer ) {
+    $regions = remove_ends_without_hexamer( $regions, $ends_for );
 }
 
 if ( !$keep_regions_without_ends ) {
@@ -151,6 +158,33 @@ sub remove_polya {
                     $region = remove_end_from_region( $region, $pos );
                     last;
                 }
+            }
+        }
+    }
+
+    return $regions;
+}
+
+sub remove_ends_without_hexamer {
+    my ( $regions, $ends_for ) = @_;    ## no critic (ProhibitReusedNames)
+
+    foreach my $region ( @{$regions} ) {
+        my @all_ends = parse_ends( $region, $ends_for );
+        ## no critic (ProhibitMagicNumbers)
+        my $three_prime_end_pos = $region->[6];
+        ## use critic
+        next if !defined $three_prime_end_pos;
+        my @three_prime_end_pos =
+          ref $three_prime_end_pos eq 'ARRAY'
+          ? @{$three_prime_end_pos}
+          : ($three_prime_end_pos);
+        foreach my $pos (@three_prime_end_pos) {
+            my ($end) =
+              grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
+            if (   !defined $end->[$HEXAMER_FIELD]
+                || !exists $IS_PRIMARY_HEXAMER{ $end->[$HEXAMER_FIELD] } )
+            {
+                $region = remove_end_from_region( $region, $pos );
             }
         }
     }
@@ -279,6 +313,7 @@ sub get_and_check_options {
         'ends_file=s'               => \$ends_file,
         'keep_regions_without_ends' => \$keep_regions_without_ends,
         'keep_polya_ends'           => \$keep_polya_ends,
+        'keep_ends_without_hexamer' => \$keep_ends_without_hexamer,
         'help'                      => \$help,
         'man'                       => \$man,
     ) or pod2usage(2);
@@ -311,6 +346,7 @@ sub get_and_check_options {
         [--ends_file file]
         [--keep_regions_without_ends]
         [--keep_polya_ends]
+        [--keep_ends_without_hexamer]
         [--help]
         [--man]
 
@@ -341,6 +377,10 @@ Don't filter out regions lacking a 3' end.
 =item B<--keep_polya_ends>
 
 Don't filter out polyA 3' ends labelled.
+
+=item B<--keep_ends_without_hexamer>
+
+Don't filter out 3' ends lacking a primary hexamer.
 
 =item B<--help>
 
