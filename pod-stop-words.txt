@@ -39,6 +39,7 @@ Picard
 picard
 PNEXT
 polyT
+polyA
 rerio
 sampe
 SAMtools
