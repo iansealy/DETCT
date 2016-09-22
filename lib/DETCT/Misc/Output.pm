@@ -826,7 +826,7 @@ sub dump_html {
                                     String (gene name) or undef,
                                     String (gene description) or undef,
                                     String (gene biotype),
-                                    Int (distance to 3' end),
+                                    Int (distance to 3' end) or arrayref,
                                     Arrayref [
                                         Arrayref [
                                             String (transcript stable id),
