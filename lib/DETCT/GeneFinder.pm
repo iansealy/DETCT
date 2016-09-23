@@ -559,11 +559,11 @@ sub add_gene_annotation {
                       ];
                 }
             }
+            %gene_annotation =
+              $self->_deduplicate_gene_annotation( scalar @{$three_prime_pos},
+                %gene_annotation );
         }
 
-        %gene_annotation =
-          $self->_deduplicate_gene_annotation( scalar @{$three_prime_pos},
-            %gene_annotation );
         push @{$region}, \%gene_annotation;
         push @output, $region;
     }
