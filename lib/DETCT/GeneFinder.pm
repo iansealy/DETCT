@@ -519,7 +519,9 @@ sub add_gene_annotation {
             if ( ref $three_prime_pos ne 'ARRAY' ) {
                 $three_prime_pos = [$three_prime_pos];
             }
+            my $ordinal = 0;
             foreach my $pos ( @{$three_prime_pos} ) {
+                $ordinal++;
 
                 # Find nearest genes to 3' end (taking strand into account)
                 ( $genes, $distance, $nearest_end_pos ) =
@@ -553,13 +555,15 @@ sub add_gene_annotation {
                         $gene->stable_id,   $gene->name,
                         $gene->description, $gene->biotype,
                         $distance,          \@transcripts,
+                        $ordinal,
                       ];
                 }
             }
         }
 
         %gene_annotation =
-          $self->_deduplicate_gene_annotation(%gene_annotation);
+          $self->_deduplicate_gene_annotation( scalar @{$three_prime_pos},
+            %gene_annotation );
         push @{$region}, \%gene_annotation;
         push @output, $region;
     }
@@ -684,7 +688,7 @@ sub add_existing_gene_annotation {
 }
 
 # Usage       : $annotation = $self->_deduplicate_gene_annotation($annotation);
-# Purpose     : Deduplicate Ensembl gene annotation
+# Purpose     : Deduplicate Ensembl gene annotation and order distances
 # Returns     : Hash (
 #                   String (genebuild version) => Arrayref [
 #                       Arrayref [
@@ -700,11 +704,13 @@ sub add_existing_gene_annotation {
 #                               ],
 #                               ... (transcripts)
 #                           ],
+#                           Int (3' end position ordinal),
 #                       ],
 #                       ... (genes)
 #                   ],
 #               )
-# Parameters  : Hash (
+# Parameters  : Int (number of 3' end positions),
+#               Hash (
 #                   String (genebuild version) => Arrayref [
 #                       Arrayref [
 #                           String (gene stable id),
@@ -727,7 +733,7 @@ sub add_existing_gene_annotation {
 # Comments    : None
 
 sub _deduplicate_gene_annotation {
-    my ( $self, %gene_annotation ) = @_;
+    my ( $self, $max_ordinal, %gene_annotation ) = @_;
 
     my %deduplicated_gene_annotation;
 
@@ -737,11 +743,12 @@ sub _deduplicate_gene_annotation {
         my %transcript;
         foreach my $gene ( @{ $gene_annotation{$gv} } ) {
             my $gene_stable_id = $gene->[0];
+            my $ordinal        = $gene->[-1];
             ## no critic (ProhibitMagicNumbers)
             $gene{$gene_stable_id} = [ @{$gene}[ 1 .. 3 ] ];
-            $distance{$gene_stable_id}{ $gene->[4] } = 1;
-            ## use critic
-            foreach my $transcript ( @{ $gene->[-1] } ) {
+            $distance{$gene_stable_id}{$ordinal} = $gene->[4];
+            foreach my $transcript ( @{ $gene->[5] } ) {
+                ## use critic
                 my $transcript_stable_id = $transcript->[0];
                 $transcript{$gene_stable_id}{$transcript_stable_id} =
                   [ $transcript->[1] ];
@@ -749,8 +756,10 @@ sub _deduplicate_gene_annotation {
         }
         $deduplicated_gene_annotation{$gv} = [];
         foreach my $gene_stable_id ( sort keys %gene ) {
-            my $distance =
-              [ sort { abs $a <=> $b } keys %{ $distance{$gene_stable_id} } ];
+            my $distance = [];
+            foreach my $ordinal ( 1 .. $max_ordinal ) {
+                push @{$distance}, $distance{$gene_stable_id}{$ordinal};
+            }
             if ( scalar @{$distance} == 1 ) {
                 $distance = $distance->[0];
             }
