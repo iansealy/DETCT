@@ -24,6 +24,7 @@ FASTA
 FASTQ
 FixMateInformation
 flagstats
+hexamer
 HMM
 intronic
 json
