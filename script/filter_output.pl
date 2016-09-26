@@ -213,7 +213,7 @@ sub remove_ends_without_rnaseq {
         foreach my $pos (@three_prime_end_pos) {
             my ($end) =
               grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
-            if ( !defined $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD] ) {
+            if ( !$end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD] ) {
                 $region = remove_end_from_region( $region, $pos );
             }
         }
