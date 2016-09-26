@@ -256,11 +256,33 @@ sub get_data_by_region {
         my $p_value                  = $fields[6];
         my $adjusted_p_value         = $fields[7];
         ## use critic
-        if ($three_prime_end_pos) {
-            $three_prime_end_pos =~ s/,.*//xms;
+        # If multiple 3' ends then take nearest one or most frequest one
+        my $min_distance_index;
+        if ( $three_prime_end_distance && $three_prime_end_distance =~ m/,/xms )
+        {
+            my $min_distance;
+            my $index = -1;    ## no critic (ProhibitMagicNumbers)
+            foreach my $distance ( split /,/xms, $three_prime_end_distance ) {
+                $index++;
+                next if $distance eq q{-} || !length $distance;
+                if (  !defined $min_distance
+                    || abs $distance < abs $min_distance )
+                {
+                    $min_distance       = $distance;
+                    $min_distance_index = $index;
+                }
+            }
+            $three_prime_end_distance = $min_distance;
         }
-        if ($three_prime_end_distance) {
-            $three_prime_end_distance =~ s/,.*//xms;
+        if ( $three_prime_end_pos && $three_prime_end_pos =~ m/,/xms ) {
+            my @pos = split /,/xms, $three_prime_end_pos;
+            if ($min_distance_index) {
+                $three_prime_end_pos =
+                  $pos[ $min_distance_index % scalar @pos ];
+            }
+            else {
+                $three_prime_end_pos = $pos[0];
+            }
         }
         my $sig_adjusted_p_value =
           (      $adjusted_p_value ne 'NA'
