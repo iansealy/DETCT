@@ -256,7 +256,7 @@ sub get_data_by_region {
         my $p_value                  = $fields[6];
         my $adjusted_p_value         = $fields[7];
         ## use critic
-        # If multiple 3' ends then take nearest one or most frequest one
+        # If multiple 3' ends then take nearest one or most frequent one
         my $min_distance_index;
         if ( $three_prime_end_distance && $three_prime_end_distance =~ m/,/xms )
         {
