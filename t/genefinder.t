@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 117;
+plan tests => 128;
 
 use DETCT::GeneFinder;
 
@@ -44,12 +44,13 @@ foreach my $transcript_three_prime_end (@transcript_three_prime_ends) {
     my $transcript = Test::MockObject->new();
     $transcript->set_always( 'get_all_Attributes',
         [ $attribute1, $attribute2, $attribute3, $attribute4 ] );
-    $transcript->set_always( 'stable_id',        'ENSDART00000133571' );
-    $transcript->set_always( 'external_name',    q{t} . $pos . q{:} . $strand );
-    $transcript->set_always( 'description',      undef );
-    $transcript->set_always( 'biotype',          'protein_coding' );
-    $transcript->set_always( 'seq_region_start', $start );
-    $transcript->set_always( 'seq_region_end',   $end );
+    $transcript->set_always( 'stable_id',     'ENSDART00000133571' );
+    $transcript->set_always( 'external_name', q{t} . $pos . q{:} . $strand );
+    $transcript->set_always( 'description',   undef );
+    $transcript->set_always( 'biotype',
+        $pos > 150 ? 'protein_coding' : 'processed_transcript' );
+    $transcript->set_always( 'seq_region_start',  $start );
+    $transcript->set_always( 'seq_region_end',    $end );
     $transcript->set_always( 'seq_region_strand', $strand );
     my $transcript_far = Test::MockObject->new();
     $transcript_far->set_always( 'get_all_Attributes', undef );
@@ -93,6 +94,23 @@ is( $gene_finder->set_skip_transcripts( ['ENSDART00000135768'] ),
     undef, 'Add skip transcripts' );
 is( $gene_finder->is_skip_transcript('ENSDART00000135768'),
     1, 'ENSDART00000135768 is skip transcript' );
+
+# Test required biotypes
+is( $gene_finder->is_required_biotype('protein_coding'),
+    1, 'protein_coding biotype required by default' );
+is( $gene_finder->is_required_biotype('processed_transcript'),
+    1, 'processed_transcript biotype required by default' );
+is( $gene_finder->set_required_biotypes( [ 'protein_coding', 'rRNA' ] ),
+    undef, 'Add required biotypes' );
+is( $gene_finder->is_required_biotype('protein_coding'),
+    1, 'protein_coding biotype required' );
+is( $gene_finder->is_required_biotype('processed_transcript'),
+    0, 'processed_transcript biotype not required' );
+is( $gene_finder->set_required_biotypes(), undef, 'Remove required biotypes' );
+is( $gene_finder->is_required_biotype('protein_coding'),
+    1, 'protein_coding biotype required by default' );
+is( $gene_finder->is_required_biotype('processed_transcript'),
+    1, 'processed_transcript biotype required by default' );
 
 my $genes;
 my $transcripts;
@@ -220,7 +238,7 @@ is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[0],
     'ENSDART00000133571', 'Transcript stable id' );
 is(
     $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[1],
-    'protein_coding:appris_pi:gencode_basic:tsl3',
+    'processed_transcript:appris_pi:gencode_basic:tsl3',
     'Transcript biotype'
 );
 is( scalar keys %{ $annotated_regions->[1]->[-1] },   1, '1 genebuild' );
@@ -258,7 +276,7 @@ is( $annotated_regions->[2]->[-1]->{$gv}->[0]->[5]->[0]->[0],
     'ENSDART00000133571', 'Transcript stable id' );
 is(
     $annotated_regions->[2]->[-1]->{$gv}->[0]->[5]->[0]->[1],
-    'protein_coding:appris_pi:gencode_basic:tsl3',
+    'processed_transcript:appris_pi:gencode_basic:tsl3',
     'Transcript biotype'
 );
 is( scalar keys %{ $annotated_regions->[3]->[-1] },   1, '1 genebuild' );
@@ -320,7 +338,7 @@ is( $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[0],
     'ENSDART00000133571', 'Transcript stable id' );
 is(
     $annotated_regions->[0]->[-1]->{$gv}->[0]->[5]->[0]->[1],
-    'protein_coding:appris_pi:gencode_basic:tsl3',
+    'processed_transcript:appris_pi:gencode_basic:tsl3',
     'Transcript biotype'
 );
 
@@ -336,6 +354,19 @@ isa_ok( $gene_finder, 'DETCT::GeneFinder' );
   $gene_finder->get_nearest_genes( '1', 100, 1 );
 is( $distance,        -100_000, q{3' end is 100,000 bp upstream} );
 is( $nearest_end_pos, 100_100,  q{3' end at 100,100 bp} );
+
+# Check requiring biotypes
+$gene_finder = DETCT::GeneFinder->new(
+    {
+        slice_adaptor     => $slice_adaptor,
+        required_biotypes => ['protein_coding'],
+    }
+);
+isa_ok( $gene_finder, 'DETCT::GeneFinder' );
+( $genes, $distance, $nearest_end_pos ) =
+  $gene_finder->get_nearest_genes( '1', 100, 1 );
+is( $distance,        -100, q{3' end is 100 bp upstream} );
+is( $nearest_end_pos, 200,  q{3' end at 200 bp} );
 
 # Mock genes all on one strand
 @genes = ();

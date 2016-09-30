@@ -34,6 +34,7 @@ private slice_adaptor => my %slice_adaptor;  # Bio::EnsEMBL::DBSQL::SliceAdaptor
 private cache         => my %cache;          # hashref
 private skip_transcript => my %skip_transcript; # hashref of skipped transcripts
 private ensembl_db_type => my %ensembl_db_type; # hashref of database types
+private required_biotype => my %required_biotype; # hashref of required biotypes
 
 =method new
 
@@ -43,9 +44,10 @@ private ensembl_db_type => my %ensembl_db_type; # hashref of database types
   Purpose     : Constructor for gene finder objects
   Returns     : DETCT::GeneFinder
   Parameters  : Hashref {
-                    slice_adaptor    => Bio::EnsEMBL::DBSQL::SliceAdaptor,
-                    skip_transcripts => Arrayref (of strings)
-                    ensembl_db_types => Arrayref (of strings)
+                    slice_adaptor     => Bio::EnsEMBL::DBSQL::SliceAdaptor,
+                    skip_transcripts  => Arrayref (of strings),
+                    ensembl_db_types  => Arrayref (of strings),
+                    required_biotypes => Arrayref (of strings)
                 }
   Throws      : No exceptions
   Comments    : None
@@ -58,6 +60,7 @@ sub new {
     $self->set_slice_adaptor( $arg_ref->{slice_adaptor} );
     $self->set_skip_transcripts( $arg_ref->{skip_transcripts} );
     $self->set_ensembl_db_types( $arg_ref->{ensembl_db_types} );
+    $self->set_required_biotypes( $arg_ref->{required_biotypes} );
     return $self;
 }
 
@@ -195,6 +198,47 @@ sub set_ensembl_db_types {
     }
 
     return;
+}
+
+=method set_required_biotypes
+
+  Usage       : $gene_finder->set_required_biotypes(['protein_coding']);
+  Purpose     : Setter for required biotypes attribute
+  Returns     : undef
+  Parameters  : Arrayref of strings (the required biotypes) or undef
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub set_required_biotypes {
+    my ( $self, $required_biotypes ) = @_;
+
+    $required_biotype{ id $self} = {};
+
+    foreach my $biotype ( @{ $required_biotypes || [] } ) {
+        $required_biotype{ id $self}->{$biotype} = 1;
+    }
+
+    return;
+}
+
+=method is_required_biotype
+
+  Usage       : next if $gene_finder->is_required_biotype('protein_coding');
+  Purpose     : Check if biotype is required
+  Returns     : 1 or 0
+  Parameters  : String (the biotype)
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub is_required_biotype {
+    my ( $self, $biotype ) = @_;
+
+    return exists $required_biotype{ id $self}->{$biotype}
+      || !scalar keys %{ $required_biotype{ id $self} } ? 1 : 0;
 }
 
 =method get_nearest_transcripts
@@ -351,6 +395,7 @@ sub _fill_cache_from_ensembl {
             my $ens_transcripts = $ens_gene->get_all_Transcripts();
             foreach my $ens_transcript ( @{$ens_transcripts} ) {
                 next if $self->is_skip_transcript( $ens_transcript->stable_id );
+                next if !$self->is_required_biotype( $ens_transcript->biotype );
 
                 # Extend transcript biotype with selected attributes
                 my $ens_transcript_biotype =
