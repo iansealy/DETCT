@@ -4,8 +4,10 @@ BAM
 BedGraph
 BioLayout
 biotype
+BIOTYPES
 bp
 BWA
+CDS
 config
 contig
 csv
