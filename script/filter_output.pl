@@ -281,6 +281,7 @@ sub remove_ends_in_cds {
           ? @{$three_prime_end_pos}
           : ($three_prime_end_pos);
         foreach my $pos (@three_prime_end_pos) {
+            next if !exists $cds_cache->{$chr};    # e.g. spike sequences
             my $cds_intervals =
               $cds_cache->{$chr}{$strand}->fetch( $pos, $pos + 1 );
             if ( @{$cds_intervals} ) {
