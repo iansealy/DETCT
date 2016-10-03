@@ -116,7 +116,7 @@ printf_or_die( "Modal 3' end distance for %s:\t%d\n",
 $count_for = compare_numeric_field_for_data_subset( $data1_for, $data2_for,
     $identical_regions, 1 );
 
-print_or_die("\n3' end position for identical regions:\n");
+print_or_die("\n3' end distance for identical regions:\n");
 printf_or_die( "Regions without 3' end distance for both:\t%d\n",
     $count_for->{'missing_value_both'} );
 printf_or_die( "Regions without 3' end distance just for %s:\t%d\n",
