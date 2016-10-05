@@ -98,7 +98,7 @@ sub output_ends {
         'Ensembl Transcript ID',
         'Transcript type',
         'Gene name',
-        'Region aligment count',
+        'Region alignment count',
         'Region alignments',
     );
     printf_or_die( "%s\n", join "\t", @header );
