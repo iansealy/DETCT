@@ -22,11 +22,13 @@ use Pod::Usage;
 use Readonly;
 use Path::Tiny;
 use File::Spec;
+use File::Path qw( make_path );
 use Sort::Naturally;
 use Set::IntervalTree;
 use DETCT::GeneFinder;
 use DETCT::Analysis::DiffExpr;
 use DETCT::Misc::Output;
+use DETCT::Misc qw( write_or_die );
 
 =head1 DESCRIPTION
 
@@ -74,10 +76,43 @@ my $keep_ends_in_cds;
 my $keep_polya_ends;
 my $keep_ends_without_hexamer;
 my $keep_ends_without_rnaseq;
+my $log;
 my ( $help, $man );
 
 # Get and check command line options
 get_and_check_options();
+
+if ( !-d $analysis_dir ) {
+    make_path($analysis_dir);
+}
+
+my $log_fh;
+if ($log) {
+    ## no critic (RequireBriefOpen)
+    open $log_fh, '>', File::Spec->catfile( $analysis_dir, 'filter.log' );
+    ## use critic
+    my @header = (
+        '#Chr',
+        'Region start',
+        'Region end',
+        q{3' end strand},
+        q{3' end position},
+        'Reason',
+        q{3' end read count},
+        'polyA?',
+        '14 bp upstream',
+        '14 bp downstream',
+        'Distance Hexamer Upstream (up to 40 bp)',
+        'Hexamer',
+        'Continuous RNA-Seq transcripts',
+        'Ensembl Gene ID',
+        'Gene type',
+        'Ensembl Transcript ID',
+        'Transcript type',
+        'Gene name',
+    );
+    write_or_die( $log_fh, sprintf "%s\n", join "\t", @header );
+}
 
 # Create analysis
 my $analysis = DETCT::Analysis::DiffExpr->new_from_yaml($analysis_yaml);
@@ -98,11 +133,11 @@ my $ends_for = get_ends( $ends_file, $slice_regexp );
 my $regions = get_regions( $all_file, $analysis, $slice_regexp );
 
 if (@biotype) {
-    $regions = remove_ends_by_biotype( $regions, $gene_finder );
+    $regions = remove_ends_by_biotype( $regions, $ends_for, $gene_finder );
 }
 
 if ( !$keep_ends_in_cds ) {
-    $regions = remove_ends_in_cds( $regions, $cds_cache );
+    $regions = remove_ends_in_cds( $regions, $ends_for, $cds_cache );
 }
 
 if ( !$keep_polya_ends ) {
@@ -119,6 +154,11 @@ if ( !$keep_ends_without_rnaseq ) {
 
 if ( !$keep_regions_without_ends ) {
     $regions = remove_regions_without_ends($regions);
+}
+
+if ($log) {
+    log_kept_ends( $regions, $ends_for );
+    close $log_fh;
 }
 
 # Reannotate (perhaps only with required biotypes)
@@ -241,7 +281,9 @@ sub get_regions {
 }
 
 sub remove_ends_by_biotype {
-    my ( $regions, $gene_finder ) = @_;    ## no critic (ProhibitReusedNames)
+    ## no critic (ProhibitReusedNames)
+    my ( $regions, $ends_for, $gene_finder ) = @_;
+    ## use critic
 
     foreach my $region ( @{$regions} ) {
         my $seq_name = $region->[0];
@@ -258,7 +300,8 @@ sub remove_ends_by_biotype {
             my ( undef, $distance ) =
               $gene_finder->get_nearest_transcripts( $seq_name, $pos, $strand );
             if ( !defined $distance ) {
-                $region = remove_end_from_region( $region, $pos );
+                $region =
+                  remove_end_from_region( $region, $pos, $ends_for, 'biotype' );
             }
         }
     }
@@ -267,7 +310,9 @@ sub remove_ends_by_biotype {
 }
 
 sub remove_ends_in_cds {
-    my ( $regions, $cds_cache ) = @_;    ## no critic (ProhibitReusedNames)
+    ## no critic (ProhibitReusedNames)
+    my ( $regions, $ends_for, $cds_cache ) = @_;
+    ## use critic
 
     foreach my $region ( @{$regions} ) {
         my $chr = $region->[0];
@@ -285,7 +330,8 @@ sub remove_ends_in_cds {
             my $cds_intervals =
               $cds_cache->{$chr}{$strand}->fetch( $pos, $pos + 1 );
             if ( @{$cds_intervals} ) {
-                $region = remove_end_from_region( $region, $pos );
+                $region =
+                  remove_end_from_region( $region, $pos, $ends_for, 'CDS' );
             }
         }
     }
@@ -312,7 +358,8 @@ sub remove_polya {
                     && abs( $end->[$THREE_PRIME_END_POS_FIELD] - $pos ) <
                     $DISTANCE_TO_POLY_A )
                 {
-                    $region = remove_end_from_region( $region, $pos );
+                    $region = remove_end_from_region( $region, $pos, $ends_for,
+                        'polyA' );
                     last;
                 }
             }
@@ -362,7 +409,8 @@ sub remove_ends_without_hexamer {
                 }
             }
             if ($remove) {
-                $region = remove_end_from_region( $region, $pos );
+                $region =
+                  remove_end_from_region( $region, $pos, $ends_for, 'hexamer' );
             }
         }
     }
@@ -398,7 +446,8 @@ sub remove_ends_without_rnaseq {
             my ( undef, $distance ) =
               $gene_finder->get_nearest_transcripts( $seq_name, $pos, $strand );
             if ( !defined $distance || abs $distance > $DISTANCE_THRESHOLD ) {
-                $region = remove_end_from_region( $region, $pos );
+                $region =
+                  remove_end_from_region( $region, $pos, $ends_for, 'RNA-Seq' );
             }
         }
     }
@@ -422,7 +471,9 @@ sub remove_regions_without_ends {
 }
 
 sub remove_end_from_region {
-    my ( $region, $pos_to_remove ) = @_;
+    ## no critic (ProhibitReusedNames)
+    my ( $region, $pos_to_remove, $ends_for, $reason ) = @_;
+    ## use critic
 
     ## no critic (ProhibitMagicNumbers)
     my $three_prime_end_pos = $region->[6];
@@ -485,7 +536,103 @@ sub remove_end_from_region {
         ## use critic
     }
 
+    write_log( $region, $pos_to_remove, $ends_for, $reason );
+
     return $region;
+}
+
+sub log_kept_ends {
+    my ( $regions, $ends_for ) = @_;    ## no critic (ProhibitReusedNames)
+
+    foreach my $region ( @{$regions} ) {
+        ## no critic (ProhibitMagicNumbers)
+        my $three_prime_end_pos = $region->[6];
+        ## use critic
+        next if !defined $three_prime_end_pos;
+        my @three_prime_end_pos =
+          ref $three_prime_end_pos eq 'ARRAY'
+          ? @{$three_prime_end_pos}
+          : ($three_prime_end_pos);
+        foreach my $pos (@three_prime_end_pos) {
+            write_log( $region, $pos, $ends_for, 'OK' );
+        }
+    }
+
+    return;
+}
+
+sub write_log {
+    ## no critic (ProhibitReusedNames)
+    my ( $region, $pos, $ends_for, $reason ) = @_;
+    ## use critic
+
+    return if !$log;
+
+    my @all_ends = parse_ends( $region, $ends_for );
+    my ($end) = grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
+
+    my @output;
+    push @output, $region->[0];    # Chr
+    push @output, $region->[1];    # Start
+    push @output, $region->[2];    # End
+    ## no critic (ProhibitMagicNumbers)
+    push @output, $region->[7];    # Strand
+    ## use critic
+    push @output, $pos;
+    push @output, $reason;
+    push @output, $end->[$THREE_PRIME_END_READ_COUNT_FIELD];
+    push @output, $end->[$IS_POLYA_FIELD];
+    push @output, $end->[$UPSTREAM_14_BP_FIELD];
+    push @output, $end->[$DOWNSTREAM_14_BP_FIELD];
+    push @output, $end->[$DISTANCE_HEXAMER_UPSTREAM_FIELD] || q{-};
+    push @output, $end->[$HEXAMER_FIELD] || q{-};
+    push @output, $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD] || q{-};
+
+    ## no critic (ProhibitMagicNumbers)
+    my %gene = %{ $region->[15] };
+    my ($genebuild) = ( sort keys %gene )[-1];    # Highest
+    ## use critic
+    my ( @gene_stable_id, @gene_biotype, @transcript_stable_id,
+        @transcript_biotype, @name );
+    if ($genebuild) {
+        foreach my $gene ( @{ $gene{$genebuild} } ) {
+            my ( $gene_stable_id, $name, undef, $gene_biotype, undef,
+                $transcripts )
+              = @{$gene};
+            push @gene_stable_id, $gene_stable_id;
+            push @gene_biotype,   $gene_biotype;
+            foreach my $transcript ( @{$transcripts} ) {
+                my ( $transcript_stable_id, $transcript_biotype ) =
+                  @{$transcript};
+                push @transcript_stable_id, $transcript_stable_id;
+                push @transcript_biotype,   $transcript_biotype;
+            }
+            push @name, $name;
+        }
+    }
+    push @output, array_to_scalar_for_output(@gene_stable_id);
+    push @output, array_to_scalar_for_output(@gene_biotype);
+    push @output, array_to_scalar_for_output(@transcript_stable_id);
+    push @output, array_to_scalar_for_output(@transcript_biotype);
+    push @output, array_to_scalar_for_output(@name);
+
+    write_or_die( $log_fh, sprintf "%s\n", join "\t", @output );
+
+    return;
+}
+
+sub array_to_scalar_for_output {
+    my (@array) = @_;
+
+    if ( !scalar @array ) {
+        return q{-};
+    }
+    elsif ( scalar @array == 1 ) {
+        return $array[0];
+    }
+    else {
+        return join q{,}, @array;
+    }
 }
 
 sub parse_ends {
@@ -532,6 +679,7 @@ sub get_and_check_options {
         'keep_polya_ends'           => \$keep_polya_ends,
         'keep_ends_without_hexamer' => \$keep_ends_without_hexamer,
         'keep_ends_without_rnaseq'  => \$keep_ends_without_rnaseq,
+        'log'                       => \$log,
         'help'                      => \$help,
         'man'                       => \$man,
     ) or pod2usage(2);
@@ -569,6 +717,7 @@ sub get_and_check_options {
         [--keep_polya_ends]
         [--keep_ends_without_hexamer]
         [--keep_ends_without_rnaseq]
+        [--log]
         [--help]
         [--man]
 
@@ -619,6 +768,10 @@ Don't filter out 3' ends lacking a primary hexamer.
 =item B<--keep_ends_without_rnaseq>
 
 Don't filter out 3' ends lacking continuous RNA-Seq transcripts.
+
+=item B<--log>
+
+Log reason for removing each end.
 
 =item B<--help>
 
