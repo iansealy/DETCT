@@ -582,8 +582,8 @@ sub write_log {
     push @output, $reason;
     push @output, $end->[$THREE_PRIME_END_READ_COUNT_FIELD];
     push @output, $end->[$IS_POLYA_FIELD];
-    push @output, $end->[$UPSTREAM_14_BP_FIELD];
-    push @output, $end->[$DOWNSTREAM_14_BP_FIELD];
+    push @output, $end->[$UPSTREAM_14_BP_FIELD] || q{-};
+    push @output, $end->[$DOWNSTREAM_14_BP_FIELD] || q{-};
     push @output, $end->[$DISTANCE_HEXAMER_UPSTREAM_FIELD] || q{-};
     push @output, $end->[$HEXAMER_FIELD] || q{-};
     push @output, $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD] || q{-};
