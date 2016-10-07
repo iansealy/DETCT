@@ -475,6 +475,8 @@ sub remove_end_from_region {
     my ( $region, $pos_to_remove, $ends_for, $reason ) = @_;
     ## use critic
 
+    write_log( $region, $pos_to_remove, $ends_for, $reason );
+
     ## no critic (ProhibitMagicNumbers)
     my $three_prime_end_pos = $region->[6];
     ## use critic
@@ -535,8 +537,6 @@ sub remove_end_from_region {
         }
         ## use critic
     }
-
-    write_log( $region, $pos_to_remove, $ends_for, $reason );
 
     return $region;
 }
