@@ -88,14 +88,15 @@ sub output_ends {
         'polyA?',
         '14 bp upstream',
         '14 bp downstream',
-        'Distance Hexamer Upstream (up to 40 bp)',
+        'Distance hexamer upstream (up to 40 bp)',
         'Hexamer',
         'Transposon distance',
         'Transposon position',
         'Continuous RNA-Seq transcripts',
-        'Ensembl Gene ID',
+        'Continuous RNA-Seq end distance',
+        'Ensembl gene ID',
         'Gene type',
-        'Ensembl Transcript ID',
+        'Ensembl transcript ID',
         'Transcript type',
         'Gene name',
         'Region alignment count',
@@ -129,7 +130,19 @@ sub output_ends {
                 splice @end_data, 1, 1;    # Remove redundant strand
                 if ( scalar @end_data == 9 )
                 {                          ## no critic (ProhibitMagicNumbers)
-                    push @end_data, q{};    # Add missing last field
+                    push @end_data, q{}, q{};    # Add missing last fields
+                }
+                else {
+                    # Split last field into transcripts and distances
+                    my @pairs = split /[|]/xms, pop @end_data;
+                    @pairs = map { [ split />/xms ] } @pairs;
+                    push @end_data, join q{,}, map { $_->[0] } @pairs;
+                    my $pos = $end_data[0];
+                    my @distances = map { $pos - $_->[1] } @pairs;
+                    if ( $strand < 0 ) {
+                        @distances = map { -$_ } @distances;
+                    }
+                    push @end_data, join q{,}, @distances;
                 }
                 push @ends, \@end_data;
             }
@@ -139,7 +152,7 @@ sub output_ends {
             }
         }
         else {
-            @ends = ( [ q{} x 10 ] );       ## no critic (ProhibitMagicNumbers)
+            @ends = ( [ q{} x 11 ] );    ## no critic (ProhibitMagicNumbers)
         }
 
         foreach my $end (@ends) {
