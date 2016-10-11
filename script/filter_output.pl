@@ -23,6 +23,7 @@ use Readonly;
 use Path::Tiny;
 use File::Spec;
 use File::Path qw( make_path );
+use List::MoreUtils qw( any );
 use Sort::Naturally;
 use Set::IntervalTree;
 use DETCT::GeneFinder;
@@ -57,8 +58,9 @@ Readonly our $TRANSPOSON_DISTANCE_FIELD           => 7;
 Readonly our $TRANSPOSON_POSITION_FIELD           => 8;
 Readonly our $CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD => 9;
 
-Readonly our $DISTANCE_TO_POLY_A => 10;
-Readonly our $DISTANCE_THRESHOLD => 100;
+Readonly our $DISTANCE_TO_POLY_A           => 10;
+Readonly our $CONTINUOUS_RNASEQ_PADDING    => 20;
+Readonly our $ANNOTATED_DISTANCE_THRESHOLD => 100;
 
 Readonly our %IS_PRIMARY_HEXAMER   => map { $_ => 1 } qw( AATAAA ATTAAA );
 Readonly our %IS_SECONDARY_HEXAMER => map { $_ => 1 }
@@ -102,12 +104,13 @@ if ($log) {
         'polyA?',
         '14 bp upstream',
         '14 bp downstream',
-        'Distance Hexamer Upstream (up to 40 bp)',
+        'Distance hexamer upstream (up to 40 bp)',
         'Hexamer',
         'Continuous RNA-Seq transcripts',
-        'Ensembl Gene ID',
+        'Continuous RNA-Seq end distances',
+        'Ensembl gene ID',
         'Gene type',
-        'Ensembl Transcript ID',
+        'Ensembl transcript ID',
         'Transcript type',
         'Gene name',
     );
@@ -403,7 +406,8 @@ sub remove_ends_without_hexamer {
                 my ( undef, $distance ) =
                   $gene_finder->get_nearest_transcripts( $seq_name, $pos,
                     $strand );
-                if ( defined $distance && abs $distance <= $DISTANCE_THRESHOLD )
+                if ( defined $distance
+                    && abs $distance <= $ANNOTATED_DISTANCE_THRESHOLD )
                 {
                     $remove = 0;
                 }
@@ -440,12 +444,20 @@ sub remove_ends_without_rnaseq {
               grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
 
             # Keep end if continuous RNA-Seq
-            next if $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD];
+            if ( $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD] ) {
+                my @pairs = split /[|]/xms,
+                  $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD];
+                @pairs = map { [ split />/xms ] } @pairs;
+                my @distances = map { $pos - $_->[1] } @pairs;
+                next if any { $_ <= $CONTINUOUS_RNASEQ_PADDING } @distances;
+            }
 
             # Or keep end if near annotated 3' end
             my ( undef, $distance ) =
               $gene_finder->get_nearest_transcripts( $seq_name, $pos, $strand );
-            if ( !defined $distance || abs $distance > $DISTANCE_THRESHOLD ) {
+            if (  !defined $distance
+                || abs $distance > $ANNOTATED_DISTANCE_THRESHOLD )
+            {
                 $region =
                   remove_end_from_region( $region, $pos, $ends_for, 'RNA-Seq' );
             }
@@ -575,9 +587,8 @@ sub write_log {
     push @output, $region->[0];    # Chr
     push @output, $region->[1];    # Start
     push @output, $region->[2];    # End
-    ## no critic (ProhibitMagicNumbers)
-    push @output, $region->[7];    # Strand
-    ## use critic
+    my $strand = $region->[7];     ## no critic (ProhibitMagicNumbers)
+    push @output, $strand;
     push @output, $pos;
     push @output, $reason;
     push @output, $end->[$THREE_PRIME_END_READ_COUNT_FIELD];
@@ -586,7 +597,20 @@ sub write_log {
     push @output, $end->[$DOWNSTREAM_14_BP_FIELD] || q{-};
     push @output, $end->[$DISTANCE_HEXAMER_UPSTREAM_FIELD] || q{-};
     push @output, $end->[$HEXAMER_FIELD] || q{-};
-    push @output, $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD] || q{-};
+    if ( $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD] ) {
+        my @pairs = split /[|]/xms,
+          $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD];
+        @pairs = map { [ split />/xms ] } @pairs;
+        push @output, join q{,}, map { $_->[0] } @pairs;    # Transcript IDs
+        my @distances = map { $pos - $_->[1] } @pairs;
+        if ( $strand < 0 ) {
+            @distances = map { -$_ } @distances;
+        }
+        push @output, join q{,}, @distances;
+    }
+    else {
+        push @output, q{-}, q{-};
+    }
 
     ## no critic (ProhibitMagicNumbers)
     my %gene = %{ $region->[15] };
