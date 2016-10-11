@@ -77,7 +77,10 @@ my $keep_ends_in_cds;
 my $keep_polya_ends;
 my $keep_ends_without_hexamer;
 my $keep_ends_without_rnaseq;
-my $polya_threshold = 10;    ## no critic (ProhibitMagicNumbers)
+## no critic (ProhibitMagicNumbers)
+my $polya_threshold            = 10;
+my $downstream_polya_threshold = 4;
+## use critic
 my $log;
 my ( $help, $man );
 
@@ -361,7 +364,10 @@ sub remove_polya {
             my $surrounding =
               $end->[$UPSTREAM_14_BP_FIELD] . $end->[$DOWNSTREAM_14_BP_FIELD];
             my $polya_count = $surrounding =~ tr/A/A/;
-            if ( $polya_count > $polya_threshold ) {
+            my ($initial_a) = $end->[$DOWNSTREAM_14_BP_FIELD] =~ m/\A (A+)/xms;
+            if ( $polya_count > $polya_threshold
+                || length $initial_a > $downstream_polya_threshold )
+            {
                 $region =
                   remove_end_from_region( $region, $pos, $ends_for, 'polyA' );
             }
@@ -691,21 +697,22 @@ sub get_and_check_options {
 
     # Get options
     GetOptions(
-        'dir=s'                     => \$analysis_dir,
-        'analysis_yaml=s'           => \$analysis_yaml,
-        'all_file=s'                => \$all_file,
-        'ends_file=s'               => \$ends_file,
-        'slice_regexp=s'            => \$slice_regexp,
-        'biotype=s@{,}'             => \@biotype,
-        'keep_regions_without_ends' => \$keep_regions_without_ends,
-        'keep_ends_in_cds'          => \$keep_ends_in_cds,
-        'keep_polya_ends'           => \$keep_polya_ends,
-        'keep_ends_without_hexamer' => \$keep_ends_without_hexamer,
-        'keep_ends_without_rnaseq'  => \$keep_ends_without_rnaseq,
-        'polya_threshold=i'         => \$polya_threshold,
-        'log'                       => \$log,
-        'help'                      => \$help,
-        'man'                       => \$man,
+        'dir=s'                        => \$analysis_dir,
+        'analysis_yaml=s'              => \$analysis_yaml,
+        'all_file=s'                   => \$all_file,
+        'ends_file=s'                  => \$ends_file,
+        'slice_regexp=s'               => \$slice_regexp,
+        'biotype=s@{,}'                => \@biotype,
+        'keep_regions_without_ends'    => \$keep_regions_without_ends,
+        'keep_ends_in_cds'             => \$keep_ends_in_cds,
+        'keep_polya_ends'              => \$keep_polya_ends,
+        'keep_ends_without_hexamer'    => \$keep_ends_without_hexamer,
+        'keep_ends_without_rnaseq'     => \$keep_ends_without_rnaseq,
+        'polya_threshold=i'            => \$polya_threshold,
+        'downstream_polya_threshold=i' => \$downstream_polya_threshold,
+        'log'                          => \$log,
+        'help'                         => \$help,
+        'man'                          => \$man,
     ) or pod2usage(2);
 
     # Documentation
@@ -797,6 +804,10 @@ Don't filter out 3' ends lacking continuous RNA-Seq transcripts.
 =item B<--polya_threshold>
 
 The maximum number of As allowed in the 14 bp upstream and 14 bp downstream.
+
+=item B<--downstream_polya_threshold>
+
+The maximum number of As allowed at the start of the 14 bp downstream.
 
 =item B<--log>
 
