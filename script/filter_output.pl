@@ -58,7 +58,6 @@ Readonly our $TRANSPOSON_DISTANCE_FIELD           => 7;
 Readonly our $TRANSPOSON_POSITION_FIELD           => 8;
 Readonly our $CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD => 9;
 
-Readonly our $POLYA_THRESHOLD              => 10;
 Readonly our $CONTINUOUS_RNASEQ_PADDING    => 20;
 Readonly our $ANNOTATED_DISTANCE_THRESHOLD => 100;
 
@@ -78,6 +77,7 @@ my $keep_ends_in_cds;
 my $keep_polya_ends;
 my $keep_ends_without_hexamer;
 my $keep_ends_without_rnaseq;
+my $polya_threshold = 10;    ## no critic (ProhibitMagicNumbers)
 my $log;
 my ( $help, $man );
 
@@ -361,7 +361,7 @@ sub remove_polya {
             my $surrounding =
               $end->[$UPSTREAM_14_BP_FIELD] . $end->[$DOWNSTREAM_14_BP_FIELD];
             my $polya_count = $surrounding =~ tr/A/A/;
-            if ( $polya_count > $POLYA_THRESHOLD ) {
+            if ( $polya_count > $polya_threshold ) {
                 $region =
                   remove_end_from_region( $region, $pos, $ends_for, 'polyA' );
             }
@@ -702,6 +702,7 @@ sub get_and_check_options {
         'keep_polya_ends'           => \$keep_polya_ends,
         'keep_ends_without_hexamer' => \$keep_ends_without_hexamer,
         'keep_ends_without_rnaseq'  => \$keep_ends_without_rnaseq,
+        'polya_threshold=i'         => \$polya_threshold,
         'log'                       => \$log,
         'help'                      => \$help,
         'man'                       => \$man,
@@ -740,6 +741,7 @@ sub get_and_check_options {
         [--keep_polya_ends]
         [--keep_ends_without_hexamer]
         [--keep_ends_without_rnaseq]
+        [--polya_threshold int]
         [--log]
         [--help]
         [--man]
@@ -782,7 +784,7 @@ Don't filter 3' ends in a transcript's CDS.
 
 =item B<--keep_polya_ends>
 
-Don't filter out polyA 3' ends labelled.
+Don't filter out polyA 3' ends.
 
 =item B<--keep_ends_without_hexamer>
 
@@ -791,6 +793,10 @@ Don't filter out 3' ends lacking a primary hexamer.
 =item B<--keep_ends_without_rnaseq>
 
 Don't filter out 3' ends lacking continuous RNA-Seq transcripts.
+
+=item B<--polya_threshold>
+
+The maximum number of As allowed in the 14 bp upstream and 14 bp downstream.
 
 =item B<--log>
 
