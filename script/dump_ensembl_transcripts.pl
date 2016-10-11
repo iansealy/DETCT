@@ -47,7 +47,10 @@ my $ensembl_dbpass;
 my $slice_regexp;
 my $wgs_prefix = 'CABZ';
 my $rnaseq_bedgraph;
-my $rnaseq_threshold = 3;    ## no critic (ProhibitMagicNumbers)
+## no critic (ProhibitMagicNumbers)
+my $rnaseq_threshold = 3;
+my $repeat_padding   = 20;
+## use critic
 my ( $debug, $help, $man );
 
 # Get and check command line options
@@ -604,11 +607,11 @@ sub get_simple_repeat_locations {
     foreach my $repeat ( @{$dust_features}, @{$trf_features} ) {
         $repeat_tree->insert(
             {
-                start => $repeat->seq_region_start,
-                end   => $repeat->seq_region_end,
+                start => $repeat->seq_region_start - $repeat_padding,
+                end   => $repeat->seq_region_end + $repeat_padding,
             },
-            $repeat->seq_region_start,
-            $repeat->seq_region_end + 1
+            $repeat->seq_region_start - $repeat_padding,
+            $repeat->seq_region_end + $repeat_padding + 1
         );
     }
 
@@ -629,6 +632,7 @@ sub get_and_check_options {
         'wgs_prefix=s'       => \$wgs_prefix,
         'rnaseq_bedgraph=s'  => \$rnaseq_bedgraph,
         'rnaseq_threshold=i' => \$rnaseq_threshold,
+        'repeat_padding=i'   => \$repeat_padding,
         'debug'              => \$debug,
         'help'               => \$help,
         'man'                => \$man,
@@ -657,6 +661,7 @@ sub get_and_check_options {
         [--wgs_prefix prefix]
         [--rnaseq_bedgraph file]
         [--rnaseq_threshold int]
+        [--repeat_padding int]
         [--debug]
         [--help]
         [--man]
@@ -700,6 +705,10 @@ BedGraph file of RNA-Seq data.
 =item B<--rnaseq_threshold INT>
 
 RNA-Seq read threshold.
+
+=item B<--repeat_padding INT>
+
+Padding around repeats.
 
 =item B<--debug>
 
