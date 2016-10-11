@@ -44,20 +44,20 @@ $continuousrnaseq_finder = DETCT::ContinuousRNASeqFinder->new(
 my @transcripts;
 
 (@transcripts) =
-  $continuousrnaseq_finder->get_containing_continuous_rnaseq( '1', 15141, 1 );
+  $continuousrnaseq_finder->get_containing_continuous_rnaseq( '1', 15241, 1 );
 is( scalar @transcripts, 0, 'No RNA-Seq' );
 (@transcripts) =
   $continuousrnaseq_finder->get_containing_continuous_rnaseq( '1', 15139, 1 );
-is( scalar @transcripts, 2,                    '2 transcripts' );
-is( $transcripts[0],     'ENSDART00000109479', '1st transcript' );
-is( $transcripts[1],     'ENSDART00000152276', '2nd transcript' );
+is( scalar @transcripts,  2,                    '2 transcripts' );
+is( $transcripts[0]->[0], 'ENSDART00000109479', '1st transcript' );
+is( $transcripts[1]->[0], 'ENSDART00000152276', '2nd transcript' );
 (@transcripts) =
   $continuousrnaseq_finder->get_containing_continuous_rnaseq( '1', 15139, -1 );
 is( scalar @transcripts, 0, 'No RNA-Seq on other strand' );
 (@transcripts) =
   $continuousrnaseq_finder->get_containing_continuous_rnaseq( '1', 47195, -1 );
 is( scalar @transcripts, 1, '1 transcript' );
-is( $transcripts[0], 'ENSDART00000018741', 'Only transcript' );
+is( $transcripts[0]->[0], 'ENSDART00000018741', 'Only transcript' );
 (@transcripts) =
   $continuousrnaseq_finder->get_containing_continuous_rnaseq( '1', 47195, 1 );
 is( scalar @transcripts, 0, 'No RNA-Seq on other strand' );
@@ -71,7 +71,7 @@ my $regions = [
     [
         1, 10, 10, -10, 1,
         [
-            [ '1', 15141, 1,  20, 1, 'A', 'A', 1, 'A', 1, 1 ],
+            [ '1', 15241, 1,  20, 1, 'A', 'A', 1, 'A', 1, 1 ],
             [ '1', 15139, 1,  10, 1, 'T', 'T', 0, 'C', 1, 1 ],
             [ '1', 47195, -1, 10, 1, 'A', 'A', 1, 'A', 1, 1 ],
         ]
@@ -81,10 +81,10 @@ my $annotated_regions =
   $continuousrnaseq_finder->add_continuous_rnaseq($regions);
 is( scalar @{ $annotated_regions->[0]->[-1]->[0]->[-1] }, 0, 'No RNA-Seq' );
 is( scalar @{ $annotated_regions->[0]->[-1]->[1]->[-1] }, 2, '2 transcripts' );
-is( $annotated_regions->[0]->[-1]->[1]->[-1]->[0],
+is( $annotated_regions->[0]->[-1]->[1]->[-1]->[0]->[0],
     'ENSDART00000109479', '1st transcript' );
-is( $annotated_regions->[0]->[-1]->[1]->[-1]->[1],
+is( $annotated_regions->[0]->[-1]->[1]->[-1]->[1]->[0],
     'ENSDART00000152276', '2nd transcript' );
 is( scalar @{ $annotated_regions->[0]->[-1]->[2]->[-1] }, 1, '1 transcript' );
-is( $annotated_regions->[0]->[-1]->[2]->[-1]->[0],
+is( $annotated_regions->[0]->[-1]->[2]->[-1]->[0]->[0],
     'ENSDART00000018741', 'Only transcript' );

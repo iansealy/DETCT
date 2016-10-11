@@ -19,6 +19,7 @@ use autodie;
 use Carp;
 use Try::Tiny;
 
+use Readonly;
 use Class::InsideOut qw( private register id );
 use List::MoreUtils qw( any );
 use DETCT::Misc::Output qw(
@@ -35,6 +36,9 @@ use DETCT::Misc::Output qw(
 private cache        => my %cache;           # hashref
 private table_file   => my %table_file;      # e.g. transcripts.tsv
 private table_format => my %table_format;    # e.g. tsv
+
+# Constants
+Readonly our $END_PADDING => 100;    # Allow for drop off in coverage at end
 
 =method new
 
@@ -169,7 +173,7 @@ sub _check_table_format {
   Usage       : $finder->get_containing_continuous_rnaseq($seq_name, $pos,
                     $strand);
   Purpose     : Retrieve continuous RNA-Seq containing a 3' end
-  Returns     : Arrayref of transcript stable ids
+  Returns     : Array of transcript stable id / continuous RNA-Seq end pairs
   Parameters  : String (the 3' end sequence name)
                 Int (the 3' end position)
                 Int (the 3' end strand)
@@ -188,14 +192,20 @@ sub get_containing_continuous_rnaseq {
 
     my @rnaseq = @{ $cache{ id $self}->{$seq_name}->{$strand} };
     if ( $strand > 0 ) {
-        @rnaseq = grep { $pos >= $_->[1] && $pos <= $_->[2] } @rnaseq;
+        @rnaseq =
+          grep { $pos >= $_->[1] && $pos <= $_->[2] + $END_PADDING } @rnaseq;
+        @rnaseq = sort { $a->[2] <=> $b->[2] || $a->[0] cmp $b->[0] } @rnaseq;
     }
     else {
-        @rnaseq = grep { $pos >= $_->[2] && $pos <= $_->[1] } @rnaseq;
+        @rnaseq =
+          grep { $pos >= $_->[2] - $END_PADDING && $pos <= $_->[1] } @rnaseq;
+        ## no critic (ProhibitReverseSortBlock)
+        @rnaseq = sort { $b->[2] <=> $a->[2] || $a->[0] cmp $b->[0] } @rnaseq;
+        ## use critic
     }
-    my @stable_ids = sort map { $_->[0] } @rnaseq;
+    my @pairs = map { [ $_->[0], $_->[2] ] } @rnaseq;
 
-    return @stable_ids;
+    return @pairs;
 }
 
 # Usage       : $self->_fill_cache_from_file();
@@ -205,7 +215,7 @@ sub get_containing_continuous_rnaseq {
 # Throws      : No exceptions
 # Comments    : Cache is a hashref (keyed by sequence name) of hashrefs (keyed
 #               by strand) of arrayrefs of arrayrefs of continuous RNA-Seq
-#               transcript IDs CDS end position and RNA-Seq end position
+#               transcript IDs, CDS end position and RNA-Seq end position
 
 sub _fill_cache_from_file {
     my ($self) = @_;
@@ -256,8 +266,11 @@ sub _fill_cache_from_file {
                                 Int (distance to nearest transposon),
                                 Int (position of nearest transposon),
                                 Arrayref [
-                                    String (continuous RNA-Seq transcript id),
-                                    ... (continuous RNA-Seq transcript ids)
+                                    Arrayref [
+                                        String (transcript stable id),
+                                        Int (continuous RNA-Seq end),
+                                    ]
+                                    ... (continuous RNA-Seq pairs)
                                 ]
                             ],
                             ... (3' ends)

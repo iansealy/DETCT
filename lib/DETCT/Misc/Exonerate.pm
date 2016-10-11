@@ -70,8 +70,11 @@ our @EXPORT_OK = qw(
                                     Int (distance to nearest transposon),
                                     Int (position of nearest transposon),
                                     Arrayref [
-                                        String (transcript stable id),
-                                        ... (continuous RNA-Seq transcript ids)
+                                        Arrayref [
+                                            String (transcript stable id),
+                                            Int (continuous RNA-Seq end),
+                                        ]
+                                        ... (continuous RNA-Seq pairs)
                                     ]
                                 ],
                                 ... (3' ends)

@@ -1368,7 +1368,8 @@ sub dump_ends_as_table {
                     $hexamer,        $transposon_distance,
                     $transposon_pos, $rnaseq_transcripts
                 ) = @{$end};
-                $rnaseq_transcripts = join q{|}, @{$rnaseq_transcripts};
+                $rnaseq_transcripts = join q{|},
+                  map { $_->[0] . q{>} . $_->[1] } @{$rnaseq_transcripts};
                 $strand = $strand > 0 ? q{+} : q{-};
                 $polya  = $polya      ? q{y} : q{n};
                 if ( !defined $hexamer_distance ) {
