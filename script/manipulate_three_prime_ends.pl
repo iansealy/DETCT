@@ -93,7 +93,7 @@ sub output_ends {
         'Transposon distance',
         'Transposon position',
         'Continuous RNA-Seq transcripts',
-        'Continuous RNA-Seq end distance',
+        'Continuous RNA-Seq end distances',
         'Ensembl gene ID',
         'Gene type',
         'Ensembl transcript ID',
