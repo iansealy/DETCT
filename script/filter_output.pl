@@ -58,7 +58,7 @@ Readonly our $TRANSPOSON_DISTANCE_FIELD           => 7;
 Readonly our $TRANSPOSON_POSITION_FIELD           => 8;
 Readonly our $CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD => 9;
 
-Readonly our $DISTANCE_TO_POLY_A           => 10;
+Readonly our $POLYA_THRESHOLD              => 10;
 Readonly our $CONTINUOUS_RNASEQ_PADDING    => 20;
 Readonly our $ANNOTATED_DISTANCE_THRESHOLD => 100;
 
@@ -356,15 +356,14 @@ sub remove_polya {
           ? @{$three_prime_end_pos}
           : ($three_prime_end_pos);
         foreach my $pos (@three_prime_end_pos) {
-            foreach my $end (@all_ends) {
-                if ( $end->[$IS_POLYA_FIELD] eq 'y'
-                    && abs( $end->[$THREE_PRIME_END_POS_FIELD] - $pos ) <
-                    $DISTANCE_TO_POLY_A )
-                {
-                    $region = remove_end_from_region( $region, $pos, $ends_for,
-                        'polyA' );
-                    last;
-                }
+            my ($end) =
+              grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
+            my $surrounding =
+              $end->[$UPSTREAM_14_BP_FIELD] . $end->[$DOWNSTREAM_14_BP_FIELD];
+            my $polya_count = $surrounding =~ tr/A/A/;
+            if ( $polya_count > $POLYA_THRESHOLD ) {
+                $region =
+                  remove_end_from_region( $region, $pos, $ends_for, 'polyA' );
             }
         }
     }
