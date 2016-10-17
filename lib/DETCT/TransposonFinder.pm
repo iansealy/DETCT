@@ -31,6 +31,7 @@ use Number::Closest::XS qw( find_closest_numbers );
 # Attributes:
 private slice_adaptor => my %slice_adaptor;  # Bio::EnsEMBL::DBSQL::SliceAdaptor
 private cache         => my %cache;          # hashref
+private other_end_cache => my %other_end_cache;    # hashref
 
 =method new
 
@@ -139,6 +140,19 @@ sub get_nearest_transposon {
     if ( $strand > 0 ) {
         $distance *= -1;    ## no critic (ProhibitMagicNumbers)
     }
+    my $other_end =
+      $other_end_cache{ id $self}->{$seq_name}->{$nearest_transposon_pos};
+    if (
+        (
+               $nearest_transposon_pos < $other_end
+            && $pos > $nearest_transposon_pos
+        )
+        || (   $other_end < $nearest_transposon_pos
+            && $pos < $nearest_transposon_pos )
+      )
+    {
+        $distance = 0;    # In transposon
+    }
 
     return $distance, $nearest_transposon_pos;
 }
@@ -163,15 +177,17 @@ sub _fill_cache_from_ensembl {
     my $slice = $self->slice_adaptor->fetch_by_region( 'toplevel', $seq_name );
     return if !defined $slice;    # No transposons if non-existent sequence name
 
-    my %ends;
     my $repeat_features = $slice->get_all_RepeatFeatures();
     foreach my $repeat_feature ( @{$repeat_features} ) {
         next
           if $repeat_feature->repeat_consensus->repeat_type !~ m/Transposon/xms;
-        $ends{ $repeat_feature->seq_region_start } = 1;
-        $ends{ $repeat_feature->seq_region_end }   = 1;
+        my $start = $repeat_feature->seq_region_start;
+        my $end   = $repeat_feature->seq_region_end;
+        $other_end_cache{ id $self}->{$seq_name}->{$start} = $end;
+        $other_end_cache{ id $self}->{$seq_name}->{$end}   = $start;
     }
-    $cache{ id $self}->{$seq_name} = [ sort { $a <=> $b } keys %ends ];
+    $cache{ id $self}->{$seq_name} =
+      [ sort { $a <=> $b } keys %{ $other_end_cache{ id $self}->{$seq_name} } ];
 
     return;
 }

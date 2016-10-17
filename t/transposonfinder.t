@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 22;
+plan tests => 26;
 
 use DETCT::TransposonFinder;
 
@@ -83,6 +83,16 @@ is( $nearest_transposon_pos, 50, q{Transposon starts at 50 bp} );
   $transposon_finder->get_nearest_transposon( '1', 41, -1 );
 is( $distance,               -9, q{Transposon is 9 bp upstream} );
 is( $nearest_transposon_pos, 50, q{Transposon starts at 50 bp} );
+
+# In transposon
+( $distance, $nearest_transposon_pos ) =
+  $transposon_finder->get_nearest_transposon( '1', 11, 1 );
+is( $distance,               0,  q{In transposon} );
+is( $nearest_transposon_pos, 10, q{Transposon starts at 10 bp} );
+( $distance, $nearest_transposon_pos ) =
+  $transposon_finder->get_nearest_transposon( '1', 11, -1 );
+is( $distance,               0,  q{In transposon} );
+is( $nearest_transposon_pos, 10, q{Transposon starts at 10 bp} );
 
 # Adding transposon annotation
 my $regions = [
