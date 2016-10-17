@@ -59,7 +59,7 @@ Readonly our $TRANSPOSON_POSITION_FIELD           => 8;
 Readonly our $CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD => 9;
 
 Readonly our $CONTINUOUS_RNASEQ_PADDING    => 20;
-Readonly our $REPEAT_PADDING               => 20;
+Readonly our $SIMPLE_REPEAT_PADDING        => 20;
 Readonly our $ANNOTATED_DISTANCE_THRESHOLD => 100;
 
 Readonly our %IS_PRIMARY_HEXAMER   => map { $_ => 1 } qw( AATAAA ATTAAA );
@@ -75,7 +75,7 @@ my $slice_regexp;
 my @biotype;
 my $keep_regions_without_ends;
 my $keep_ends_in_cds;
-my $keep_ends_in_repeat;
+my $keep_ends_in_simple_repeat;
 my $keep_polya_ends;
 my $keep_ends_without_hexamer;
 my $keep_ends_without_rnaseq;
@@ -136,7 +136,8 @@ my $gene_finder = DETCT::GeneFinder->new(
 
 my $cds_cache = get_cds_cache( $analysis->slice_adaptor, $slice_regexp );
 
-my $repeat_cache = get_repeat_cache( $analysis->slice_adaptor, $slice_regexp );
+my $simple_repeat_cache =
+  get_simple_repeat_cache( $analysis->slice_adaptor, $slice_regexp );
 
 my $ends_for = get_ends( $ends_file, $slice_regexp );
 
@@ -150,8 +151,9 @@ if ( !$keep_ends_in_cds ) {
     $regions = remove_ends_in_cds( $regions, $ends_for, $cds_cache );
 }
 
-if ( !$keep_ends_in_repeat ) {
-    $regions = remove_ends_in_repeat( $regions, $ends_for, $repeat_cache );
+if ( !$keep_ends_in_simple_repeat ) {
+    $regions =
+      remove_ends_in_simple_repeat( $regions, $ends_for, $simple_repeat_cache );
 }
 
 if ( !$keep_polya_ends ) {
@@ -230,10 +232,10 @@ sub get_cds_cache {
     return \%cds_cache;
 }
 
-sub get_repeat_cache {
+sub get_simple_repeat_cache {
     my ( $sa, $slice_regexp ) = @_;    ## no critic (ProhibitReusedNames)
 
-    my %repeat_cache;
+    my %simple_repeat_cache;
 
     my $slices = $sa->fetch_all('toplevel');
     if ($slice_regexp) {
@@ -245,25 +247,25 @@ sub get_repeat_cache {
         @{$slices} )
     {
         my $chr = $slice->seq_region_name;
-        if ( !exists $repeat_cache{$chr} ) {
-            $repeat_cache{$chr} = Set::IntervalTree->new;
+        if ( !exists $simple_repeat_cache{$chr} ) {
+            $simple_repeat_cache{$chr} = Set::IntervalTree->new;
         }
 
         my $dust_features = $slice->get_all_RepeatFeatures('dust');
         my $trf_features  = $slice->get_all_RepeatFeatures('trf');
         foreach my $repeat ( @{$dust_features}, @{$trf_features} ) {
-            $repeat_cache{$chr}->insert(
+            $simple_repeat_cache{$chr}->insert(
                 {
-                    start => $repeat->seq_region_start - $REPEAT_PADDING,
-                    end   => $repeat->seq_region_end + $REPEAT_PADDING,
+                    start => $repeat->seq_region_start - $SIMPLE_REPEAT_PADDING,
+                    end   => $repeat->seq_region_end + $SIMPLE_REPEAT_PADDING,
                 },
-                $repeat->seq_region_start - $REPEAT_PADDING,
-                $repeat->seq_region_end + $REPEAT_PADDING + 1
+                $repeat->seq_region_start - $SIMPLE_REPEAT_PADDING,
+                $repeat->seq_region_end + $SIMPLE_REPEAT_PADDING + 1
             );
         }
     }
 
-    return \%repeat_cache;
+    return \%simple_repeat_cache;
 }
 
 sub get_ends {
@@ -389,9 +391,9 @@ sub remove_ends_in_cds {
     return $regions;
 }
 
-sub remove_ends_in_repeat {
+sub remove_ends_in_simple_repeat {
     ## no critic (ProhibitReusedNames)
-    my ( $regions, $ends_for, $repeat_cache ) = @_;
+    my ( $regions, $ends_for, $simple_repeat_cache ) = @_;
     ## use critic
 
     foreach my $region ( @{$regions} ) {
@@ -405,10 +407,10 @@ sub remove_ends_in_repeat {
           ? @{$three_prime_end_pos}
           : ($three_prime_end_pos);
         foreach my $pos (@three_prime_end_pos) {
-            next if !exists $repeat_cache->{$chr};    # e.g. spike sequences
-            my $repeat_intervals =
-              $repeat_cache->{$chr}->fetch( $pos, $pos + 1 );
-            if ( @{$repeat_intervals} ) {
+            next if !exists $simple_repeat_cache->{$chr}; # e.g. spike sequences
+            my $simple_repeat_intervals =
+              $simple_repeat_cache->{$chr}->fetch( $pos, $pos + 1 );
+            if ( @{$simple_repeat_intervals} ) {
                 $region =
                   remove_end_from_region( $region, $pos, $ends_for, 'repeat' );
             }
@@ -779,7 +781,7 @@ sub get_and_check_options {
         'biotype=s@{,}'                => \@biotype,
         'keep_regions_without_ends'    => \$keep_regions_without_ends,
         'keep_ends_in_cds'             => \$keep_ends_in_cds,
-        'keep_ends_in_repeat'          => \$keep_ends_in_repeat,
+        'keep_ends_in_simple_repeat'   => \$keep_ends_in_simple_repeat,
         'keep_polya_ends'              => \$keep_polya_ends,
         'keep_ends_without_hexamer'    => \$keep_ends_without_hexamer,
         'keep_ends_without_rnaseq'     => \$keep_ends_without_rnaseq,
@@ -820,7 +822,7 @@ sub get_and_check_options {
         [--biotype biotype...]
         [--keep_regions_without_ends]
         [--keep_ends_in_cds]
-        [--keep_ends_in_repeat]
+        [--keep_ends_in_simple_repeat]
         [--keep_polya_ends]
         [--keep_ends_without_hexamer]
         [--keep_ends_without_rnaseq]
@@ -865,7 +867,7 @@ Don't filter out regions lacking a 3' end.
 
 Don't filter 3' ends in a transcript's CDS.
 
-=item B<--keep_ends_in_repeat>
+=item B<--keep_ends_in_simple_repeat>
 
 Don't filter 3' ends in or near a simple repeat.
 
