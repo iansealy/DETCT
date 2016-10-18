@@ -126,24 +126,21 @@ sub output_ends {
         my @ends;
         if ($ends) {
             foreach my $end ( split /,/xms, $ends ) {
-                my @end_data = split /[:\/]/xms, $end;
+                ## no critic (ProhibitMagicNumbers)
+                my @end_data = split /[:\/]/xms, $end, 11;
+                ## use critic
                 splice @end_data, 1, 1;    # Remove redundant strand
-                if ( scalar @end_data == 9 )
-                {                          ## no critic (ProhibitMagicNumbers)
-                    push @end_data, q{}, q{};    # Add missing last fields
+                      # Split last field into transcripts and distances
+                my @pairs = split /[|]/xms, pop @end_data;
+                @pairs = map { [ split />/xms ] } @pairs;
+                push @end_data, join q{,}, map { $_->[0] } @pairs;
+                my $pos = $end_data[0];
+                my @distances = map { $pos - $_->[1] } @pairs;
+
+                if ( $strand < 0 ) {
+                    @distances = map { -$_ } @distances;
                 }
-                else {
-                    # Split last field into transcripts and distances
-                    my @pairs = split /[|]/xms, pop @end_data;
-                    @pairs = map { [ split />/xms ] } @pairs;
-                    push @end_data, join q{,}, map { $_->[0] } @pairs;
-                    my $pos = $end_data[0];
-                    my @distances = map { $pos - $_->[1] } @pairs;
-                    if ( $strand < 0 ) {
-                        @distances = map { -$_ } @distances;
-                    }
-                    push @end_data, join q{,}, @distances;
-                }
+                push @end_data, join q{,}, @distances;
                 push @ends, \@end_data;
             }
             @ends = sort { $a->[0] <=> $b->[0] } @ends;

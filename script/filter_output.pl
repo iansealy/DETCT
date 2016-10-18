@@ -752,11 +752,10 @@ sub parse_ends {
     my @ends;
     if ($ends) {
         foreach my $end ( split /,/xms, $ends ) {
-            my @end_data = split /[:\/]/xms, $end;
+            ## no critic (ProhibitMagicNumbers)
+            my @end_data = split /[:\/]/xms, $end, 11;
+            ## use critic
             splice @end_data, 1, 1;    # Remove redundant strand
-            if ( scalar @end_data == 9 ) {   ## no critic (ProhibitMagicNumbers)
-                push @end_data, q{};         # Add missing last field
-            }
             push @ends, \@end_data;
         }
         @ends = sort { $a->[0] <=> $b->[0] } @ends;
