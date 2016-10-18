@@ -76,6 +76,7 @@ my @biotype;
 my $keep_regions_without_ends;
 my $keep_ends_in_cds;
 my $keep_ends_in_simple_repeat;
+my $keep_ends_in_transposon;
 my $keep_polya_ends;
 my $keep_ends_without_hexamer;
 my $keep_ends_without_rnaseq;
@@ -154,6 +155,10 @@ if ( !$keep_ends_in_cds ) {
 if ( !$keep_ends_in_simple_repeat ) {
     $regions =
       remove_ends_in_simple_repeat( $regions, $ends_for, $simple_repeat_cache );
+}
+
+if ( !$keep_ends_in_transposon ) {
+    $regions = remove_ends_in_transposon( $regions, $ends_for );
 }
 
 if ( !$keep_polya_ends ) {
@@ -413,6 +418,32 @@ sub remove_ends_in_simple_repeat {
             if ( @{$simple_repeat_intervals} ) {
                 $region =
                   remove_end_from_region( $region, $pos, $ends_for, 'repeat' );
+            }
+        }
+    }
+
+    return $regions;
+}
+
+sub remove_ends_in_transposon {
+    my ( $regions, $ends_for ) = @_;    ## no critic (ProhibitReusedNames)
+
+    foreach my $region ( @{$regions} ) {
+        my @all_ends = parse_ends( $region, $ends_for );
+        ## no critic (ProhibitMagicNumbers)
+        my $three_prime_end_pos = $region->[6];
+        ## use critic
+        next if !defined $three_prime_end_pos;
+        my @three_prime_end_pos =
+          ref $three_prime_end_pos eq 'ARRAY'
+          ? @{$three_prime_end_pos}
+          : ($three_prime_end_pos);
+        foreach my $pos (@three_prime_end_pos) {
+            my ($end) =
+              grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
+            if ( $end->[$TRANSPOSON_DISTANCE_FIELD] == 0 ) {
+                $region = remove_end_from_region( $region, $pos, $ends_for,
+                    'transposon' );
             }
         }
     }
@@ -781,6 +812,7 @@ sub get_and_check_options {
         'keep_regions_without_ends'    => \$keep_regions_without_ends,
         'keep_ends_in_cds'             => \$keep_ends_in_cds,
         'keep_ends_in_simple_repeat'   => \$keep_ends_in_simple_repeat,
+        'keep_ends_in_transposon'      => \$keep_ends_in_transposon,
         'keep_polya_ends'              => \$keep_polya_ends,
         'keep_ends_without_hexamer'    => \$keep_ends_without_hexamer,
         'keep_ends_without_rnaseq'     => \$keep_ends_without_rnaseq,
@@ -822,6 +854,7 @@ sub get_and_check_options {
         [--keep_regions_without_ends]
         [--keep_ends_in_cds]
         [--keep_ends_in_simple_repeat]
+        [--keep_ends_in_transposon]
         [--keep_polya_ends]
         [--keep_ends_without_hexamer]
         [--keep_ends_without_rnaseq]
@@ -869,6 +902,10 @@ Don't filter 3' ends in a transcript's CDS.
 =item B<--keep_ends_in_simple_repeat>
 
 Don't filter 3' ends in or near a simple repeat.
+
+=item B<--keep_ends_in_transposon>
+
+Don't filter 3' ends in a transposon.
 
 =item B<--keep_polya_ends>
 
