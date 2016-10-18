@@ -471,9 +471,11 @@ sub remove_polya {
               $end->[$UPSTREAM_14_BP_FIELD] . $end->[$DOWNSTREAM_14_BP_FIELD];
             my $polya_count = $surrounding =~ tr/A/A/;
             my ($initial_a) = $end->[$DOWNSTREAM_14_BP_FIELD] =~ m/\A (A+)/xms;
-            if (   $polya_count > $polya_threshold
-                || !defined $initial_a
-                || length $initial_a > $downstream_polya_threshold )
+            if (
+                $polya_count > $polya_threshold
+                || ( defined $initial_a
+                    && length $initial_a > $downstream_polya_threshold )
+              )
             {
                 $region =
                   remove_end_from_region( $region, $pos, $ends_for, 'polyA' );
