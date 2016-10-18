@@ -83,6 +83,7 @@ my $keep_ends_without_rnaseq;
 ## no critic (ProhibitMagicNumbers)
 my $polya_threshold            = 10;
 my $downstream_polya_threshold = 4;
+my $hexamer_polya_threshold    = 14;
 ## use critic
 my $log;
 my ( $help, $man );
@@ -456,8 +457,10 @@ sub remove_polya {
 
     foreach my $region ( @{$regions} ) {
         my @all_ends = parse_ends( $region, $ends_for );
+        my $seq_name = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
+        my $strand              = $region->[7];
         ## use critic
         next if !defined $three_prime_end_pos;
         my @three_prime_end_pos =
@@ -471,15 +474,27 @@ sub remove_polya {
               $end->[$UPSTREAM_14_BP_FIELD] . $end->[$DOWNSTREAM_14_BP_FIELD];
             my $polya_count = $surrounding =~ tr/A/A/;
             my ($initial_a) = $end->[$DOWNSTREAM_14_BP_FIELD] =~ m/\A (A+)/xms;
-            if (
-                $polya_count > $polya_threshold
-                || ( defined $initial_a
-                    && length $initial_a > $downstream_polya_threshold )
-              )
-            {
-                $region =
-                  remove_end_from_region( $region, $pos, $ends_for, 'polyA' );
-            }
+
+            # Keep end if low overall A, especially at start of downstream
+            next
+              if $polya_count <= $polya_threshold
+              && (!defined $initial_a
+                || length $initial_a <= $downstream_polya_threshold );
+
+            # Keep end if primary hexamer and polyA not above higher threshold
+            next
+              if exists $IS_PRIMARY_HEXAMER{ $end->[$HEXAMER_FIELD] }
+              && $polya_count <= $hexamer_polya_threshold;
+
+            # Keep end if primary hexamer and near annotated 3' end
+            my ( undef, $distance ) =
+              $gene_finder->get_nearest_transcripts( $seq_name, $pos, $strand );
+            next
+              if exists $IS_PRIMARY_HEXAMER{ $end->[$HEXAMER_FIELD] }
+              && defined $distance
+              && abs $distance <= $ANNOTATED_DISTANCE_THRESHOLD;
+            $region =
+              remove_end_from_region( $region, $pos, $ends_for, 'polyA' );
         }
     }
 
@@ -820,6 +835,7 @@ sub get_and_check_options {
         'keep_ends_without_rnaseq'     => \$keep_ends_without_rnaseq,
         'polya_threshold=i'            => \$polya_threshold,
         'downstream_polya_threshold=i' => \$downstream_polya_threshold,
+        'hexamer_polya_threshold=i'    => \$hexamer_polya_threshold,
         'log'                          => \$log,
         'help'                         => \$help,
         'man'                          => \$man,
@@ -861,6 +877,8 @@ sub get_and_check_options {
         [--keep_ends_without_hexamer]
         [--keep_ends_without_rnaseq]
         [--polya_threshold int]
+        [--downstream_polya_threshold int]
+        [--hexamer_polya_threshold int]
         [--log]
         [--help]
         [--man]
@@ -928,6 +946,11 @@ The maximum number of As allowed in the 14 bp upstream and 14 bp downstream.
 =item B<--downstream_polya_threshold>
 
 The maximum number of As allowed at the start of the 14 bp downstream.
+
+=item B<--hexamer_polya_threshold>
+
+The maximum number of As allowed in the surrounding 28 bp if the 3' end has a
+primary hexamer.
 
 =item B<--log>
 
