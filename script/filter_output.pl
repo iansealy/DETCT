@@ -442,7 +442,9 @@ sub remove_ends_in_transposon {
         foreach my $pos (@three_prime_end_pos) {
             my ($end) =
               grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
-            if ( $end->[$TRANSPOSON_DISTANCE_FIELD] == 0 ) {
+            if ( length $end->[$TRANSPOSON_DISTANCE_FIELD]
+                && $end->[$TRANSPOSON_DISTANCE_FIELD] == 0 )
+            {
                 $region = remove_end_from_region( $region, $pos, $ends_for,
                     'transposon' );
             }
