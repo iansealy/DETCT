@@ -67,7 +67,7 @@ private hash_merge       => my %hash_merge;          # Hash::Merge object
 private stage            => my %stage;               # arrayref of stages
 
 # Constants
-Readonly our $MAX_MEMORY_BEFORE_HUGEMEM => 64_000;
+Readonly our $MAX_MEMORY_BEFORE_HUGEMEM => 196_000;
 Readonly our %EXTENSION_TO_KEEP => map { $_ => 1 } qw(
   csv html pdf tsv txt
 );
