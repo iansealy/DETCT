@@ -208,6 +208,12 @@ sub get_file_data {
                 last;
             }
         }
+        foreach my $sample_to_check ( values %{$sample_for} ) {
+            if ( $fields[0] =~ m/\A $sample_to_check \b/xms ) {
+                $sample = $sample_to_check;
+                last;
+            }
+        }
         if ($sample) {
             $fields[$col] =~ s/, \z//xms;
             $data_for{$sample} = $fields[$col];
