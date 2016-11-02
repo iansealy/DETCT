@@ -71,10 +71,12 @@ foreach my $expt (@expts) {
     $expt_q =~ s/'\z/%'/xms;
     my $ary_ref = $dbh->selectall_arrayref(
         <<"SQL"
-        SELECT DISTINCT name, supplier_name, tag_sequence
+        SELECT DISTINCT name, supplier_name, public_name, tag_sequence
         FROM   npg_plex_information npi, current_samples cs
         WHERE  npi.sample_id = cs.internal_id
-        AND    (name LIKE $expt_q OR supplier_name LIKE $expt_q)
+        AND    (name LIKE $expt_q
+                OR supplier_name LIKE $expt_q
+                OR public_name LIKE $expt_q)
         AND    description LIKE '%polyT%'
         AND    tag_sequence IS NOT NULL
 SQL
@@ -82,7 +84,7 @@ SQL
     my %sample_for;
     my @samples;
     foreach ( @{$ary_ref} ) {
-        my ( $name, $supplier_name, $tag_sequence ) = @{$_};
+        my ( $name, $supplier_name, $public_name, $tag_sequence ) = @{$_};
         if ( $name =~ m/\A $expt [^[:alpha:]\d] /xms ) {
             push @samples, $name;
             $sample_for{$tag_sequence} = $name;
@@ -90,6 +92,10 @@ SQL
         elsif ( $supplier_name =~ m/\A $expt [^[:alpha:]\d] /xms ) {
             push @samples, $supplier_name;
             $sample_for{$tag_sequence} = $supplier_name;
+        }
+        elsif ( $public_name =~ m/\A $expt [^[:alpha:]\d] /xms ) {
+            push @samples, $public_name;
+            $sample_for{$tag_sequence} = $public_name;
         }
     }
 
