@@ -535,8 +535,6 @@ sub add_gene_annotation {
 
     confess 'No regions specified' if !defined $regions;
 
-    my @output;
-
     foreach my $region ( @{$regions} ) {
 
         # Get details for region and 3' end
@@ -610,10 +608,9 @@ sub add_gene_annotation {
         }
 
         push @{$region}, \%gene_annotation;
-        push @output, $region;
     }
 
-    return \@output;
+    return $regions;
 }
 
 =method add_existing_gene_annotation

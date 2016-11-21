@@ -1057,7 +1057,7 @@ sub run_add_region_alignments {
     my $regions = $self->load_serialised($prerequisite_output_file);
 
     # Annotate regions with alignments
-    my $chunk_regions = add_region_alignments(
+    $regions = add_region_alignments(
         {
             regions       => $regions,
             dir           => $job->base_filename,
@@ -1069,7 +1069,7 @@ sub run_add_region_alignments {
 
     my $output_file = $job->base_filename . '.out';
 
-    $self->dump_serialised( $output_file, $chunk_regions );
+    $self->dump_serialised( $output_file, $regions );
 
     return;
 }
@@ -1526,11 +1526,11 @@ sub run_add_gene_annotation {
             ensembl_db_types => $self->analysis->get_all_ensembl_db_types,
         }
     );
-    my $annotated_regions_ref = $gene_finder->add_gene_annotation($regions);
+    $regions = $gene_finder->add_gene_annotation($regions);
 
     my $output_file = $job->base_filename . '.out';
 
-    $self->dump_serialised( $output_file, $annotated_regions_ref );
+    $self->dump_serialised( $output_file, $regions );
 
     return;
 }
@@ -1588,7 +1588,7 @@ sub run_add_existing_gene_annotation {
             ensembl_db_types => $self->analysis->get_all_ensembl_db_types,
         }
     );
-    my $annotated_regions_ref = $gene_finder->add_existing_gene_annotation(
+    $regions = $gene_finder->add_existing_gene_annotation(
         {
             regions          => $regions,
             existing_regions => $existing_regions,
@@ -1597,7 +1597,7 @@ sub run_add_existing_gene_annotation {
 
     my $output_file = $job->base_filename . '.out';
 
-    $self->dump_serialised( $output_file, $annotated_regions_ref );
+    $self->dump_serialised( $output_file, $regions );
 
     return;
 }
