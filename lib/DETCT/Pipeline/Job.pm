@@ -486,7 +486,7 @@ sub _check_memory {
   Returns     : String (e.g. "normal")
   Parameters  : None
   Throws      : No exceptions
-  Comments    : Queue can be normal (default), long, or hugemem
+  Comments    : Queue can be normal (default), long, basement or hugemem
 
 =cut
 
@@ -522,7 +522,8 @@ sub _check_queue {
     my ($queue) = @_;
 
     return $queue
-      if !defined $queue || any { $_ eq $queue } qw(normal long hugemem);
+      if !defined $queue
+      || any { $_ eq $queue } qw(normal long basement hugemem);
     confess "Invalid queue ($queue) specified";
 }
 

@@ -8,7 +8,7 @@ use Test::DatabaseRow;
 use Test::MockObject;
 use Carp;
 
-plan tests => 61;
+plan tests => 63;
 
 use DETCT::Pipeline::Job;
 
@@ -79,13 +79,15 @@ is( $job->memory,           1000,  'Get new memory' );
 throws_ok { $job->set_memory(-1) } qr/Invalid memory/ms, 'Invalid memory';
 
 # Test queue attribute
-is( $job->queue,                'normal',  'Get queue' );
-is( $job->set_queue(),          undef,     'Set undefined queue' );
-is( $job->queue,                'normal',  'Get normal queue' );
-is( $job->set_queue('long'),    undef,     'Set long queue' );
-is( $job->queue,                'long',    'Get long queue' );
-is( $job->set_queue('hugemem'), undef,     'Set hugemem queue' );
-is( $job->queue,                'hugemem', 'Get hugemem queue' );
+is( $job->queue,                 'normal',   'Get queue' );
+is( $job->set_queue(),           undef,      'Set undefined queue' );
+is( $job->queue,                 'normal',   'Get normal queue' );
+is( $job->set_queue('long'),     undef,      'Set long queue' );
+is( $job->queue,                 'long',     'Get long queue' );
+is( $job->set_queue('basement'), undef,      'Set basement queue' );
+is( $job->queue,                 'basement', 'Get basement queue' );
+is( $job->set_queue('hugemem'),  undef,      'Set hugemem queue' );
+is( $job->queue,                 'hugemem',  'Get hugemem queue' );
 throws_ok { $job->set_queue('invalid') } qr/Invalid queue/ms, 'Invalid queue';
 
 # Test retries attribute

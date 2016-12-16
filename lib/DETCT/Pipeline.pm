@@ -1353,7 +1353,7 @@ sub process_job {
 
 =cut
 
-sub submit_job {
+sub submit_job {    ## no critic (ProhibitExcessComplexity)
     my ( $self, $job ) = @_;
 
     my $stdout_file = $job->base_filename . '.o';
@@ -1409,7 +1409,12 @@ sub submit_job {
             $job->set_queue('hugemem');
         }
         elsif ( $job->status_text && $job->status_text =~ m/\A RUNLIMIT /xms ) {
-            $job->set_queue('long');
+            if ( $job->queue eq 'normal' ) {
+                $job->set_queue('long');
+            }
+            elsif ( $job->queue eq 'long' ) {
+                $job->set_queue('basement');
+            }
         }
 
         # bsub job
