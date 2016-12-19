@@ -84,6 +84,7 @@ if (normalisationMethod == "none") {
 }
 
 # Differential expression analysis
+countData <- NA
 if (numFactors > 2 && deseqModel == "interaction") {
     if (numThreads == 1) {
         dds <- DESeq(dds, betaPrior=FALSE)
