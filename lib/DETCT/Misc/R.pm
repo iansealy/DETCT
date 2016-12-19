@@ -95,6 +95,7 @@ our @EXPORT_OK = qw(
                     spike_prefix         => String (the spike prefix) or undef,
                     normalisation_method => String (the normalisation method),
                     deseq_model          => String (the DESeq model),
+                    threads              => Int (the number of threads),
                 }
   Throws      : If directory is missing
                 If regions are missing
@@ -207,7 +208,8 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
       $input_file, $samples_file, $output_file, $size_factors_file,
       $qc_pdf_file, $filter_percentile, $normalisation_method,
       $arg_ref->{deseq_model}, $spike_input_file, $control_condition,
-      $experimental_condition, '<', $arg_ref->{deseq_script};
+      $experimental_condition, $arg_ref->{threads}, '<',
+      $arg_ref->{deseq_script};
     $cmd .= ' 1>' . $stdout_file;
     $cmd .= ' 2>' . $stderr_file;
     WIFEXITED( system $cmd) or confess "Couldn't run $cmd ($OS_ERROR)";

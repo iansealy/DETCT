@@ -15,6 +15,12 @@ deseqModel          <- Args[11]
 spikeCountFile      <- Args[12]
 ctrlCondition       <- Args[13]
 exptCondition       <- Args[14]
+numThreads          <- Args[15]
+
+if (numThreads > 1) {
+    library(BiocParallel)
+    register(MulticoreParam(numThreads))
+}
 
 # Get data and samples
 countData     <- read.table(   countFile, header=TRUE, row.names=1 )
@@ -79,16 +85,35 @@ if (normalisationMethod == "none") {
 
 # Differential expression analysis
 if (numFactors > 2 && deseqModel == "interaction") {
-    dds <- DESeq(dds, betaPrior=FALSE)
+    if (numThreads == 1) {
+        dds <- DESeq(dds, betaPrior=FALSE)
+    } else {
+        dds <- DESeq(dds, betaPrior=FALSE, parallel=TRUE)
+    }
 } else {
-    dds <- DESeq(dds)
+    if (numThreads == 1) {
+        dds <- DESeq(dds)
+    } else {
+        dds <- DESeq(dds, parallel=TRUE)
+    }
 }
 if (filterPercentile) {
     # Don't need independent filtering if already filtered
-    res <- results(dds, independentFiltering=FALSE,
-        contrast=c("condition", exptCondition, ctrlCondition))
+    if (numThreads == 1) {
+        res <- results(dds, independentFiltering=FALSE,
+            contrast=c("condition", exptCondition, ctrlCondition))
+    } else {
+        res <- results(dds, independentFiltering=FALSE, parallel=TRUE,
+            contrast=c("condition", exptCondition, ctrlCondition))
+    }
 } else {
-    res <- results(dds, contrast=c("condition", exptCondition, ctrlCondition))
+    if (numThreads == 1) {
+        res <- results(dds,
+            contrast=c("condition", exptCondition, ctrlCondition))
+    } else {
+        res <- results(dds, parallel=TRUE,
+            contrast=c("condition", exptCondition, ctrlCondition))
+    }
 }
 
 # Write output
