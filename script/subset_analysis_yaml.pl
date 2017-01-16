@@ -91,7 +91,7 @@ $yaml_tiny->[0]->{'samples'} = \@subset;
 # Dump YAML file
 $yaml = $yaml_tiny->write_string;
 $yaml =~ s/\A---\n//xms;
-$yaml =~ s/: \s+ '([\w.-]+)'/: $1/xmsg;    # Remove quotes round numbers
+$yaml =~ s/: \s+ '([^']+)'/: $1/xmsg;    # Remove quotes round values
 $yaml =~ s/: \s+ ~/:/xmsg;
 print_or_die($yaml);
 
