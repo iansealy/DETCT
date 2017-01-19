@@ -93,8 +93,8 @@ sub dump_as_table {    ## no critic (ProhibitExcessComplexity)
         && $arg_ref->{analysis}->experimental_condition )
     {
         @conditions = (
-            $arg_ref->{analysis}->control_condition,
             $arg_ref->{analysis}->experimental_condition
+            $arg_ref->{analysis}->control_condition,
         );
     }
 
@@ -875,8 +875,8 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
         && $arg_ref->{analysis}->experimental_condition )
     {
         @conditions = (
-            $arg_ref->{analysis}->control_condition,
             $arg_ref->{analysis}->experimental_condition
+            $arg_ref->{analysis}->control_condition,
         );
     }
 
