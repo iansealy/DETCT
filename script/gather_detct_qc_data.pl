@@ -89,11 +89,15 @@ SQL
             push @samples, $name;
             $sample_for{$tag_sequence} = $name;
         }
-        elsif ( $supplier_name =~ m/\A $expt [^[:alpha:]\d] /xms ) {
+        elsif ( defined $supplier_name
+            && $supplier_name =~ m/\A $expt [^[:alpha:]\d] /xms )
+        {
             push @samples, $supplier_name;
             $sample_for{$tag_sequence} = $supplier_name;
         }
-        elsif ( $public_name =~ m/\A $expt [^[:alpha:]\d] /xms ) {
+        elsif ( defined $public_name
+            && $public_name =~ m/\A $expt [^[:alpha:]\d] /xms )
+        {
             push @samples, $public_name;
             $sample_for{$tag_sequence} = $public_name;
         }
