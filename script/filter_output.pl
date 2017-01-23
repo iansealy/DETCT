@@ -66,6 +66,22 @@ Readonly our %IS_PRIMARY_HEXAMER   => map { $_ => 1 } qw( AATAAA ATTAAA );
 Readonly our %IS_SECONDARY_HEXAMER => map { $_ => 1 }
   qw( AGTAAA TATAAA CATAAA GATAAA AATATA AATACA AATAGA ACTAAA AAGAAA AATGAA );
 
+# Regexps for checking for polyA
+Readonly our $DOWNSTREAM_POLYA_LENGTH    => 6;
+Readonly our $DOWNSTREAM_POLYA_THRESHOLD => 3;
+Readonly our @POLYA_REGEXP               => (
+    qr/\A AAA... \z/xms,
+    qr/\A AA.A.. \z/xms,
+    qr/\A AA..A. \z/xms,
+    qr/\A AA...A \z/xms,
+    qr/\A A.AA.. \z/xms,
+    qr/\A A..AA. \z/xms,
+    qr/\A .AAA.. \z/xms,
+    qr/\A .A.AA. \z/xms,
+    qr/\A ..AAA. \z/xms,
+    qr/\A ..AA.A \z/xms,
+);
+
 # Default options
 my $analysis_dir = q{.};
 my $analysis_yaml = File::Spec->catfile( $analysis_dir, 'analysis.yaml' );
@@ -74,11 +90,13 @@ my $ends_file;
 my $slice_regexp;
 my @biotype;
 my $keep_regions_without_ends;
+my $keep_ends_near_n;
 my $keep_ends_far_from_annotation;
 my $keep_ends_in_cds;
 my $keep_ends_in_simple_repeat;
 my $keep_ends_in_transposon;
-my $keep_polya_ends;
+my $keep_polya_strict_ends;
+my $keep_polya_stricter_ends;
 my $keep_ends_without_hexamer;
 my $keep_ends_without_rnaseq;
 ## no critic (ProhibitMagicNumbers)
@@ -152,6 +170,10 @@ if (@biotype) {
     $regions = remove_ends_by_biotype( $regions, $ends_for, $gene_finder );
 }
 
+if ( !$keep_ends_near_n ) {
+    $regions = remove_ends_near_n( $regions, $ends_for );
+}
+
 if ( !$keep_ends_far_from_annotation ) {
     $regions = remove_ends_far_from_annotation( $regions, $ends_for );
 }
@@ -169,8 +191,12 @@ if ( !$keep_ends_in_transposon ) {
     $regions = remove_ends_in_transposon( $regions, $ends_for );
 }
 
-if ( !$keep_polya_ends ) {
-    $regions = remove_polya( $regions, $ends_for );
+if ( !$keep_polya_strict_ends ) {
+    $regions = remove_polya_strict( $regions, $ends_for );
+}
+
+if ( !$keep_polya_stricter_ends ) {
+    $regions = remove_polya_stricter( $regions, $ends_for );
 }
 
 if ( !$keep_ends_without_hexamer ) {
@@ -374,6 +400,35 @@ sub remove_ends_by_biotype {
     return $regions;
 }
 
+sub remove_ends_near_n {
+    my ( $regions, $ends_for ) = @_;    ## no critic (ProhibitReusedNames)
+
+    foreach my $region ( @{$regions} ) {
+        my @all_ends = parse_ends( $region, $ends_for );
+        ## no critic (ProhibitMagicNumbers)
+        my $three_prime_end_pos = $region->[6];
+        ## use critic
+        next if !defined $three_prime_end_pos;
+        my @three_prime_end_pos =
+          ref $three_prime_end_pos eq 'ARRAY'
+          ? @{$three_prime_end_pos}
+          : ($three_prime_end_pos);
+        foreach my $pos (@three_prime_end_pos) {
+            my ($end) =
+              grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
+            my $surrounding =
+              $end->[$UPSTREAM_14_BP_FIELD] . $end->[$DOWNSTREAM_14_BP_FIELD];
+            my $n_count = $surrounding =~ tr/N/N/;
+            next if !$n_count;
+
+            $region =
+              remove_end_from_region( $region, $pos, $ends_for, 'nearbyN' );
+        }
+    }
+
+    return $regions;
+}
+
 sub remove_ends_far_from_annotation {
     my ( $regions, $ends_for ) = @_;    ## no critic (ProhibitReusedNames)
 
@@ -508,7 +563,7 @@ sub remove_ends_in_transposon {
     return $regions;
 }
 
-sub remove_polya {
+sub remove_polya_strict {
     my ( $regions, $ends_for ) = @_;    ## no critic (ProhibitReusedNames)
 
     foreach my $region ( @{$regions} ) {
@@ -550,7 +605,47 @@ sub remove_polya {
               && defined $distance
               && abs $distance <= $ANNOTATED_DISTANCE_THRESHOLD;
             $region =
-              remove_end_from_region( $region, $pos, $ends_for, 'polyA' );
+              remove_end_from_region( $region, $pos, $ends_for, 'polyAstrict' );
+        }
+    }
+
+    return $regions;
+}
+
+sub remove_polya_stricter {
+    my ( $regions, $ends_for ) = @_;    ## no critic (ProhibitReusedNames)
+
+    foreach my $region ( @{$regions} ) {
+        my @all_ends = parse_ends( $region, $ends_for );
+        ## no critic (ProhibitMagicNumbers)
+        my $three_prime_end_pos = $region->[6];
+        ## use critic
+        next if !defined $three_prime_end_pos;
+        my @three_prime_end_pos =
+          ref $three_prime_end_pos eq 'ARRAY'
+          ? @{$three_prime_end_pos}
+          : ($three_prime_end_pos);
+        foreach my $pos (@three_prime_end_pos) {
+            my ($end) =
+              grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
+            my $downstream = substr $end->[$DOWNSTREAM_14_BP_FIELD], 0,
+              $DOWNSTREAM_POLYA_LENGTH;
+            my $polya_count = $downstream =~ tr/A/A/;
+            next if $polya_count < $DOWNSTREAM_POLYA_THRESHOLD;
+            my $remove = 1;
+            if ( $polya_count == $DOWNSTREAM_POLYA_THRESHOLD ) {
+                $remove = 0;
+                foreach my $regexp (@POLYA_REGEXP) {
+                    if ( $downstream =~ $regexp ) {
+                        $remove = 1;
+                    }
+                }
+            }
+
+            if ($remove) {
+                $region = remove_end_from_region( $region, $pos, $ends_for,
+                    'polyAstricter' );
+            }
         }
     }
 
@@ -886,11 +981,13 @@ sub get_and_check_options {
         'strict'                        => \$strict,
         'stricter'                      => \$stricter,
         'keep_regions_without_ends'     => \$keep_regions_without_ends,
+        'keep_ends_near_n'              => \$keep_ends_near_n,
         'keep_ends_far_from_annotation' => \$keep_ends_far_from_annotation,
         'keep_ends_in_cds'              => \$keep_ends_in_cds,
         'keep_ends_in_simple_repeat'    => \$keep_ends_in_simple_repeat,
         'keep_ends_in_transposon'       => \$keep_ends_in_transposon,
-        'keep_polya_ends'               => \$keep_polya_ends,
+        'keep_polya_strict_ends'        => \$keep_polya_strict_ends,
+        'keep_polya_stricter_ends'      => \$keep_polya_stricter_ends,
         'keep_ends_without_hexamer'     => \$keep_ends_without_hexamer,
         'keep_ends_without_rnaseq'      => \$keep_ends_without_rnaseq,
         'polya_threshold=i'             => \$polya_threshold,
@@ -926,11 +1023,13 @@ sub get_and_check_options {
 
     if ($strict) {
         $keep_regions_without_ends     = 0;
+        $keep_ends_near_n              = 1;
         $keep_ends_far_from_annotation = 1;
         $keep_ends_in_cds              = 0;
         $keep_ends_in_simple_repeat    = 1;
         $keep_ends_in_transposon       = 0;
-        $keep_polya_ends               = 0;
+        $keep_polya_strict_ends        = 0;
+        $keep_polya_stricter_ends      = 1;
         $keep_ends_without_hexamer     = 0;
         $keep_ends_without_rnaseq      = 1;
     }
@@ -938,12 +1037,14 @@ sub get_and_check_options {
         @biotype =
           qw(protein_coding antisense lincRNA misc_RNA processed_transcript);
         $keep_regions_without_ends     = 0;
+        $keep_ends_near_n              = 0;
         $keep_ends_far_from_annotation = 0;
-        $keep_ends_in_cds              = 0;
+        $keep_ends_in_cds              = 1;
         $keep_ends_in_simple_repeat    = 1;
-        $keep_ends_in_transposon       = 0;
-        $keep_polya_ends               = 0;
-        $keep_ends_without_hexamer     = 0;
+        $keep_ends_in_transposon       = 1;
+        $keep_polya_strict_ends        = 1;
+        $keep_polya_stricter_ends      = 0;
+        $keep_ends_without_hexamer     = 1;
         $keep_ends_without_rnaseq      = 1;
     }
 
@@ -962,11 +1063,13 @@ sub get_and_check_options {
         [--strict]
         [--stricter]
         [--keep_regions_without_ends]
+        [--keep_ends_near_n]
         [--keep_ends_far_from_annotation]
         [--keep_ends_in_cds]
         [--keep_ends_in_simple_repeat]
         [--keep_ends_in_transposon]
-        [--keep_polya_ends]
+        [--keep_polya_strict_ends]
+        [--keep_polya_stricter_ends]
         [--keep_ends_without_hexamer]
         [--keep_ends_without_rnaseq]
         [--polya_threshold int]
@@ -1018,6 +1121,10 @@ Apply preset "stricter" configuration.
 
 Don't filter out regions lacking a 3' end.
 
+=item B<--keep_ends_near_n>
+
+Don't filter 3' ends with N in surrounding 28 bp.
+
 =item B<--keep_ends_far_from_annotation>
 
 Don't filter 3' ends over set distance from existing annotation.
@@ -1034,9 +1141,13 @@ Don't filter 3' ends in or near a simple repeat.
 
 Don't filter 3' ends in a transposon.
 
-=item B<--keep_polya_ends>
+=item B<--keep_polya_strict_ends>
 
-Don't filter out polyA 3' ends.
+Don't filter out polyA 3' ends. This method is used in --strict.
+
+=item B<--keep_polya_stricter_ends>
+
+Don't filter out polyA 3' ends. This alternative method is used in --stricter.
 
 =item B<--keep_ends_without_hexamer>
 
