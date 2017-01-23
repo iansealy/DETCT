@@ -106,7 +106,7 @@ for (i in seq.int(sum(propVarPC * 100 >= varPCThreshold) - 1)) {
     print(ggplot(data=d, aes_string(x="first", y="second", color="group")) +
         geom_point(size=2) +
         geom_text(aes(label=short_sample_names), hjust=0, vjust=0, size=4,
-                  show_guide=FALSE) +
+                  show.legend=FALSE) +
         xlab(paste0("PC", first, ": ", round(propVarPC[first] * 100, 1),
             "% variance")) +
         ylab(paste0("PC", second, ": ", round(propVarPC[second] * 100, 1),
