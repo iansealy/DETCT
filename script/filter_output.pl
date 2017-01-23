@@ -74,6 +74,7 @@ my $ends_file;
 my $slice_regexp;
 my @biotype;
 my $keep_regions_without_ends;
+my $keep_ends_far_from_annotation;
 my $keep_ends_in_cds;
 my $keep_ends_in_simple_repeat;
 my $keep_ends_in_transposon;
@@ -81,9 +82,11 @@ my $keep_polya_ends;
 my $keep_ends_without_hexamer;
 my $keep_ends_without_rnaseq;
 ## no critic (ProhibitMagicNumbers)
-my $polya_threshold            = 10;
-my $downstream_polya_threshold = 4;
-my $hexamer_polya_threshold    = 14;
+my $polya_threshold                     = 10;
+my $downstream_polya_threshold          = 4;
+my $hexamer_polya_threshold             = 14;
+my $annotated_distance_threshold_coding = 5000;
+my $annotated_distance_threshold_other  = 50;
 ## use critic
 my $log;
 my ( $help, $man );
@@ -147,6 +150,10 @@ my $regions = get_regions( $all_file, $analysis, $slice_regexp );
 
 if (@biotype) {
     $regions = remove_ends_by_biotype( $regions, $ends_for, $gene_finder );
+}
+
+if ( !$keep_ends_far_from_annotation ) {
+    $regions = remove_ends_far_from_annotation( $regions, $ends_for );
 }
 
 if ( !$keep_ends_in_cds ) {
@@ -360,6 +367,53 @@ sub remove_ends_by_biotype {
             if ( !defined $distance ) {
                 $region =
                   remove_end_from_region( $region, $pos, $ends_for, 'biotype' );
+            }
+        }
+    }
+
+    return $regions;
+}
+
+sub remove_ends_far_from_annotation {
+    my ( $regions, $ends_for ) = @_;    ## no critic (ProhibitReusedNames)
+
+    foreach my $region ( @{$regions} ) {
+        my @all_ends = parse_ends( $region, $ends_for );
+        my $seq_name = $region->[0];
+        ## no critic (ProhibitMagicNumbers)
+        my $three_prime_end_pos = $region->[6];
+        my $strand              = $region->[7];
+        ## use critic
+        next if !defined $three_prime_end_pos;
+        my @three_prime_end_pos =
+          ref $three_prime_end_pos eq 'ARRAY'
+          ? @{$three_prime_end_pos}
+          : ($three_prime_end_pos);
+        foreach my $pos (@three_prime_end_pos) {
+            my ($end) =
+              grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
+            my $remove = 1;
+            my ( $nearest_transcripts, $distance ) =
+              $gene_finder->get_nearest_transcripts( $seq_name, $pos, $strand );
+            foreach my $transcript ( @{$nearest_transcripts} ) {
+                if (   defined $transcript
+                    && $transcript->biotype eq 'protein_coding'
+                    && defined $distance
+                    && abs $distance <= $annotated_distance_threshold_coding )
+                {
+                    $remove = 0;
+                }
+                if (   defined $transcript
+                    && $transcript->biotype ne 'protein_coding'
+                    && defined $distance
+                    && abs $distance <= $annotated_distance_threshold_other )
+                {
+                    $remove = 0;
+                }
+            }
+            if ($remove) {
+                $region = remove_end_from_region( $region, $pos, $ends_for,
+                    'AnnotationDistance' );
             }
         }
     }
@@ -819,28 +873,36 @@ sub parse_ends {
 
 # Get and check command line options
 sub get_and_check_options {
+    my ( $strict, $stricter );
 
     # Get options
     GetOptions(
-        'dir=s'                        => \$analysis_dir,
-        'analysis_yaml=s'              => \$analysis_yaml,
-        'all_file=s'                   => \$all_file,
-        'ends_file=s'                  => \$ends_file,
-        'slice_regexp=s'               => \$slice_regexp,
-        'biotype=s@{,}'                => \@biotype,
-        'keep_regions_without_ends'    => \$keep_regions_without_ends,
-        'keep_ends_in_cds'             => \$keep_ends_in_cds,
-        'keep_ends_in_simple_repeat'   => \$keep_ends_in_simple_repeat,
-        'keep_ends_in_transposon'      => \$keep_ends_in_transposon,
-        'keep_polya_ends'              => \$keep_polya_ends,
-        'keep_ends_without_hexamer'    => \$keep_ends_without_hexamer,
-        'keep_ends_without_rnaseq'     => \$keep_ends_without_rnaseq,
-        'polya_threshold=i'            => \$polya_threshold,
-        'downstream_polya_threshold=i' => \$downstream_polya_threshold,
-        'hexamer_polya_threshold=i'    => \$hexamer_polya_threshold,
-        'log'                          => \$log,
-        'help'                         => \$help,
-        'man'                          => \$man,
+        'dir=s'                         => \$analysis_dir,
+        'analysis_yaml=s'               => \$analysis_yaml,
+        'all_file=s'                    => \$all_file,
+        'ends_file=s'                   => \$ends_file,
+        'slice_regexp=s'                => \$slice_regexp,
+        'biotype=s@{,}'                 => \@biotype,
+        'strict'                        => \$strict,
+        'stricter'                      => \$stricter,
+        'keep_regions_without_ends'     => \$keep_regions_without_ends,
+        'keep_ends_far_from_annotation' => \$keep_ends_far_from_annotation,
+        'keep_ends_in_cds'              => \$keep_ends_in_cds,
+        'keep_ends_in_simple_repeat'    => \$keep_ends_in_simple_repeat,
+        'keep_ends_in_transposon'       => \$keep_ends_in_transposon,
+        'keep_polya_ends'               => \$keep_polya_ends,
+        'keep_ends_without_hexamer'     => \$keep_ends_without_hexamer,
+        'keep_ends_without_rnaseq'      => \$keep_ends_without_rnaseq,
+        'polya_threshold=i'             => \$polya_threshold,
+        'downstream_polya_threshold=i'  => \$downstream_polya_threshold,
+        'hexamer_polya_threshold=i'     => \$hexamer_polya_threshold,
+        'annotated_distance_threshold_coding' =>
+          \$annotated_distance_threshold_coding,
+        'annotated_distance_threshold_other' =>
+          \$annotated_distance_threshold_other,
+        'log'  => \$log,
+        'help' => \$help,
+        'man'  => \$man,
     ) or pod2usage(2);
 
     # Documentation
@@ -858,6 +920,32 @@ sub get_and_check_options {
     if ( !$ends_file ) {
         pod2usage("--ends_file must be specified\n");
     }
+    if ( $strict && $stricter ) {
+        pod2usage("Can't specify both --strict and --stricter\n");
+    }
+
+    if ($strict) {
+        $keep_regions_without_ends     = 0;
+        $keep_ends_far_from_annotation = 1;
+        $keep_ends_in_cds              = 0;
+        $keep_ends_in_simple_repeat    = 1;
+        $keep_ends_in_transposon       = 0;
+        $keep_polya_ends               = 0;
+        $keep_ends_without_hexamer     = 0;
+        $keep_ends_without_rnaseq      = 1;
+    }
+    elsif ($stricter) {
+        @biotype =
+          qw(protein_coding antisense lincRNA misc_RNA processed_transcript);
+        $keep_regions_without_ends     = 0;
+        $keep_ends_far_from_annotation = 0;
+        $keep_ends_in_cds              = 0;
+        $keep_ends_in_simple_repeat    = 1;
+        $keep_ends_in_transposon       = 0;
+        $keep_polya_ends               = 0;
+        $keep_ends_without_hexamer     = 0;
+        $keep_ends_without_rnaseq      = 1;
+    }
 
     return;
 }
@@ -871,7 +959,10 @@ sub get_and_check_options {
         [--ends_file file]
         [--slice_regexp regexp]
         [--biotype biotype...]
+        [--strict]
+        [--stricter]
         [--keep_regions_without_ends]
+        [--keep_ends_far_from_annotation]
         [--keep_ends_in_cds]
         [--keep_ends_in_simple_repeat]
         [--keep_ends_in_transposon]
@@ -881,6 +972,8 @@ sub get_and_check_options {
         [--polya_threshold int]
         [--downstream_polya_threshold int]
         [--hexamer_polya_threshold int]
+        [--annotated_distance_threshold_coding int]
+        [--annotated_distance_threshold_other int]
         [--log]
         [--help]
         [--man]
@@ -913,9 +1006,21 @@ Regular expression for matching slice names.
 
 Required biotype(s).
 
+=item B<--strict>
+
+Apply preset "strict" configuration.
+
+=item B<--stricter>
+
+Apply preset "stricter" configuration.
+
 =item B<--keep_regions_without_ends>
 
 Don't filter out regions lacking a 3' end.
+
+=item B<--keep_ends_far_from_annotation>
+
+Don't filter 3' ends over set distance from existing annotation.
 
 =item B<--keep_ends_in_cds>
 
@@ -953,6 +1058,14 @@ The maximum number of As allowed at the start of the 14 bp downstream.
 
 The maximum number of As allowed in the surrounding 28 bp if the 3' end has a
 primary hexamer.
+
+=item B<--annotated_distance_threshold_coding>
+
+The minimum distance a 3' end must be from existing protein-coding annotation.
+
+=item B<--annotated_distance_threshold_other>
+
+The minimum distance a 3' end must be from existing other annotation.
 
 =item B<--log>
 
