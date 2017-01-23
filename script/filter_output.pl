@@ -457,6 +457,7 @@ sub remove_ends_far_from_annotation {
                     && abs $distance <= $annotated_distance_threshold_coding )
                 {
                     $remove = 0;
+                    last;
                 }
                 if (   defined $transcript
                     && $transcript->biotype ne 'protein_coding'
@@ -464,6 +465,7 @@ sub remove_ends_far_from_annotation {
                     && abs $distance <= $annotated_distance_threshold_other )
                 {
                     $remove = 0;
+                    last;
                 }
             }
             if ($remove) {
@@ -638,6 +640,7 @@ sub remove_polya_stricter {
                 foreach my $regexp (@POLYA_REGEXP) {
                     if ( $downstream =~ $regexp ) {
                         $remove = 1;
+                        last;
                     }
                 }
             }
@@ -690,6 +693,7 @@ sub remove_ends_without_hexamer {
                     && abs $distance <= $ANNOTATED_DISTANCE_THRESHOLD )
                 {
                     $remove = 0;
+                    last;
                 }
             }
             if ($remove) {
