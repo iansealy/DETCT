@@ -452,15 +452,16 @@ sub remove_ends_far_from_annotation {
               $gene_finder->get_nearest_transcripts( $seq_name, $pos, $strand );
             foreach my $transcript ( @{$nearest_transcripts} ) {
                 if (   defined $transcript
-                    && $transcript->biotype eq 'protein_coding'
+                    && $transcript->biotype =~ m/\A protein_coding/xms
                     && defined $distance
+                    && $distance >= 0
                     && abs $distance <= $annotated_distance_threshold_coding )
                 {
                     $remove = 0;
                     last;
                 }
                 if (   defined $transcript
-                    && $transcript->biotype ne 'protein_coding'
+                    && $transcript->biotype !~ m/\A protein_coding/xms
                     && defined $distance
                     && abs $distance <= $annotated_distance_threshold_other )
                 {
