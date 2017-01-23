@@ -70,8 +70,17 @@ propVarPC <- pca$sdev^2 / sum( pca$sdev^2 )
 aload <- abs(pca$rotation)
 propVarRegion <- sweep(aload, 2, colSums(aload), "/")
 
+# Output PC coordinates
+lastSigPC <- sum(propVarPC * 100 >= varPCThreshold)
+x <- pca$x[,1:lastSigPC]
+if (grepl("csv$", dataFile)) {
+    write.csv( x, file=paste0(outputBase, "-PCs.csv"))
+} else {
+    write.table( x, file=paste0(outputBase, "-PCs.tsv"), quote=FALSE, sep="\t" )
+}
+
 # Output regions contributing most to each PC
-for (i in seq.int(sum(propVarPC * 100 >= varPCThreshold))) {
+for (i in seq.int(lastSigPC)) {
     data[select, "% variance explained"] <- propVarRegion[,i] * 100
     topData <- subset(data[order(data$`% variance explained`,
         decreasing=TRUE),], `% variance explained` >= varRegionThreshold)
@@ -98,7 +107,7 @@ print(ggplot(data=d, aes(x=PC, y=cumsum(var))) + geom_line() + geom_point() +
 intgroup.df <- as.data.frame(colData(dds)[, c("condition"), drop=FALSE])
 group <- factor(apply( intgroup.df, 1, paste, collapse=" : "))
 short_sample_names <- remove_common_prefix(colnames(dds))
-for (i in seq.int(sum(propVarPC * 100 >= varPCThreshold) - 1)) {
+for (i in seq.int(lastSigPC - 1)) {
     first <- i
     second <- i + 1
     d <- data.frame(first=pca$x[,first], second=pca$x[,second], group=group,
@@ -114,7 +123,6 @@ for (i in seq.int(sum(propVarPC * 100 >= varPCThreshold) - 1)) {
 }
 
 # Plot proportion of variance explained by each region across chromosome
-lastSigPC <- sum(propVarPC * 100 >= varPCThreshold)
 varMax <- max(propVarRegion[,1:lastSigPC])
 propVarRegion <- as.data.frame(propVarRegion[,1:lastSigPC])
 propVarRegion$region <- rowMeans(data[select, c(2,3)])
