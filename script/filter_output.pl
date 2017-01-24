@@ -94,11 +94,15 @@ my $keep_ends_near_n;
 my $keep_ends_far_from_annotation;
 my $keep_ends_in_cds;
 my $keep_ends_in_simple_repeat;
+my $keep_ends_in_simple_repeat_if_coding;
+my $keep_ends_in_simple_repeat_if_other;
 my $keep_ends_in_transposon;
 my $keep_polya_strict_ends;
 my $keep_polya_stricter_ends;
 my $keep_ends_without_hexamer;
 my $keep_ends_without_rnaseq;
+my $keep_ends_without_rnaseq_if_coding;
+my $keep_ends_without_rnaseq_if_other;
 ## no critic (ProhibitMagicNumbers)
 my $polya_threshold                     = 10;
 my $downstream_polya_threshold          = 4;
@@ -182,9 +186,12 @@ if ( !$keep_ends_in_cds ) {
     $regions = remove_ends_in_cds( $regions, $ends_for, $cds_cache );
 }
 
-if ( !$keep_ends_in_simple_repeat ) {
+if (   !$keep_ends_in_simple_repeat_if_coding
+    || !$keep_ends_in_simple_repeat_if_other )
+{
     $regions =
-      remove_ends_in_simple_repeat( $regions, $ends_for, $simple_repeat_cache );
+      remove_ends_in_simple_repeat( $regions, $ends_for, $simple_repeat_cache,
+        $gene_finder );
 }
 
 if ( !$keep_ends_in_transposon ) {
@@ -203,7 +210,9 @@ if ( !$keep_ends_without_hexamer ) {
     $regions = remove_ends_without_hexamer( $regions, $ends_for, $gene_finder );
 }
 
-if ( !$keep_ends_without_rnaseq ) {
+if (   !$keep_ends_without_rnaseq_if_coding
+    || !$keep_ends_without_rnaseq_if_other )
+{
     $regions = remove_ends_without_rnaseq( $regions, $ends_for, $gene_finder );
 }
 
@@ -377,7 +386,7 @@ sub remove_ends_by_biotype {
     ## use critic
 
     foreach my $region ( @{$regions} ) {
-        my $seq_name = $region->[0];
+        my $chr = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
         my $strand              = $region->[7];
@@ -389,7 +398,7 @@ sub remove_ends_by_biotype {
           : ($three_prime_end_pos);
         foreach my $pos (@three_prime_end_pos) {
             my ( undef, $distance ) =
-              $gene_finder->get_nearest_transcripts( $seq_name, $pos, $strand );
+              $gene_finder->get_nearest_transcripts( $chr, $pos, $strand );
             if ( !defined $distance ) {
                 $region =
                   remove_end_from_region( $region, $pos, $ends_for, 'biotype' );
@@ -434,7 +443,7 @@ sub remove_ends_far_from_annotation {
 
     foreach my $region ( @{$regions} ) {
         my @all_ends = parse_ends( $region, $ends_for );
-        my $seq_name = $region->[0];
+        my $chr = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
         my $strand              = $region->[7];
@@ -449,7 +458,7 @@ sub remove_ends_far_from_annotation {
               grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
             my $remove = 1;
             my ( $nearest_transcripts, $distance ) =
-              $gene_finder->get_nearest_transcripts( $seq_name, $pos, $strand );
+              $gene_finder->get_nearest_transcripts( $chr, $pos, $strand );
             foreach my $transcript ( @{$nearest_transcripts} ) {
                 if (   defined $transcript
                     && $transcript->biotype =~ m/\A protein_coding/xms
@@ -511,21 +520,37 @@ sub remove_ends_in_cds {
 
 sub remove_ends_in_simple_repeat {
     ## no critic (ProhibitReusedNames)
-    my ( $regions, $ends_for, $simple_repeat_cache ) = @_;
+    my ( $regions, $ends_for, $simple_repeat_cache, $gene_finder ) = @_;
     ## use critic
 
     foreach my $region ( @{$regions} ) {
         my $chr = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
+        my $strand              = $region->[7];
         ## use critic
         next if !defined $three_prime_end_pos;
         my @three_prime_end_pos =
           ref $three_prime_end_pos eq 'ARRAY'
           ? @{$three_prime_end_pos}
           : ($three_prime_end_pos);
-        foreach my $pos (@three_prime_end_pos) {
+      POS: foreach my $pos (@three_prime_end_pos) {
             next if !exists $simple_repeat_cache->{$chr}; # e.g. spike sequences
+
+            # Keep if near required biotype
+            my ( $nearest_transcripts, $distance ) =
+              $gene_finder->get_nearest_transcripts( $chr, $pos, $strand );
+            foreach my $transcript ( @{$nearest_transcripts} ) {
+                next POS
+                  if $keep_ends_in_simple_repeat_if_coding
+                  && defined $transcript
+                  && $transcript->biotype =~ m/\A protein_coding/xms;
+                next POS
+                  if $keep_ends_in_simple_repeat_if_other
+                  && defined $transcript
+                  && $transcript->biotype !~ m/\A protein_coding/xms;
+            }
+
             my $simple_repeat_intervals =
               $simple_repeat_cache->{$chr}->fetch( $pos, $pos + 1 );
             if ( @{$simple_repeat_intervals} ) {
@@ -571,7 +596,7 @@ sub remove_polya_strict {
 
     foreach my $region ( @{$regions} ) {
         my @all_ends = parse_ends( $region, $ends_for );
-        my $seq_name = $region->[0];
+        my $chr = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
         my $strand              = $region->[7];
@@ -602,7 +627,7 @@ sub remove_polya_strict {
 
             # Keep end if primary hexamer and near annotated 3' end
             my ( undef, $distance ) =
-              $gene_finder->get_nearest_transcripts( $seq_name, $pos, $strand );
+              $gene_finder->get_nearest_transcripts( $chr, $pos, $strand );
             next
               if exists $IS_PRIMARY_HEXAMER{ $end->[$HEXAMER_FIELD] }
               && defined $distance
@@ -663,7 +688,7 @@ sub remove_ends_without_hexamer {
 
     foreach my $region ( @{$regions} ) {
         my @all_ends = parse_ends( $region, $ends_for );
-        my $seq_name = $region->[0];
+        my $chr = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
         my $strand              = $region->[7];
@@ -688,8 +713,7 @@ sub remove_ends_without_hexamer {
                 && exists $IS_SECONDARY_HEXAMER{ $end->[$HEXAMER_FIELD] } )
             {
                 my ( undef, $distance ) =
-                  $gene_finder->get_nearest_transcripts( $seq_name, $pos,
-                    $strand );
+                  $gene_finder->get_nearest_transcripts( $chr, $pos, $strand );
                 if ( defined $distance
                     && abs $distance <= $ANNOTATED_DISTANCE_THRESHOLD )
                 {
@@ -714,7 +738,7 @@ sub remove_ends_without_rnaseq {
 
     foreach my $region ( @{$regions} ) {
         my @all_ends = parse_ends( $region, $ends_for );
-        my $seq_name = $region->[0];
+        my $chr = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
         my $strand              = $region->[7];
@@ -724,9 +748,23 @@ sub remove_ends_without_rnaseq {
           ref $three_prime_end_pos eq 'ARRAY'
           ? @{$three_prime_end_pos}
           : ($three_prime_end_pos);
-        foreach my $pos (@three_prime_end_pos) {
+      POS: foreach my $pos (@three_prime_end_pos) {
             my ($end) =
               grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
+
+            # Keep if near required biotype
+            my ( $nearest_transcripts, $distance ) =
+              $gene_finder->get_nearest_transcripts( $chr, $pos, $strand );
+            foreach my $transcript ( @{$nearest_transcripts} ) {
+                next POS
+                  if $keep_ends_without_rnaseq_if_coding
+                  && defined $transcript
+                  && $transcript->biotype =~ m/\A protein_coding/xms;
+                next POS
+                  if $keep_ends_without_rnaseq_if_other
+                  && defined $transcript
+                  && $transcript->biotype !~ m/\A protein_coding/xms;
+            }
 
             # Keep end if continuous RNA-Seq
             if ( $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD] ) {
@@ -738,8 +776,6 @@ sub remove_ends_without_rnaseq {
             }
 
             # Or keep end if near annotated 3' end
-            my ( undef, $distance ) =
-              $gene_finder->get_nearest_transcripts( $seq_name, $pos, $strand );
             if (  !defined $distance
                 || abs $distance > $ANNOTATED_DISTANCE_THRESHOLD )
             {
@@ -990,14 +1026,22 @@ sub get_and_check_options {
         'keep_ends_far_from_annotation' => \$keep_ends_far_from_annotation,
         'keep_ends_in_cds'              => \$keep_ends_in_cds,
         'keep_ends_in_simple_repeat'    => \$keep_ends_in_simple_repeat,
-        'keep_ends_in_transposon'       => \$keep_ends_in_transposon,
-        'keep_polya_strict_ends'        => \$keep_polya_strict_ends,
-        'keep_polya_stricter_ends'      => \$keep_polya_stricter_ends,
-        'keep_ends_without_hexamer'     => \$keep_ends_without_hexamer,
-        'keep_ends_without_rnaseq'      => \$keep_ends_without_rnaseq,
-        'polya_threshold=i'             => \$polya_threshold,
-        'downstream_polya_threshold=i'  => \$downstream_polya_threshold,
-        'hexamer_polya_threshold=i'     => \$hexamer_polya_threshold,
+        'keep_ends_in_simple_repeat_if_coding' =>
+          \$keep_ends_in_simple_repeat_if_coding,
+        'keep_ends_in_simple_repeat_if_other' =>
+          \$keep_ends_in_simple_repeat_if_other,
+        'keep_ends_in_transposon'   => \$keep_ends_in_transposon,
+        'keep_polya_strict_ends'    => \$keep_polya_strict_ends,
+        'keep_polya_stricter_ends'  => \$keep_polya_stricter_ends,
+        'keep_ends_without_hexamer' => \$keep_ends_without_hexamer,
+        'keep_ends_without_rnaseq'  => \$keep_ends_without_rnaseq,
+        'keep_ends_without_rnaseq_if_coding' =>
+          \$keep_ends_without_rnaseq_if_coding,
+        'keep_ends_without_rnaseq_if_other' =>
+          \$keep_ends_without_rnaseq_if_other,
+        'polya_threshold=i'            => \$polya_threshold,
+        'downstream_polya_threshold=i' => \$downstream_polya_threshold,
+        'hexamer_polya_threshold=i'    => \$hexamer_polya_threshold,
         'annotated_distance_threshold_coding' =>
           \$annotated_distance_threshold_coding,
         'annotated_distance_threshold_other' =>
@@ -1026,31 +1070,48 @@ sub get_and_check_options {
         pod2usage("Can't specify both --strict and --stricter\n");
     }
 
+    if ($keep_ends_in_simple_repeat) {
+        $keep_ends_in_simple_repeat_if_coding = 1;
+        $keep_ends_in_simple_repeat_if_other  = 1;
+    }
+    if ($keep_ends_without_rnaseq) {
+        $keep_ends_without_rnaseq_if_coding = 1;
+        $keep_ends_without_rnaseq_if_other  = 1;
+    }
+
     if ($strict) {
-        $keep_regions_without_ends     = 0;
-        $keep_ends_near_n              = 1;
-        $keep_ends_far_from_annotation = 1;
-        $keep_ends_in_cds              = 0;
-        $keep_ends_in_simple_repeat    = 1;
-        $keep_ends_in_transposon       = 0;
-        $keep_polya_strict_ends        = 0;
-        $keep_polya_stricter_ends      = 1;
-        $keep_ends_without_hexamer     = 0;
-        $keep_ends_without_rnaseq      = 1;
+        $keep_regions_without_ends            = 0;
+        $keep_ends_near_n                     = 1;
+        $keep_ends_far_from_annotation        = 1;
+        $keep_ends_in_cds                     = 0;
+        $keep_ends_in_simple_repeat           = 1;
+        $keep_ends_in_simple_repeat_if_coding = 1;
+        $keep_ends_in_simple_repeat_if_other  = 1;
+        $keep_ends_in_transposon              = 0;
+        $keep_polya_strict_ends               = 0;
+        $keep_polya_stricter_ends             = 1;
+        $keep_ends_without_hexamer            = 0;
+        $keep_ends_without_rnaseq             = 1;
+        $keep_ends_without_rnaseq_if_coding   = 1;
+        $keep_ends_without_rnaseq_if_other    = 1;
     }
     elsif ($stricter) {
         @biotype =
           qw(protein_coding antisense lincRNA misc_RNA processed_transcript);
-        $keep_regions_without_ends     = 0;
-        $keep_ends_near_n              = 0;
-        $keep_ends_far_from_annotation = 0;
-        $keep_ends_in_cds              = 1;
-        $keep_ends_in_simple_repeat    = 1;
-        $keep_ends_in_transposon       = 1;
-        $keep_polya_strict_ends        = 1;
-        $keep_polya_stricter_ends      = 0;
-        $keep_ends_without_hexamer     = 1;
-        $keep_ends_without_rnaseq      = 1;
+        $keep_regions_without_ends            = 0;
+        $keep_ends_near_n                     = 0;
+        $keep_ends_far_from_annotation        = 0;
+        $keep_ends_in_cds                     = 0;
+        $keep_ends_in_simple_repeat           = 0;
+        $keep_ends_in_simple_repeat_if_coding = 1;
+        $keep_ends_in_simple_repeat_if_other  = 0;
+        $keep_ends_in_transposon              = 0;
+        $keep_polya_strict_ends               = 1;
+        $keep_polya_stricter_ends             = 0;
+        $keep_ends_without_hexamer            = 0;
+        $keep_ends_without_rnaseq             = 0;
+        $keep_ends_without_rnaseq_if_coding   = 1;
+        $keep_ends_without_rnaseq_if_other    = 0;
     }
 
     return;
@@ -1072,11 +1133,15 @@ sub get_and_check_options {
         [--keep_ends_far_from_annotation]
         [--keep_ends_in_cds]
         [--keep_ends_in_simple_repeat]
+        [--keep_ends_in_simple_repeat_if_coding]
+        [--keep_ends_in_simple_repeat_if_other]
         [--keep_ends_in_transposon]
         [--keep_polya_strict_ends]
         [--keep_polya_stricter_ends]
         [--keep_ends_without_hexamer]
         [--keep_ends_without_rnaseq]
+        [--keep_ends_without_rnaseq_if_coding]
+        [--keep_ends_without_rnaseq_if_other]
         [--polya_threshold int]
         [--downstream_polya_threshold int]
         [--hexamer_polya_threshold int]
@@ -1142,6 +1207,16 @@ Don't filter 3' ends in a transcript's CDS.
 
 Don't filter 3' ends in or near a simple repeat.
 
+=item B<--keep_ends_in_simple_repeat_if_coding>
+
+Don't filter 3' ends in or near a simple repeat if nearest transcript is protein
+coding.
+
+=item B<--keep_ends_in_simple_repeat_if_other>
+
+Don't filter 3' ends in or near a simple repeat if nearest transcript is not
+protein coding.
+
 =item B<--keep_ends_in_transposon>
 
 Don't filter 3' ends in a transposon.
@@ -1161,6 +1236,16 @@ Don't filter out 3' ends lacking a primary hexamer.
 =item B<--keep_ends_without_rnaseq>
 
 Don't filter out 3' ends lacking continuous RNA-Seq transcripts.
+
+=item B<--keep_ends_without_rnaseq_if_coding>
+
+Don't filter out 3' ends lacking continuous RNA-Seq transcripts if nearest
+transcript is protein coding.
+
+=item B<--keep_ends_without_rnaseq_if_other>
+
+Don't filter out 3' ends lacking continuous RNA-Seq transcripts if nearest
+transcript is not protein coding.
 
 =item B<--polya_threshold>
 
