@@ -179,7 +179,8 @@ if ( !$keep_ends_near_n ) {
 }
 
 if ( !$keep_ends_far_from_annotation ) {
-    $regions = remove_ends_far_from_annotation( $regions, $ends_for );
+    $regions = remove_ends_far_from_annotation( $regions, $ends_for,
+        $analysis->slice_adaptor );
 }
 
 if ( !$keep_ends_in_cds ) {
@@ -439,7 +440,7 @@ sub remove_ends_near_n {
 }
 
 sub remove_ends_far_from_annotation {
-    my ( $regions, $ends_for ) = @_;    ## no critic (ProhibitReusedNames)
+    my ( $regions, $ends_for, $sa ) = @_;    ## no critic (ProhibitReusedNames)
 
     foreach my $region ( @{$regions} ) {
         my @all_ends = parse_ends( $region, $ends_for );
@@ -460,11 +461,16 @@ sub remove_ends_far_from_annotation {
             my ( $nearest_transcripts, $distance ) =
               $gene_finder->get_nearest_transcripts( $chr, $pos, $strand );
             foreach my $transcript ( @{$nearest_transcripts} ) {
-                if (   defined $transcript
+                if (
+                       defined $transcript
                     && $transcript->biotype =~ m/\A protein_coding/xms
                     && defined $distance
                     && $distance >= 0
-                    && abs $distance <= $annotated_distance_threshold_coding )
+                    && abs $distance <= $annotated_distance_threshold_coding
+                    && !is_in_other_gene_span(
+                        $transcript, $chr, $pos, $strand, $sa
+                    )
+                  )
                 {
                     $remove = 0;
                     last;
@@ -486,6 +492,22 @@ sub remove_ends_far_from_annotation {
     }
 
     return $regions;
+}
+
+sub is_in_other_gene_span {
+    my ( $transcript, $chr, $pos, $strand, $sa ) = @_;
+
+    my $nearest_gene_stable_id = $transcript->gene->stable_id;
+
+    my $slice = $sa->fetch_by_region( 'toplevel', $chr, $pos, $pos, $strand );
+    my $overlapping_genes = $slice->get_all_Genes();
+    foreach my $overlapping_gene ( @{$overlapping_genes} ) {
+        next if $overlapping_gene->stable_id eq $nearest_gene_stable_id;
+        next if $overlapping_gene->seq_region_strand != $strand;
+        return 1;
+    }
+
+    return 0;
 }
 
 sub remove_ends_in_cds {
