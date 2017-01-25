@@ -92,6 +92,7 @@ my @biotype;
 my $keep_regions_without_ends;
 my $keep_ends_near_n;
 my $keep_ends_far_from_annotation;
+my $keep_ends_beyond_five_prime;
 my $keep_ends_in_cds;
 my $keep_ends_in_simple_repeat;
 my $keep_ends_in_simple_repeat_if_coding;
@@ -180,6 +181,11 @@ if ( !$keep_ends_near_n ) {
 
 if ( !$keep_ends_far_from_annotation ) {
     $regions = remove_ends_far_from_annotation( $regions, $ends_for,
+        $analysis->slice_adaptor );
+}
+
+if ( !$keep_ends_beyond_five_prime ) {
+    $regions = remove_ends_beyond_five_prime( $regions, $ends_for,
         $analysis->slice_adaptor );
 }
 
@@ -486,7 +492,50 @@ sub remove_ends_far_from_annotation {
             }
             if ($remove) {
                 $region = remove_end_from_region( $region, $pos, $ends_for,
-                    'AnnotationDistance' );
+                    'annotationdistance' );
+            }
+        }
+    }
+
+    return $regions;
+}
+
+sub remove_ends_beyond_five_prime {
+    my ( $regions, $ends_for, $sa ) = @_;    ## no critic (ProhibitReusedNames)
+
+    foreach my $region ( @{$regions} ) {
+        my @all_ends = parse_ends( $region, $ends_for );
+        my $chr = $region->[0];
+        ## no critic (ProhibitMagicNumbers)
+        my $three_prime_end_pos = $region->[6];
+        my $strand              = $region->[7];
+        ## use critic
+        next if !defined $three_prime_end_pos;
+        my @three_prime_end_pos =
+          ref $three_prime_end_pos eq 'ARRAY'
+          ? @{$three_prime_end_pos}
+          : ($three_prime_end_pos);
+        foreach my $pos (@three_prime_end_pos) {
+            my ($end) =
+              grep { $_->[$THREE_PRIME_END_POS_FIELD] == $pos } @all_ends;
+            my $remove = 1;
+            my ($nearest_genes) =
+              $gene_finder->get_nearest_genes( $chr, $pos, $strand );
+            foreach my $gene ( @{$nearest_genes} ) {
+                if ( $strand == 1 && $pos >= $gene->start ) {
+                    $remove = 0;
+                    last;
+                }
+                ## no critic (ProhibitMagicNumbers)
+                elsif ( $strand == -1 && $pos <= $gene->end ) {
+                    ## use critic
+                    $remove = 0;
+                    last;
+                }
+            }
+            if ($remove) {
+                $region =
+                  remove_end_from_region( $region, $pos, $ends_for, 'beyond5' );
             }
         }
     }
@@ -560,7 +609,7 @@ sub remove_ends_in_simple_repeat {
             next if !exists $simple_repeat_cache->{$chr}; # e.g. spike sequences
 
             # Keep if near required biotype
-            my ( $nearest_transcripts, $distance ) =
+            my ($nearest_transcripts) =
               $gene_finder->get_nearest_transcripts( $chr, $pos, $strand );
             foreach my $transcript ( @{$nearest_transcripts} ) {
                 next POS
@@ -1046,6 +1095,7 @@ sub get_and_check_options {
         'keep_regions_without_ends'     => \$keep_regions_without_ends,
         'keep_ends_near_n'              => \$keep_ends_near_n,
         'keep_ends_far_from_annotation' => \$keep_ends_far_from_annotation,
+        'keep_ends_beyond_five_prime'   => \$keep_ends_beyond_five_prime,
         'keep_ends_in_cds'              => \$keep_ends_in_cds,
         'keep_ends_in_simple_repeat'    => \$keep_ends_in_simple_repeat,
         'keep_ends_in_simple_repeat_if_coding' =>
@@ -1105,6 +1155,7 @@ sub get_and_check_options {
         $keep_regions_without_ends            = 0;
         $keep_ends_near_n                     = 1;
         $keep_ends_far_from_annotation        = 1;
+        $keep_ends_beyond_five_prime          = 1;
         $keep_ends_in_cds                     = 0;
         $keep_ends_in_simple_repeat           = 1;
         $keep_ends_in_simple_repeat_if_coding = 1;
@@ -1123,6 +1174,7 @@ sub get_and_check_options {
         $keep_regions_without_ends            = 0;
         $keep_ends_near_n                     = 0;
         $keep_ends_far_from_annotation        = 0;
+        $keep_ends_beyond_five_prime          = 0;
         $keep_ends_in_cds                     = 0;
         $keep_ends_in_simple_repeat           = 0;
         $keep_ends_in_simple_repeat_if_coding = 1;
@@ -1153,6 +1205,7 @@ sub get_and_check_options {
         [--keep_regions_without_ends]
         [--keep_ends_near_n]
         [--keep_ends_far_from_annotation]
+        [--keep_ends_beyond_five_prime]
         [--keep_ends_in_cds]
         [--keep_ends_in_simple_repeat]
         [--keep_ends_in_simple_repeat_if_coding]
@@ -1220,6 +1273,10 @@ Don't filter 3' ends with N in surrounding 28 bp.
 =item B<--keep_ends_far_from_annotation>
 
 Don't filter 3' ends over set distance from existing annotation.
+
+=item B<--keep_ends_beyond_five_prime>
+
+Don't filter 3' ends beyond 5' end of nearest gene.
 
 =item B<--keep_ends_in_cds>
 
