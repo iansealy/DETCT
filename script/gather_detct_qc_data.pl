@@ -51,7 +51,7 @@ Readonly our $OUTPUT_NAMES => join "\t",
 my $input_file;
 my $filtered_input_file;
 my @expts;
-my $bam_dir = '/lustre/scratch110/sanger/is1/detct-bam';
+my $bam_dir = '/lustre/scratch117/maz/team31/detct-bam-grcz10';
 my ( $help, $man );
 
 # Get and check command line options
