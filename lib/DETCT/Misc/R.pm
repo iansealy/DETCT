@@ -193,7 +193,7 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
     if (   $arg_ref->{analysis}->control_condition
         && $arg_ref->{analysis}->experimental_condition )
     {
-        @conditions = ( $control_condition, $experimental_condition );
+        @conditions = ( $experimental_condition, $control_condition );
     }
 
     my $output_file = File::Spec->catfile( $arg_ref->{dir}, 'output.txt' );
