@@ -43,6 +43,7 @@ picard
 PNEXT
 polyT
 polyA
+redump
 rerio
 sampe
 SAMtools
