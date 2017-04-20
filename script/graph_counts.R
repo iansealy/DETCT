@@ -18,19 +18,23 @@ if (grepl("csv$", dataFile)) {
 # Read samples
 samples <- read.table( samplesFile, header=TRUE, row.names=1 )
 
+# Get counts
+countData <- data[,grepl(".normalised.count$", names(data))]
+names(countData) <- gsub(".normalised.count$", "", names(countData))
+
+# Subset and reorder count data
+countData <- countData[, row.names(samples)]
+
 # Graph parameters
-labels <- gsub(".normalised.count$", "",
-               names(data)[grepl(".normalised.count$", names(data))])
 colours <- as.numeric(samples$condition)
 
 pdf(pdfFile)
 
 # Plot each region separately
 for (i in 1:nrow(data)) {
-    counts <- data[i, grepl(".normalised.count$", names(data)) ]
     par(mar=c(8.1, 4.1, 4.1, 2.1), xpd=TRUE)
-    plot(as.numeric(counts), axes=FALSE, ann=FALSE, pch=21, bg=colours)
-    axis(1, at=1:length(labels), lab=labels, las=2, cex.axis=0.5)
+    plot(as.numeric(countData[i,]), axes=FALSE, ann=FALSE, pch=21, bg=colours)
+    axis(1, at=1:ncol(countData), lab=names(countData), las=2, cex.axis=0.5)
     axis(2)
     title(main=sprintf("%s:%d-%d %s\n%.2f",
                        data[i,"Chr"], data[i,"Region.start"],

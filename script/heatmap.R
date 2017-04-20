@@ -31,6 +31,9 @@ countData <- data[,grepl(" count$", names(data)) &
                   !grepl(" end read count$", names(data))]
 names(countData) <- gsub(" count$", "", names(countData))
 
+# Subset and reorder count data
+countData <- countData[, row.names(samples)]
+
 # Transform using DESeq2
 dds <- DESeqDataSetFromMatrix(countData, samples, design = ~ condition)
 dds <- estimateSizeFactors(dds)

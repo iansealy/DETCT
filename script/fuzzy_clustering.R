@@ -171,6 +171,9 @@ data[,1] <- factor(data[,1])
 countData <- data[,grepl(" normalised count$", names(data))]
 names(countData) <- gsub(" normalised count$", "", names(countData))
 
+# Subset and reorder count data
+countData <- countData[, row.names(samples)]
+
 # Get median counts
 medianData <- matrix(nrow=nrow(countData),
                      ncol=length(levels(samples$condition)),
@@ -199,8 +202,6 @@ mfuzz.plot2.tmp(eset.s, cl=cl, mfrow=c(4,4), x11=FALSE, centre=TRUE,
 graphics.off()
 
 # Output fuzzy clusters
-labels <- gsub(".normalised.count$", "",
-               names(data)[grepl(".normalised.count$", names(data))])
 colours <- as.numeric(samples$condition)
 acore.list <- acore(eset.s, cl=cl, min.acore=alphaThreshold)
 for (i in 1:numClusters) {
@@ -215,15 +216,18 @@ for (i in 1:numClusters) {
                                              alphaThreshold, '-', i, '.tsv'),
                     quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
     }
+    data.subset <- data[,grepl(" normalised count$", names(data.subset))]
+    names(data.subset) <- gsub(" normalised count$", "", names(data.subset))
+    data.subset <- data.subset[, row.names(samples)]
     # Plot counts
     pdf(paste0(outputBase, '-', numClusters, '-', alphaThreshold, '-', i,
                '-counts.pdf'))
     for (j in 1:nrow(data.subset)) {
-        counts <- data.subset[j, grepl(".normalised.count$",
-                                       names(data.subset)) ]
+        counts <- data.subset[j,]
         par(mar=c(8.1, 4.1, 4.1, 2.1), xpd=TRUE)
         plot(as.numeric(counts), axes=FALSE, ann=FALSE, pch=21, bg=colours)
-        axis(1, at=1:length(labels), lab=labels, las=2, cex.axis=0.5)
+        axis(1, at=1:ncol(data.subset), lab=names(data.subset), las=2,
+             cex.axis=0.5)
         axis(2)
         title(main=sprintf("%s:%d-%d %s\n%.2f",
                            data.subset[j,"Chr"],
