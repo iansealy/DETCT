@@ -216,7 +216,7 @@ for (i in 1:numClusters) {
                                              alphaThreshold, '-', i, '.tsv'),
                     quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
     }
-    data.subset <- data[,grepl(" normalised count$", names(data.subset))]
+    data.subset <- data.subset[,grepl(" normalised count$", names(data.subset))]
     names(data.subset) <- gsub(" normalised count$", "", names(data.subset))
     data.subset <- data.subset[, row.names(samples)]
     # Plot counts
