@@ -89,6 +89,7 @@ sub get_regions {
 
 # Get and check command line options
 sub get_and_check_options {
+
     # Get options
     GetOptions(
         'dir=s'           => \$analysis_dir,
