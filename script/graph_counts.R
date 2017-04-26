@@ -7,7 +7,7 @@ suppressPackageStartupMessages(library(dplyr))
 Args        <- commandArgs()
 dataFile    <- ifelse(is.na(Args[6]), "all.tsv",     Args[6])
 samplesFile <- ifelse(is.na(Args[7]), "samples.txt", Args[7])
-pdfFile     <- ifelse(is.na(Args[8]), "counts.pdf",  Args[8])
+outputFile  <- ifelse(is.na(Args[8]), "counts.pdf",  Args[8])
 plotStyle   <- ifelse(is.na(Args[9]), "default",     Args[9])
 
 # Read data
@@ -32,9 +32,10 @@ countData <- countData[, row.names(samples)]
 
 # Graph parameters
 colours <- as.numeric(samples$condition)
-palette(rainbow(length(levels(samples$condition))))
 
-pdf(pdfFile)
+if (grepl("pdf$", outputFile)) {
+    pdf(outputFile)
+}
 
 if (plotStyle == "violin") {
     countData$id <- row.names(countData)
@@ -48,16 +49,26 @@ if (plotStyle == "violin") {
                               data[,"Adjusted.p.value"])
     levels(counts$condition) <- samples$condition
     for (i in 1:nrow(data)) {
-        print(ggplot(counts[counts$id == i,],
-               aes(x=condition, y=count, color=condition)) +
+        p <- ggplot(counts[counts$id == i,],
+                    aes(x=condition, y=count, color=condition)) +
             geom_violin() + geom_boxplot(width=0.1, outlier.shape=NA) +
             labs(x="", y="Normalised Counts", title=countData$name[i]) +
             theme_bw() +
             theme(legend.position='none',
-                  plot.title = element_text(hjust = 0.5, face="bold")))
+                  plot.title = element_text(hjust = 0.5, face="bold"))
+        if (grepl("pdf$", outputFile)) {
+            print(p)
+        } else {
+            ggsave(filename=paste0(outputFile, i, '.svg'), plot=p, width=10,
+                   height=8)
+        }
     }
 } else {
     for (i in 1:nrow(data)) {
+        if (!grepl("pdf$", outputFile)) {
+            svg(paste0(outputFile, i, '.svg'))
+        }
+        palette(rainbow(length(levels(samples$condition))))
         par(mar=c(8.1, 4.1, 4.1, 2.1), xpd=TRUE)
         plot(as.numeric(countData[i,]), axes=FALSE, ann=FALSE, pch=21,
              bg=colours)
@@ -71,7 +82,12 @@ if (plotStyle == "violin") {
         title(ylab="Normalised Counts")
         legend("topright", inset=c(0, -0.1), levels(samples$condition), pch=21,
                pt.bg=1:length(levels(samples$condition)))
+        if (!grepl("pdf$", outputFile)) {
+            graphics.off()
+        }
     }
 }
 
-graphics.off()
+if (grepl("pdf$", outputFile)) {
+    graphics.off()
+}
