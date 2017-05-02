@@ -58,6 +58,7 @@ foreach my $file (@files) {
         ## no critic (ProhibitMagicNumbers)
         my $region = join q{:}, @fields[ 0, 1, 2, 4 ];
         if ( $fields[9] ) {
+            $fields[9] =~ s/,/;/xmsg;
             $region .= q{:} . $fields[9];
         }
         ## use critic
