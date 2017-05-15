@@ -12,9 +12,9 @@ plotStyle   <- ifelse(is.na(Args[9]), "default",     Args[9])
 
 # Read data
 if (grepl("csv$", dataFile)) {
-    data <- read.csv(dataFile, header=TRUE)
+    data <- read.csv(dataFile, header=TRUE, check.names=FALSE)
 } else if (grepl("tsv$", dataFile)) {
-    data <- read.delim(dataFile, header=TRUE)
+    data <- read.delim(dataFile, header=TRUE, check.names=FALSE)
     colnames(data)[1] = "Chr" # X.Chr -> Chr
 } else {
     stop(sprintf("Can't read %s file", dataFile))
@@ -24,8 +24,8 @@ if (grepl("csv$", dataFile)) {
 samples <- read.table( samplesFile, header=TRUE, row.names=1 )
 
 # Get counts
-countData <- data[,grepl(".normalised.count$", names(data))]
-names(countData) <- gsub(".normalised.count$", "", names(countData))
+countData <- data[,grepl(" normalised count$", names(data))]
+names(countData) <- gsub(" normalised count$", "", names(countData))
 
 # Subset and reorder count data
 countData <- countData[, row.names(samples)]
