@@ -9,7 +9,7 @@ suppressPackageStartupMessages(library(reshape2))
 Args               <- commandArgs()
 dataFile           <- ifelse(is.na(Args[6]),  "all.tsv",     Args[6])
 samplesFile        <- ifelse(is.na(Args[7]),  "samples.txt", Args[7])
-pdfFile            <- ifelse(is.na(Args[8]),  "pca.pdf",     Args[8])
+outputFile         <- ifelse(is.na(Args[8]),  "pca.pdf",     Args[8])
 outputBase         <- ifelse(is.na(Args[9]),  "all",         Args[9])
 transformMethod    <- ifelse(is.na(Args[10]), "rlog",        Args[10])
 regionCount        <- ifelse(is.na(Args[11]), 500,         as.integer(Args[11]))
@@ -97,14 +97,28 @@ for (i in seq.int(lastSigPC)) {
 }
 
 # Write PCs to PDF
-pdf(pdfFile)
+if (grepl("pdf$", outputFile)) {
+    pdf(outputFile)
+}
 
 # Show variance explained for each PC
 d <- data.frame(PC=seq.int(length(propVarPC)), var=propVarPC)
-print(ggplot(data=d, aes(x=PC, y=var)) + geom_line() + geom_point() +
-    xlab("PC") + ylab("Variance explained") + ylim(c(0, 1)))
-print(ggplot(data=d, aes(x=PC, y=cumsum(var))) + geom_line() + geom_point() +
-    xlab("PC") + ylab("Cumulative variance explained") + ylim(c(0, 1)))
+p <- ggplot(data=d, aes(x=PC, y=var)) + geom_line() + geom_point() +
+    xlab("PC") + ylab("Variance explained") + ylim(c(0, 1))
+if (grepl("pdf$", outputFile)) {
+    print(p)
+} else {
+    ggsave(filename=paste0(outputFile, 'expl.svg'), plot=p, width=10,
+           height=8)
+}
+p <- ggplot(data=d, aes(x=PC, y=cumsum(var))) + geom_line() + geom_point() +
+    xlab("PC") + ylab("Cumulative variance explained") + ylim(c(0, 1))
+if (grepl("pdf$", outputFile)) {
+    print(p)
+} else {
+    ggsave(filename=paste0(outputFile, 'cum.expl.svg'), plot=p, width=10,
+           height=8)
+}
 
 # Plot PCs in pairs
 intgroup.df <- as.data.frame(colData(dds)[, c("condition"), drop=FALSE])
@@ -115,14 +129,20 @@ for (i in seq.int(lastSigPC - 1)) {
     second <- i + 1
     d <- data.frame(first=pca$x[,first], second=pca$x[,second], group=group,
         intgroup.df, name=colnames(dds))
-    print(ggplot(data=d, aes_string(x="first", y="second", color="group")) +
+    p <- ggplot(data=d, aes_string(x="first", y="second", color="group")) +
         geom_point(size=2) +
         geom_text(aes(label=short_sample_names), hjust=0, vjust=0, size=4,
                   show.legend=FALSE) +
         xlab(paste0("PC", first, ": ", round(propVarPC[first] * 100, 1),
             "% variance")) +
         ylab(paste0("PC", second, ": ", round(propVarPC[second] * 100, 1),
-            "% variance")))
+            "% variance"))
+    if (grepl("pdf$", outputFile)) {
+        print(p)
+    } else {
+        ggsave(filename=paste0(outputFile, first, '-', second, '.svg'), plot=p,
+               width=10, height=8)
+    }
 }
 
 # Plot proportion of variance explained by each region across chromosome
@@ -135,11 +155,19 @@ chrs <- sort(unique(as.numeric(levels(data[,1])[grepl("^[0-9]+$",
 for (chr in chrs) {
     var_long <- melt(propVarRegion[propVarRegion$chr == chr,1:ncol(propVarRegion)-1],
         id="region", variable.name="PC")
-    print(ggplot(data=var_long, aes(x=region, y=value, colour=PC)) +
+    p <- ggplot(data=var_long, aes(x=region, y=value, colour=PC)) +
         geom_line() + geom_point() +
         xlab(paste0("Chromosome ", chr)) +
         ylab("Variance explained") +
-        ylim(c(0, varMax)))
+        ylim(c(0, varMax))
+    if (grepl("pdf$", outputFile)) {
+        print(p)
+    } else {
+        ggsave(filename=paste0(outputFile, 'chr', chr, '.svg'), plot=p,
+               width=10, height=8)
+    }
 }
 
-graphics.off()
+if (grepl("pdf$", outputFile)) {
+    graphics.off()
+}
