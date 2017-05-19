@@ -43,10 +43,10 @@ if (plotStyle == "violin") {
                    value.name="count")
     countData$name <- sprintf("%s:%d-%d %s\n%.2f",
                               data[,"Chr"],
-                              data[,"Region.start"],
-                              data[,"Region.end"],
-                              data[,"Gene.name"],
-                              data[,"Adjusted.p.value"])
+                              data[,"Region start"],
+                              data[,"Region end"],
+                              data[,"Gene name"],
+                              data[,"Adjusted p value"])
     levels(counts$condition) <- samples$condition
     for (i in 1:nrow(data)) {
         p <- ggplot(counts[counts$id == i,],
@@ -75,9 +75,9 @@ if (plotStyle == "violin") {
         axis(1, at=1:ncol(countData), lab=names(countData), las=2, cex.axis=0.5)
         axis(2)
         title(main=sprintf("%s:%d-%d %s\n%.2f",
-                           data[i,"Chr"], data[i,"Region.start"],
-                           data[i,"Region.end"], data[i,"Gene.name"],
-                           data[i,"Adjusted.p.value"]))
+                           data[i,"Chr"], data[i,"Region start"],
+                           data[i,"Region end"], data[i,"Gene name"],
+                           data[i,"Adjusted p value"]))
         title(xlab="")
         title(ylab="Normalised Counts")
         legend("topright", inset=c(0, -0.1), levels(samples$condition), pch=21,
