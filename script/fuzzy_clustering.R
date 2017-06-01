@@ -219,6 +219,9 @@ for (i in 1:numClusters) {
     data.subset <- data.subset[,grepl(" normalised count$", names(data.subset))]
     names(data.subset) <- gsub(" normalised count$", "", names(data.subset))
     data.subset <- data.subset[, row.names(samples)]
+    if (nrow(data.subset) == 0) {
+        next
+    }
     # Plot counts
     pdf(paste0(outputBase, '-', numClusters, '-', alphaThreshold, '-', i,
                '-counts.pdf'))
