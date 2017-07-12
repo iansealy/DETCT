@@ -89,6 +89,7 @@ my $all_file;
 my $ends_file;
 my $slice_regexp;
 my @biotype;
+my $keep_ends_without_biotype;
 my $keep_regions_without_ends;
 my $keep_ends_near_n;
 my $keep_ends_far_from_annotation;
@@ -171,7 +172,7 @@ my $ends_for = get_ends( $ends_file, $slice_regexp );
 
 my $regions = get_regions( $all_file, $analysis, $slice_regexp );
 
-if (@biotype) {
+if ( @biotype && !$keep_ends_without_biotype ) {
     $regions = remove_ends_by_biotype( $regions, $ends_for, $gene_finder );
 }
 
@@ -1092,6 +1093,7 @@ sub get_and_check_options {
         'biotype=s@{,}'                 => \@biotype,
         'strict'                        => \$strict,
         'stricter'                      => \$stricter,
+        'keep_ends_without_biotype'     => \$keep_ends_without_biotype,
         'keep_regions_without_ends'     => \$keep_regions_without_ends,
         'keep_ends_near_n'              => \$keep_ends_near_n,
         'keep_ends_far_from_annotation' => \$keep_ends_far_from_annotation,
@@ -1202,6 +1204,7 @@ sub get_and_check_options {
         [--biotype biotype...]
         [--strict]
         [--stricter]
+        [--keep_ends_without_biotype]
         [--keep_regions_without_ends]
         [--keep_ends_near_n]
         [--keep_ends_far_from_annotation]
@@ -1261,6 +1264,10 @@ Apply preset "strict" configuration.
 =item B<--stricter>
 
 Apply preset "stricter" configuration.
+
+=item B<--keep_ends_without_biotype>
+
+Don't filter 3' ends without required biotype(s).
 
 =item B<--keep_regions_without_ends>
 
