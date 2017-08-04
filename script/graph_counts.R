@@ -37,7 +37,7 @@ if (grepl("pdf$", outputFile)) {
     pdf(outputFile)
 }
 
-if (plotStyle == "violin") {
+if (grepl("violin", plotStyle)) {
     countData$id <- row.names(countData)
     counts <- melt(countData, id.vars="id", variable.name="condition",
                    value.name="count")
@@ -56,6 +56,9 @@ if (plotStyle == "violin") {
             theme_bw() +
             theme(legend.position='none',
                   plot.title = element_text(hjust = 0.5, face="bold"))
+        if (plotStyle == "violinpoints") {
+            p <- p + geom_jitter()
+        }
         if (grepl("pdf$", outputFile)) {
             print(p)
         } else {
