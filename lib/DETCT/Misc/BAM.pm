@@ -1759,8 +1759,6 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
         }
     }
 
-    $bam_out->close();
-
     return $total_kept;
 }
 
@@ -2070,8 +2068,6 @@ sub mark_duplicates {    ## no critic (ProhibitExcessComplexity)
         $bam_out->write1( $header, $alignment1 );
         $bam_out->write1( $header, $alignment2 );
     }
-
-    $bam_out->close();
 
     # Calculate derived metrics
     $metrics = _calc_derived_duplication_metrics($metrics);
@@ -2455,8 +2451,6 @@ sub filter_by_tag {
         next if !matched_tag( $alignment, \%re_for );
         $bam_out->write1( $header, $alignment );
     }
-
-    $bam_out->close();
 
     return;
 }
