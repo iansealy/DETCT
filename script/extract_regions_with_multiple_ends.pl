@@ -37,8 +37,8 @@ my ( $help, $man );
 # Get and check command line options
 get_and_check_options();
 
-my $is_required_region = check_regions($input_file);
-output_regions( $input_file, $is_required_region );
+my $is_required_gene = check_regions($input_file);
+output_regions( $input_file, $is_required_gene );
 
 # Check regions to identify those with multiple ends
 sub check_regions {
@@ -49,68 +49,71 @@ sub check_regions {
         confess sprintf '%s is not .csv or .tsv file', $file;
     }
 
-    my %gene_count;
-    my %end_count;
+    my %region_count_for;
+    my %end_count_for;
 
     open my $fh, '<', $file;    ## no critic (RequireBriefOpen)
     my $header = <$fh>;
     while ( my $line = <$fh> ) {
         my @fields = DETCT::Misc::Output::parse_line( $line, $extension );
 
-        # Get region ID by joining chr, start, end and strand
         ## no critic (ProhibitMagicNumbers)
-        my $region = join q{:}, @fields[ 0, 1, 2, 4 ];
-        if ( $fields[9] ) {
-            $gene_count{ $fields[9] }{$region} = 1;
-        }
-        foreach my $three_prime_end_pos ( split /,/xms, $fields[3] ) {
-            ## use critic
-            my $three_prime_end = join q{:}, $fields[0], $three_prime_end_pos;
-            $end_count{$three_prime_end}{$region} = 1;
+        # Get region ID by joining chr, start, end and strand
+        my $region              = join q{:}, @fields[ 0, 1, 2, 4 ];
+        my $genes               = $fields[9];
+        my @three_prime_end_pos = split /,/xms, $fields[3];
+        ## use critic
+        next if !$genes;
+        foreach my $gene ( split /,/xms, $genes ) {
+            $region_count_for{$gene}++;
+            foreach my $three_prime_end_pos (@three_prime_end_pos) {
+
+                # Get 3' end ID by join chr and end position
+                my $three_prime_end = join q{:}, $fields[0],
+                  $three_prime_end_pos;
+                $end_count_for{$gene}{$region}{$three_prime_end} = 1;
+            }
         }
     }
     close $fh;
 
-    my %is_required_region;
-    foreach my $gene ( keys %gene_count ) {
-        if ( scalar keys %{ $gene_count{$gene} } > 1 ) {
-            foreach my $region ( keys %{ $gene_count{$gene} } ) {
-                $is_required_region{$region} = 1;
-            }
+    my %is_required_gene;
+  GENE: foreach my $gene ( keys %region_count_for ) {
+        next if $region_count_for{$gene} == 1;
+        foreach my $region ( keys %{ $end_count_for{$gene} } ) {
+            next GENE
+              if scalar keys %{ $end_count_for{$gene}{$region} } ==
+              $region_count_for{$gene};
         }
-    }
-    foreach my $end ( keys %end_count ) {
-        if ( scalar keys %{ $end_count{$end} } > 1 ) {
-            foreach my $region ( keys %{ $end_count{$end} } ) {
-                $is_required_region{$region} = 1;
-            }
-        }
+        $is_required_gene{$gene} = 1;
     }
 
-    return \%is_required_region;
+    return \%is_required_gene;
 }
 
 # Output regions of interest
 sub output_regions {
-    my ( $file, $is_required_region ) = @_;   ## no critic (ProhibitReusedNames)
+    my ( $file, $is_required_gene ) = @_;    ## no critic (ProhibitReusedNames)
 
     my ($extension) = $file =~ m/[.] ([[:lower:]]{3}) \z/xms;
     if ( !$extension || ( $extension ne 'csv' && $extension ne 'tsv' ) ) {
         confess sprintf '%s is not .csv or .tsv file', $file;
     }
 
-    open my $fh, '<', $file;                  ## no critic (RequireBriefOpen)
+    open my $fh, '<', $file;                 ## no critic (RequireBriefOpen)
     my $header = <$fh>;
     print_or_die($header);
     while ( my $line = <$fh> ) {
         my @fields = DETCT::Misc::Output::parse_line( $line, $extension );
 
-        # Get region ID by joining chr, start, end and strand
-        ## no critic (ProhibitMagicNumbers)
-        my $region = join q{:}, @fields[ 0, 1, 2, 4 ];
-        ## use critic
-        next if !exists $is_required_region->{$region};
-        print_or_die($line);
+        my $genes = $fields[9];              ## no critic (ProhibitMagicNumbers)
+        next if !$genes;
+        foreach my $gene ( split /,/xms, $genes ) {
+            if ( exists $is_required_gene->{$gene} ) {
+                print_or_die($line);
+                last;
+            }
+        }
     }
     close $fh;
 
