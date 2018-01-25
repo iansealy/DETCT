@@ -60,7 +60,9 @@ sub check_regions {
         # Get region ID by joining chr, start, end and strand
         ## no critic (ProhibitMagicNumbers)
         my $region = join q{:}, @fields[ 0, 1, 2, 4 ];
-        $gene_count{ $fields[9] }{$region} = 1;
+        if ( $fields[9] ) {
+            $gene_count{ $fields[9] }{$region} = 1;
+        }
         foreach my $three_prime_end_pos ( split /,/xms, $fields[3] ) {
             ## use critic
             my $three_prime_end = join q{:}, $fields[0], $three_prime_end_pos;
