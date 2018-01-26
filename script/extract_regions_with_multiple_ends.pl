@@ -71,7 +71,7 @@ sub check_regions {
                 # Get 3' end ID by join chr and end position
                 my $three_prime_end = join q{:}, $fields[0],
                   $three_prime_end_pos;
-                $end_count_for{$gene}{$region}{$three_prime_end} = 1;
+                $end_count_for{$gene}{$three_prime_end}{$region} = 1;
             }
         }
     }
@@ -80,10 +80,10 @@ sub check_regions {
     my %is_required_gene;
   GENE: foreach my $gene ( keys %region_count_for ) {
         next if $region_count_for{$gene} == 1;
-        foreach my $region ( keys %{ $end_count_for{$gene} } ) {
+        foreach my $end ( keys %{ $end_count_for{$gene} } ) {
             next GENE
-              if scalar keys %{ $end_count_for{$gene}{$region} } ==
-              $region_count_for{$gene};
+              if scalar
+              keys %{ $end_count_for{$gene}{$end} } == $region_count_for{$gene};
         }
         $is_required_gene{$gene} = 1;
     }
