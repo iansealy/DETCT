@@ -33,6 +33,7 @@ use DETCT::Misc::Output;
 # Default options
 my $regions_file;
 my $counts_file;
+my $ignore_missing_regions;
 my ( $help, $man );
 
 # Get and check command line options
@@ -136,6 +137,7 @@ sub output_regions {
         ## no critic (ProhibitMagicNumbers)
         my $region = join q{:}, @fields[ 0, 1, 2, 4 ];
         if ( !exists $counts_for->{$region} ) {
+            next if $ignore_missing_regions;
             confess "No counts for region $region";
         }
         @fields = ( @fields[ 0 .. 14 ], @{ $counts_for->{$region} } );
@@ -178,10 +180,11 @@ sub get_and_check_options {
 
     # Get options
     GetOptions(
-        'regions_file=s' => \$regions_file,
-        'counts_file=s'  => \$counts_file,
-        'help'           => \$help,
-        'man'            => \$man,
+        'regions_file=s'         => \$regions_file,
+        'counts_file=s'          => \$counts_file,
+        'ignore_missing_regions' => \$ignore_missing_regions,
+        'help'                   => \$help,
+        'man'                    => \$man,
     ) or pod2usage(2);
 
     # Documentation
@@ -208,6 +211,7 @@ sub get_and_check_options {
     subset_de_output.pl
         [--regions_file file]
         [--counts_file file]
+        [--ignore_missing_regions]
         [--help]
         [--man]
 
@@ -224,6 +228,10 @@ subsetting (e.g. sig.tsv).
 
 Differential expression pipeline output file to use to extract counts from
 (e.g. all.tsv).
+
+=item B<--ignore_missing_regions>
+
+Don't die if region in regions file is missing from counts file.
 
 =item B<--help>
 
