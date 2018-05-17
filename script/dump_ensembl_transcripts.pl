@@ -442,9 +442,13 @@ sub get_rnaseq_extension {
             $still_extending = 0;
         }
         my $rnaseq_intervals =
-          $rnaseq_cache->fetch( $extension_pos, $extension_pos + 1 );
+          defined $rnaseq_cache
+          ? $rnaseq_cache->fetch( $extension_pos, $extension_pos + 1 )
+          : [];
         my $repeat_intervals =
-          $repeat_cache->fetch( $extension_pos, $extension_pos + 1 );
+          defined $repeat_cache
+          ? $repeat_cache->fetch( $extension_pos, $extension_pos + 1 )
+          : [];
         if ( !@{$rnaseq_intervals} && !@{$repeat_intervals} ) {
             $still_extending = 0;
         }
