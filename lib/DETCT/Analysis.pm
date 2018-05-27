@@ -1448,6 +1448,16 @@ sub _create_slice_adaptor {
         $slice_adaptor = $ensembl_db->get_SliceAdaptor();
     }
 
+    # Ensure database connection isn't lost
+    ## no critic (ProhibitMagicNumbers)
+    if ( Bio::EnsEMBL::ApiVersion::software_version() < 64 ) {
+        ## use critic
+        Bio::EnsEMBL::Registry->set_disconnect_when_inactive();
+    }
+    else {
+        Bio::EnsEMBL::Registry->set_reconnect_when_lost();
+    }
+
     $self->set_slice_adaptor($slice_adaptor);
 
     return;
