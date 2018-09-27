@@ -556,7 +556,7 @@ SKIP: {
             ensembl_port => 3306,
             ensembl_user => 'anonymous',
             ensembl_pass => '',
-            ensembl_name => 'danio_rerio_core_75_9',
+            ensembl_name => 'danio_rerio_core_79_9',
         }
     );
     $seq = $analysis->get_subsequence( '1', 1, 10, 1 );
