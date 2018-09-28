@@ -195,17 +195,27 @@ sub all_comparisons {
 
     my @comps;
 
-    my $subsets = subsets( \@conds );
-    while ( my $subset = $subsets->next ) {
-        next if scalar @{$subset} < 2;
-        my $partitions = partitions( $subset, 2 );
-        while ( my $partition = $partitions->next ) {
-            push @comps,
-              ( join q{,}, @{ $partition->[0] } ) . q{:}
-              . ( join q{,}, @{ $partition->[1] } );
-            push @comps,
-              ( join q{,}, @{ $partition->[1] } ) . q{:}
-              . ( join q{,}, @{ $partition->[0] } );
+    if ( scalar @conds < 5 ) {    ## no critic (ProhibitMagicNumbers)
+                                  # All possible comparisons
+        my $subsets = subsets( \@conds );
+        while ( my $subset = $subsets->next ) {
+            next if scalar @{$subset} < 2;
+            my $partitions = partitions( $subset, 2 );
+            while ( my $partition = $partitions->next ) {
+                push @comps,
+                  ( join q{,}, @{ $partition->[0] } ) . q{:}
+                  . ( join q{,}, @{ $partition->[1] } );
+                push @comps,
+                  ( join q{,}, @{ $partition->[1] } ) . q{:}
+                  . ( join q{,}, @{ $partition->[0] } );
+            }
+        }
+    }
+    else {
+        # Just pairwise comparisons
+        my $cond1 = shift @conds;
+        foreach my $cond2 (@conds) {
+            push @comps, $cond1 . q{:} . $cond2;
         }
     }
 
