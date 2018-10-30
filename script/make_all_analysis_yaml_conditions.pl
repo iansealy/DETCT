@@ -113,8 +113,8 @@ foreach my $comparison (@comparisons) {
     if ($table_file) {
         push @output, sprintf 'table_file: %s', $table_file;
     }
-    push @output, sprintf 'experimental_condition: %s', $con_name;
-    push @output, sprintf 'control_condition: %s',      $exp_name;
+    push @output, sprintf 'experimental_condition: %s', $exp_name;
+    push @output, sprintf 'control_condition: %s',      $con_name;
     open my $fh, '>', $output_file;
     write_or_die( $fh, ( join "\n", @output ), "\n" );
     close $fh;
