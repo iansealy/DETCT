@@ -882,7 +882,12 @@ sub hash_merge {
             'detct',
         );
         ## use critic
-        $hash_merge{ id $self} = Hash::Merge->new('detct');
+        if (Hash::Merge->can('get_behavior_spec')) {
+            $hash_merge{ id $self} = Hash::Merge->new();
+            $hash_merge{ id $self}->add_behavior_spec(Hash::Merge::get_behavior_spec('detct'), 'detct');
+        } else {
+            $hash_merge{ id $self} = Hash::Merge->new('detct');
+        }
     }
 
     return $hash_merge{ id $self};
