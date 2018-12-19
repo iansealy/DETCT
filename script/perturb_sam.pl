@@ -98,7 +98,7 @@ while ( my $line = <> ) {
         print_or_die( $line, "\n" );
     }
     else {
-        my @fields = split /\t/xms, $line;
+        my @fields     = split /\t/xms, $line;
         my $seq_region = $fields[2];
         my $pos = $fields[3];    ## no critic (ProhibitMagicNumbers)
         my $move =

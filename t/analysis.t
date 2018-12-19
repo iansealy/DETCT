@@ -445,7 +445,7 @@ head -2 t/data/test12.fa
 =cut
 
 $analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis_de12.yaml');
-$seq = $analysis->get_subsequence( '1', 1, 10, 1 );
+$seq      = $analysis->get_subsequence( '1', 1, 10, 1 );
 is( length $seq, 10,           'FASTA subsequence length' );
 is( $seq,        'CCAGGCGCGG', 'FASTA subsequence' );
 $seq = $analysis->get_subsequence( '1', 1, 10, -1 );
@@ -472,13 +472,13 @@ head -2 t/data/test12.fa
 =cut
 
 $analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis_de12.yaml');
-$seq = $analysis->get_upstream_subsequence( '1', 11, 1, 10 );
+$seq      = $analysis->get_upstream_subsequence( '1', 11, 1, 10 );
 is( $seq, 'CCAGGCGCGG', 'FASTA upstream subsequence' );
 $seq = $analysis->get_upstream_subsequence( '1', 1, -1, 10 );
 is( $seq, 'TCCGCGCCTG', 'FASTA reverse complement upstream subsequence' );
 
 $analysis = DETCT::Analysis->new_from_yaml('t/data/test_analysis_de12.yaml');
-$seq = $analysis->get_downstream_subsequence( '1', 1, 1, 10 );
+$seq      = $analysis->get_downstream_subsequence( '1', 1, 1, 10 );
 is( $seq, 'CAGGCGCGGA', 'FASTA downstream subsequence' );
 $seq = $analysis->get_downstream_subsequence( '1', 11, -1, 10 );
 is( $seq, 'CCGCGCCTGG', 'FASTA reverse complement downstream subsequence' );

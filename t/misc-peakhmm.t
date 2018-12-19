@@ -64,7 +64,7 @@ throws_ok {
 qr/No peaks specified/ms, 'No peaks';
 
 # Two peaks but no merging
-$input_peaks = [ [ 100, 200, 1 ], [ 500, 600, 1 ], ];
+$input_peaks  = [ [ 100, 200, 1 ], [ 500, 600, 1 ], ];
 $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
@@ -82,7 +82,7 @@ is( $output_peaks->{'1'}->[-1]->[1],  600, 'End of last peak' );
 is( $output_peaks->{'1'}->[-1]->[2],  1,   'Last peak read count' );
 
 # Two peaks merged into one
-$input_peaks = [ [ 100, 200, 1 ], [ 250, 350, 1 ], ];
+$input_peaks  = [ [ 100, 200, 1 ], [ 250, 350, 1 ], ];
 $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
@@ -97,7 +97,7 @@ is( $output_peaks->{'1'}->[0]->[1],   350, 'End of first peak' );
 is( $output_peaks->{'1'}->[0]->[2],   2,   'First peak read count' );
 
 # Three peaks with first two merged
-$input_peaks = [ [ 100, 200, 1 ], [ 250, 350, 1 ], [ 500, 600, 1 ], ];
+$input_peaks  = [ [ 100, 200, 1 ], [ 250, 350, 1 ], [ 500, 600, 1 ], ];
 $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
@@ -115,7 +115,7 @@ is( $output_peaks->{'1'}->[-1]->[1],  600, 'End of last peak' );
 is( $output_peaks->{'1'}->[-1]->[2],  1,   'Last peak read count' );
 
 # Three peaks with second two merged
-$input_peaks = [ [ 100, 200, 1 ], [ 500, 600, 1 ], [ 550, 650, 1 ], ];
+$input_peaks  = [ [ 100, 200, 1 ], [ 500, 600, 1 ], [ 550, 650, 1 ], ];
 $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
@@ -133,7 +133,7 @@ is( $output_peaks->{'1'}->[-1]->[1],  650, 'End of last peak' );
 is( $output_peaks->{'1'}->[-1]->[2],  2,   'Last peak read count' );
 
 # Two peaks separated by buffer width
-$input_peaks = [ [ 100, 200, 1 ], [ 300, 400, 1 ], ];
+$input_peaks  = [ [ 100, 200, 1 ], [ 300, 400, 1 ], ];
 $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
@@ -151,7 +151,7 @@ is( $output_peaks->{'1'}->[-1]->[1],  400, 'End of last peak' );
 is( $output_peaks->{'1'}->[-1]->[2],  1,   'Last peak read count' );
 
 # Two peaks separated by just under buffer width
-$input_peaks = [ [ 100, 200, 1 ], [ 299, 400, 1 ], ];
+$input_peaks  = [ [ 100, 200, 1 ], [ 299, 400, 1 ], ];
 $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
@@ -166,7 +166,7 @@ is( $output_peaks->{'1'}->[0]->[1],   400, 'End of first peak' );
 is( $output_peaks->{'1'}->[0]->[2],   2,   'First peak read count' );
 
 # Two peaks with same start
-$input_peaks = [ [ 100, 200, 1 ], [ 100, 300, 1 ], ];
+$input_peaks  = [ [ 100, 200, 1 ], [ 100, 300, 1 ], ];
 $output_peaks = merge_read_peaks(
     {
         peak_buffer_width => 100,
@@ -253,7 +253,7 @@ qr/No peaks specified/ms, 'No peaks';
 
 # Two peaks, one significant
 $input_peaks = [ [ 100, 199, 5 ], [ 300, 399, 1 ], ];
-$summary = summarise_read_peaks(
+$summary     = summarise_read_peaks(
     {
         peak_buffer_width => 100,
         hmm_sig_level     => 0.001,
@@ -285,7 +285,7 @@ ok( $summary->{read_threshold} < 5, 'Read threshold' );
 
 # No significant peaks
 $input_peaks = [ [ 300, 399, 1 ], ];
-$summary = summarise_read_peaks(
+$summary     = summarise_read_peaks(
     {
         peak_buffer_width => 100,
         hmm_sig_level     => 0.001,
@@ -298,7 +298,7 @@ is( $summary->{median_sig_peak_width}, 0, 'Median significant peak width' );
 
 # Three significant peaks
 $input_peaks = [ [ 100, 149, 500 ], [ 300, 399, 500 ], [ 600, 759, 500 ], ];
-$summary = summarise_read_peaks(
+$summary     = summarise_read_peaks(
     {
         peak_buffer_width => 100,
         hmm_sig_level     => 0.001,

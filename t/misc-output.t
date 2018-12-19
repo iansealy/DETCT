@@ -102,7 +102,7 @@ is(
 
 foreach my $format ( 'csv', 'tsv', 'html' ) {
     foreach my $level ( 'all', 'sig' ) {
-        my $file = $level . q{.} . $format;
+        my $file     = $level . q{.} . $format;
         my $filepath = File::Spec->catfile( $tmp_dir, $file );
         ok( -e $filepath,  $file . ' exists' );
         ok( !-z $filepath, $file . ' is not empty' );
@@ -237,7 +237,7 @@ is(
 
 foreach my $format ( 'csv', 'tsv', 'html' ) {
     foreach my $level ( 'all', 'sig' ) {
-        my $file = $level . q{.} . $format;
+        my $file     = $level . q{.} . $format;
         my $filepath = File::Spec->catfile( $tmp_dir, $file );
         ok( -e $filepath,  $file . ' exists' );
         ok( !-z $filepath, $file . ' is not empty' );
@@ -350,7 +350,7 @@ is(
 
 foreach my $format ( 'csv', 'tsv', 'html' ) {
     foreach my $level ( 'all', 'sig' ) {
-        my $file = $level . q{.} . $format;
+        my $file     = $level . q{.} . $format;
         my $filepath = File::Spec->catfile( $tmp_dir, $file );
         ok( -e $filepath,  $file . ' exists' );
         ok( !-z $filepath, $file . ' is not empty' );
@@ -473,7 +473,7 @@ is(
 
 foreach my $format ( 'csv', 'tsv', 'html' ) {
     foreach my $level ( 'all', 'sig' ) {
-        my $file = $level . q{.} . $format;
+        my $file     = $level . q{.} . $format;
         my $filepath = File::Spec->catfile( $tmp_dir, $file );
         ok( -e $filepath,  $file . ' exists' );
         ok( !-z $filepath, $file . ' is not empty' );

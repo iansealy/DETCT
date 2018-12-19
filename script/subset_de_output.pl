@@ -84,7 +84,7 @@ sub get_counts_by_region {
 
     open my $fh, '<', $file;          ## no critic (RequireBriefOpen)
                                       # Get range for count columns
-    my $header = <$fh>;
+    my $header   = <$fh>;
     my @headings = DETCT::Misc::Output::parse_line( $header, $extension );
     my $counts_start = 15;            ## no critic (ProhibitMagicNumbers)
     my $counts_end;
@@ -124,7 +124,7 @@ sub output_regions {
     }
 
     open my $fh, '<', $file;    ## no critic (RequireBriefOpen)
-    my $header = <$fh>;
+    my $header   = <$fh>;
     my @headings = DETCT::Misc::Output::parse_line( $header, $extension );
     ## no critic (ProhibitMagicNumbers)
     @headings = ( @headings[ 0 .. 14 ], @{$counts_headings} );

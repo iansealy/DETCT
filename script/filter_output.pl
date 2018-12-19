@@ -83,7 +83,7 @@ Readonly our @POLYA_REGEXP               => (
 );
 
 # Default options
-my $analysis_dir = q{.};
+my $analysis_dir  = q{.};
 my $analysis_yaml = File::Spec->catfile( $analysis_dir, 'analysis.yaml' );
 my $all_file;
 my $ends_file;
@@ -451,7 +451,7 @@ sub remove_ends_far_from_annotation {
 
     foreach my $region ( @{$regions} ) {
         my @all_ends = parse_ends( $region, $ends_for );
-        my $chr = $region->[0];
+        my $chr      = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
         my $strand              = $region->[7];
@@ -506,7 +506,7 @@ sub remove_ends_beyond_five_prime {
 
     foreach my $region ( @{$regions} ) {
         my @all_ends = parse_ends( $region, $ends_for );
-        my $chr = $region->[0];
+        my $chr      = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
         my $strand              = $region->[7];
@@ -668,7 +668,7 @@ sub remove_polya_strict {
 
     foreach my $region ( @{$regions} ) {
         my @all_ends = parse_ends( $region, $ends_for );
-        my $chr = $region->[0];
+        my $chr      = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
         my $strand              = $region->[7];
@@ -760,7 +760,7 @@ sub remove_ends_without_hexamer {
 
     foreach my $region ( @{$regions} ) {
         my @all_ends = parse_ends( $region, $ends_for );
-        my $chr = $region->[0];
+        my $chr      = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
         my $strand              = $region->[7];
@@ -810,7 +810,7 @@ sub remove_ends_without_rnaseq {
 
     foreach my $region ( @{$regions} ) {
         my @all_ends = parse_ends( $region, $ends_for );
-        my $chr = $region->[0];
+        my $chr      = $region->[0];
         ## no critic (ProhibitMagicNumbers)
         my $three_prime_end_pos = $region->[6];
         my $strand              = $region->[7];
@@ -1057,7 +1057,7 @@ sub parse_ends {
 
     # Get region ID from chr, start or end (depending on strand) and strand
     ## no critic (ProhibitMagicNumbers)
-    my $strand = $region->[7];
+    my $strand       = $region->[7];
     my $start_or_end = $strand > 0 ? 1 : 2;
     my $ends = $ends_for->{ join q{:}, @{$region}[ 0, $start_or_end, 7 ] };
     ## use critic

@@ -815,7 +815,7 @@ sub run_mark_duplicates_metrics {
 
             # Get metrics output from native method
             my $output = $self->load_serialised($metrics_file);
-            my @tags = sort grep { m/\A_/xms } keys %{$output};
+            my @tags   = sort grep { m/\A_/xms } keys %{$output};
             if ( !@tags ) {
 
                 # Just one set of metrics

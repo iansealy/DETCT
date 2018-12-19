@@ -134,7 +134,7 @@ sub output_ends {
                 my @pairs = split /[|]/xms, pop @end_data;
                 @pairs = map { [ split />/xms ] } @pairs;
                 push @end_data, join q{,}, map { $_->[0] } @pairs;
-                my $pos = $end_data[0];
+                my $pos       = $end_data[0];
                 my @distances = map { $pos - $_->[1] } @pairs;
 
                 if ( $strand < 0 ) {

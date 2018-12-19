@@ -153,7 +153,7 @@ sub detag_trim_fastq {
 
         # Get tag and putative polyT from read 1
         my $tag_in_read = substr $read1_seq, 0, $tag_length;
-        my $polyt_seq = substr $read1_seq, $tag_length, $polyt_trim_length;
+        my $polyt_seq   = substr $read1_seq, $tag_length, $polyt_trim_length;
         if ( $arg_ref->{treat_n_in_polyt_as_t} ) {
             $polyt_seq =~ s/N/T/xmsg;
         }

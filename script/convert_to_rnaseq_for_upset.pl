@@ -42,7 +42,7 @@ if ( !$extension || ( $extension ne 'csv' && $extension ne 'tsv' ) ) {
     confess sprintf '%s is not .csv or .tsv file', $file;
 }
 open my $fh, '<', $file;    ## no critic (RequireBriefOpen)
-my $line = <$fh>;
+my $line     = <$fh>;
 my @headings = DETCT::Misc::Output::parse_line( $line, $extension );
 my ($log2fc_col) =
   grep { $headings[$_] =~ m/\A Log2 \s fold \s change \s [(] .* [)] \z/xms }

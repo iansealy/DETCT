@@ -986,7 +986,7 @@ sub choose_three_prime_end {
           = @{$region};
 
         # Limit 3' ends to peaks
-        my @peaks = _call_three_prime_end_peaks_in_region($three_prime_ends);
+        my @peaks   = _call_three_prime_end_peaks_in_region($three_prime_ends);
         my %is_peak = map { $_ => 1 } @peaks;
         @{$three_prime_ends} =
           grep { $is_peak{ $_->[1] } } @{$three_prime_ends};
@@ -1147,7 +1147,7 @@ sub _call_three_prime_end_peaks_in_region {
     # Get subregions (regions of peaks separated by a maximum of 3 bases) and
     # then choose position with highest count within subregion
     my @peaks = sort { $a <=> $b } keys %peak;
-    my $peak = shift @peaks;
+    my $peak  = shift @peaks;
     my @subregions;
     my $current_start = $peak;
     my $current_end   = $peak;
@@ -1685,7 +1685,7 @@ sub downsample {    ## no critic (ProhibitExcessComplexity)
     $bam_out->header_write($header);
 
     # Convert skip sequences to BAM refID
-    my $i = 0;
+    my $i          = 0;
     my %sam_to_bam = map { $_ => $i++ } @{ $bam_in->header_read->target_name };
     my %is_skip_sequence =
       map { $sam_to_bam{$_} => 1 } @{ $arg_ref->{skip_sequences} || [] };

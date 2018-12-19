@@ -39,7 +39,7 @@ use DETCT::Misc::Output;
 =cut
 
 # Default options
-my $analysis_dir = q{.};
+my $analysis_dir  = q{.};
 my $analysis_yaml = File::Spec->catfile( $analysis_dir, 'analysis.yaml' );
 my $all_file;
 my ( $help, $man );

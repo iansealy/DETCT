@@ -185,7 +185,7 @@ sub get_regions_for_genes {
     my %regions_for;
 
     open my $fh, '<', $file;    ## no critic (RequireBriefOpen)
-    my $header = <$fh>;
+    my $header        = <$fh>;
     my @header_fields = DETCT::Misc::Output::parse_line( $header, $extension );
     while ( my $line = <$fh> ) {
         my @fields = DETCT::Misc::Output::parse_line( $line, $extension );
@@ -194,7 +194,7 @@ sub get_regions_for_genes {
         ## no critic (ProhibitMagicNumbers)
         # Get region ID by joining chr, start, end and strand
         my $region = join q{:}, @fields[ 0, 1, 2, 4 ];
-        my $genes = $fields[9];
+        my $genes  = $fields[9];
         ## use critic
         next if !$genes;
         next if !exists $is_region->{$region};
@@ -233,7 +233,7 @@ sub get_significance_matrix {
             my $genes = $fields[9];
 
             # Get region ID by joining chr, start, end and strand
-            my $region = join q{:}, @fields[ 0, 1, 2, 4 ];
+            my $region          = join q{:}, @fields[ 0, 1, 2, 4 ];
             my $adjusted_pvalue = $fields[7];
             ## use critic
 

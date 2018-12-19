@@ -160,7 +160,7 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
         );
         $samples_text .= ( join "\t", @row ) . "\n";
     }
-    my @header = ( q{}, 'condition' );
+    my @header     = ( q{}, 'condition' );
     my $num_groups = scalar @{ $samples[0]->groups };
     if ( $num_groups == 1 ) {
         push @header, 'group';

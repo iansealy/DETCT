@@ -69,7 +69,7 @@ sub print_rows {
     while ( my $line = <$fh> ) {
         chomp $line;
         my @counts = split /\t/xms, $line;
-        my $id = shift @counts;
+        my $id     = shift @counts;
         my @normalised_counts;
         foreach my $i ( 0 .. ( scalar @{$size_factors} ) - 1 ) {
             push @normalised_counts, $counts[$i] / $size_factors->[$i];

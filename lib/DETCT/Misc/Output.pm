@@ -884,7 +884,7 @@ sub parse_table {    ## no critic (ProhibitExcessComplexity)
     my @rows = path( $arg_ref->{table_file} )->lines;
 
     # Get headings
-    my $line = shift @rows;
+    my $line     = shift @rows;
     my @headings = parse_line( $line, $arg_ref->{table_format} );
 
     # Get genebuild version from Ensembl Gene ID heading
@@ -1111,7 +1111,7 @@ sub parse_ensembl_transcripts_table {
     my @rows = path( $arg_ref->{table_file} )->lines;
 
     # Get headings
-    my $line = shift @rows;
+    my $line     = shift @rows;
     my @headings = parse_line( $line, $arg_ref->{table_format} );
 
     # Parse rows

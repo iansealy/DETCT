@@ -157,7 +157,7 @@ sub get_read1_seq {
     # 20% of reads have a single mismatch somewhere in the tag
     if ( int rand 5 ) {              ## no critic (ProhibitMagicNumbers)
         my $mismatch_base = int rand length $tag;
-        my $base = substr $tag, $mismatch_base, 1;
+        my $base          = substr $tag, $mismatch_base, 1;
         $base =~ tr/AGCT/TCGA/;
         substr $tag, $mismatch_base, 1, $base;
     }

@@ -776,7 +776,7 @@ sub run_merge_three_prime_ends {
 
     # Merge 3' ends for each sequence of a chunk separately
     foreach my $seq ( @{$chunk} ) {
-        my @regions = map { $_->{ $seq->name } } @list_of_lists_of_regions;
+        my @regions     = map { $_->{ $seq->name } } @list_of_lists_of_regions;
         my $seq_regions = merge_three_prime_ends(
             {
                 seq_name => $seq->name,

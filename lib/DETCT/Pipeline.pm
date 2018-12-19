@@ -68,7 +68,7 @@ private stage            => my %stage;               # arrayref of stages
 
 # Constants
 Readonly our $MAX_MEMORY_BEFORE_HUGEMEM => 196_000;
-Readonly our %EXTENSION_TO_KEEP => map { $_ => 1 } qw(
+Readonly our %EXTENSION_TO_KEEP         => map { $_ => 1 } qw(
   csv html pdf tsv txt
 );
 Readonly our %EXTENSION_TO_DELETE => map { $_ => 1 } qw(
@@ -882,10 +882,13 @@ sub hash_merge {
             'detct',
         );
         ## use critic
-        if (Hash::Merge->can('get_behavior_spec')) {
+        if ( Hash::Merge->can('get_behavior_spec') ) {
             $hash_merge{ id $self} = Hash::Merge->new();
-            $hash_merge{ id $self}->add_behavior_spec(Hash::Merge::get_behavior_spec('detct'), 'detct');
-        } else {
+            $hash_merge{ id $self}
+              ->add_behavior_spec( Hash::Merge::get_behavior_spec('detct'),
+                'detct' );
+        }
+        else {
             $hash_merge{ id $self} = Hash::Merge->new('detct');
         }
     }
@@ -1393,7 +1396,7 @@ sub submit_job {    ## no critic (ProhibitExcessComplexity)
         else {
             $job->set_retries(0);
         }
-        my $dump = { retries => $job->retries, };
+        my $dump     = { retries => $job->retries, };
         my $job_file = $job->base_filename . '.job';
         DumpFile( $job_file, $dump );
     }
@@ -1844,7 +1847,7 @@ sub summarise_memory_usage {
     my @max_memory;
     foreach my $component ( 1 .. $last_component ) {
         my $stdout_file = File::Spec->catfile( $dir, $component . '.o' );
-        my $bw = File::ReadBackwards->new($stdout_file)
+        my $bw          = File::ReadBackwards->new($stdout_file)
           or confess "Can't read $stdout_file: $OS_ERROR";
         while ( defined( my $line = $bw->readline ) ) {
             if ( $line =~ m/\A \s+ Max \s Memory \s : \s+ (\d+) \s MB/xms ) {
