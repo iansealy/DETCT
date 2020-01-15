@@ -459,7 +459,7 @@ sub _extend_biotype_with_attributes {
         }
     }
     my $trans_biotype = $ens_transcript->biotype . q{:} . join q{:},
-      map  { $selected_attributes{$_} }
+      map { $selected_attributes{$_} }
       sort { lc $a cmp lc $b } keys %selected_attributes;
 
     return $trans_biotype;

@@ -313,7 +313,7 @@ is( scalar keys %{ $annotated_regions->[0]->[-1] }, 0, '0 genebuilds' );
 $regions = [
     [
         '1', 1, 1000, 10, -10, '1', [ 110, 120 ],
-        1,                          [ 10,  20 ],
+        1, [ 10, 20 ],
         [], undef, undef, [], []
     ],
 ];

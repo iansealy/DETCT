@@ -208,7 +208,7 @@ sub set_condition {
 sub _check_condition {
     my ($condition) = @_;
 
-    confess 'No condition specified' if !defined $condition;
+    confess 'No condition specified'    if !defined $condition;
     confess 'Empty condition specified' if !length $condition;
     confess
       "Condition ($condition) longer than $MAX_CONDITION_LENGTH characters"
@@ -401,7 +401,7 @@ sub set_bam_file {
 
 sub check_bam_file {
     my ($bam_file) = @_;
-    return $bam_file if defined $bam_file && -r $bam_file;
+    return $bam_file                if defined $bam_file && -r $bam_file;
     confess 'No BAM file specified' if !defined $bam_file;
     confess "BAM file ($bam_file) does not exist or cannot be read";
 }

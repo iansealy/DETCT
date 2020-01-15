@@ -56,7 +56,7 @@ is( $transcripts[1]->[0], 'ENSDART00000152276', '2nd transcript' );
 is( scalar @transcripts, 0, 'No RNA-Seq on other strand' );
 (@transcripts) =
   $continuousrnaseq_finder->get_containing_continuous_rnaseq( '1', 47195, -1 );
-is( scalar @transcripts, 1, '1 transcript' );
+is( scalar @transcripts,  1,                    '1 transcript' );
 is( $transcripts[0]->[0], 'ENSDART00000018741', 'Only transcript' );
 (@transcripts) =
   $continuousrnaseq_finder->get_containing_continuous_rnaseq( '1', 47195, 1 );

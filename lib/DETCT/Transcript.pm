@@ -367,7 +367,7 @@ sub set_start {
 
 sub check_start {
     my ($start) = @_;
-    return $start if defined $start && $start =~ m/\A \d+ \z/xms;
+    return $start                if defined $start && $start =~ m/\A \d+ \z/xms;
     confess 'No start specified' if !defined $start;
     confess "Invalid start ($start) specified";
 }
@@ -418,7 +418,7 @@ sub set_end {
 
 sub check_end {
     my ($end) = @_;
-    return $end if defined $end && $end =~ m/\A \d+ \z/xms;
+    return $end                if defined $end && $end =~ m/\A \d+ \z/xms;
     confess 'No end specified' if !defined $end;
     confess "Invalid end ($end) specified";
 }

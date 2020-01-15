@@ -370,12 +370,12 @@ sub compare_numeric_field_for_data_subset {
 
         my $key =
             $value1_undef && $value2_undef ? 'missing_value_both'
-          : $value1_undef      ? 'missing_value1'
-          : $value2_undef      ? 'missing_value2'
-          : $value1 == $value2 ? 'identical_value'
-          : $value1 < $value2  ? 'lower_value'
-          : $value1 > $value2  ? 'higher_value'
-          :                      undef;
+          : $value1_undef                  ? 'missing_value1'
+          : $value2_undef                  ? 'missing_value2'
+          : $value1 == $value2             ? 'identical_value'
+          : $value1 < $value2              ? 'lower_value'
+          : $value1 > $value2              ? 'higher_value'
+          :                                  undef;
         if ( !defined $key ) {
             carp sprintf "Unaccounted for combination of %s and %s\n", $value1,
               $value2;

@@ -23,6 +23,7 @@ use parent qw(DETCT::Pipeline);
 
 use Class::InsideOut qw( private register id );
 use Scalar::Util qw( refaddr );
+use File::Spec;
 use DETCT::TransposonFinder;
 use DETCT::ContinuousRNASeqFinder;
 use DETCT::GeneFinder;
@@ -1467,6 +1468,72 @@ sub run_run_deseq {
     return;
 }
 
+=method all_parameters_for_run_big_deseq
+
+  Usage       : all_parameters_for_run_big_deseq();
+  Purpose     : Get all parameters for run_big_deseq stage
+  Returns     : Array of arrayrefs
+  Parameters  : DETCT::Pipeline::Stage
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_run_big_deseq {
+    my ( $self, $stage ) = @_;
+
+    return $self->all_parameters_for_run_deseq($stage);
+}
+
+=method run_run_big_deseq
+
+  Usage       : run_run_big_deseq();
+  Purpose     : Run function for run_big_deseq stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_run_big_deseq {
+    my ( $self, $job ) = @_;
+
+    my (@merge_read_counts_output_files) = @{ $job->parameters };
+
+    # Join regions
+    my %regions;
+    foreach my $output_file (@merge_read_counts_output_files) {
+        %regions = %{
+            $self->hash_merge->merge( \%regions,
+                $self->load_serialised($output_file) )
+        };
+    }
+
+    run_deseq(
+        {
+            dir                  => $job->base_filename,
+            regions              => \%regions,
+            analysis             => $self->analysis,
+            pipeline             => $self,
+            r_binary             => $self->analysis->r_binary,
+            deseq_script         => $self->analysis->deseq_script,
+            filter_percentile    => $self->analysis->filter_percentile,
+            spike_prefix         => $self->analysis->spike_prefix,
+            normalisation_method => $self->analysis->normalisation_method,
+            deseq_model          => $self->analysis->deseq_model,
+            threads              => $job->stage->threads,
+            split_output         => 1,
+        }
+    );
+
+    my $output_file = $job->base_filename . '.out';
+
+    $self->dump_serialised( $output_file, \1 );
+
+    return;
+}
+
 =method all_parameters_for_add_gene_annotation
 
   Usage       : all_parameters_for_add_gene_annotation();
@@ -1485,11 +1552,17 @@ sub all_parameters_for_add_gene_annotation {
 
     my $prerequisite_stage_name = $stage->get_all_prerequisites->[0]->name;
 
-    my $deseq_output_file =
-      $self->get_and_check_output_file( $prerequisite_stage_name, 1 );
-
-    my $chunks = $self->analysis->get_all_chunks();
+    my $chunks    = $self->analysis->get_all_chunks();
+    my $component = 0;
     foreach my $chunk ( @{$chunks} ) {
+        $component++;
+        my $deseq_output_file = $self->get_and_check_output_file(
+            $prerequisite_stage_name,
+            $prerequisite_stage_name =~ m/big/xms
+            ? sprintf '1/%d',
+            $component
+            : 1
+        );
         push @all_parameters, [ $chunk, $deseq_output_file ];
     }
 
@@ -1672,6 +1745,94 @@ sub run_dump_as_table {
             regions  => \@regions,
         }
     );
+
+    my $output_file = $job->base_filename . '.out';
+
+    $self->dump_serialised( $output_file, \1 );
+
+    return;
+}
+
+=method all_parameters_for_dump_as_multiple_tables
+
+  Usage       : all_parameters_for_dump_as_multiple_tables();
+  Purpose     : Get all parameters for dump_as_multiple_tables stage
+  Returns     : Array of arrayrefs
+  Parameters  : DETCT::Pipeline::Stage
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub all_parameters_for_dump_as_multiple_tables {
+    my ( $self, $stage ) = @_;
+
+    if ( $stage->get_all_prerequisites->[0]->name eq
+        'add_existing_gene_annotation' )
+    {
+        return [
+            $self->get_and_check_output_file(
+                'add_existing_gene_annotation', 1
+            )
+        ];
+    }
+
+    my @all_parameters;
+
+    my $chunks = $self->analysis->get_all_chunks();
+
+    my $component = 0;
+    foreach my $chunk ( @{$chunks} ) {
+        $component++;
+        push @all_parameters,
+          [
+            $self->get_and_check_output_file(
+                'add_gene_annotation', $component
+            )
+          ];
+    }
+
+    return @all_parameters;
+}
+
+=method run_dump_as_multiple_tables
+
+  Usage       : run_dump_as_multiple_tables();
+  Purpose     : Run function for dump_as_multiple_tables stage
+  Returns     : undef
+  Parameters  : DETCT::Pipeline::Job
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub run_dump_as_multiple_tables {
+    my ( $self, $job ) = @_;
+
+    my ($add_gene_annotation_output_file) = @{ $job->parameters };
+
+    my $regions = $self->load_serialised($add_gene_annotation_output_file);
+
+    dump_as_table(
+        {
+            analysis => $self->analysis,
+            dir      => $job->base_filename,
+            regions  => $regions,
+        }
+    );
+
+    # Rename tables to include component
+    foreach my $format (@DETCT::Misc::Output::FORMATS) {
+        foreach my $level (qw(all sig)) {
+            my $old_table_file =
+              File::Spec->catfile( $job->base_filename, sprintf '%s.%s',
+                $level, $format );
+            my $new_table_file =
+              File::Spec->catfile( $job->base_filename, sprintf '%s.%d.%s',
+                $level, $job->component, $format );
+            rename $old_table_file, $new_table_file;
+        }
+    }
 
     my $output_file = $job->base_filename . '.out';
 

@@ -104,7 +104,7 @@ sub set_name {
 sub _check_name {
     my ($name) = @_;
 
-    confess 'No name specified' if !defined $name;
+    confess 'No name specified'    if !defined $name;
     confess 'Empty name specified' if !length $name;
     confess "Name ($name) longer than $MAX_NAME_LENGTH characters"
       if length $name > $MAX_NAME_LENGTH;

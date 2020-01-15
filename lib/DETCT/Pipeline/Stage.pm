@@ -103,7 +103,7 @@ sub set_name {
 sub _check_name {
     my ($name) = @_;
 
-    return $name if defined $name && $name =~ m/\A \w+ \z/xms;
+    return $name                if defined $name && $name =~ m/\A \w+ \z/xms;
     confess 'No name specified' if !defined $name;
     confess "Invalid name ($name) specified";
 }

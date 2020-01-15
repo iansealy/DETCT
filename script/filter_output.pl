@@ -990,6 +990,7 @@ sub write_log {
     push @output, $end->[$DOWNSTREAM_14_BP_FIELD] || q{-};
     push @output, $end->[$DISTANCE_HEXAMER_UPSTREAM_FIELD] || q{-};
     push @output, $end->[$HEXAMER_FIELD] || q{-};
+
     if ( $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD] ) {
         my @pairs = split /[|]/xms,
           $end->[$CONTINUOUS_RNASEQ_TRANSCRIPTS_FIELD];

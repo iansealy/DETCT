@@ -80,7 +80,7 @@ throws_ok { $term->add_gene() } qr/No gene specified/ms, 'No gene specified';
 throws_ok { $term->add_gene('invalid') } qr/Class of gene/ms, 'Invalid gene';
 
 # Test adding and retrieving evidence codes
-is( $term->get_evidence_code($gene1), undef, 'Get evidence code' );
+is( $term->get_evidence_code($gene1),          undef, 'Get evidence code' );
 is( $term->add_evidence_code( 'EXP', $gene1 ), undef, 'Set evidence code' );
 is( $term->get_evidence_code($gene1), 'EXP', 'Get new evidence code by term' );
 is( $term->get_evidence_code( $gene1->stable_id ),

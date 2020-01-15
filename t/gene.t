@@ -153,7 +153,7 @@ throws_ok { $gene->add_gene_ontology_term('invalid') }
 qr/Class of Gene Ontology term/ms, 'Invalid Gene Ontology term';
 
 # Test adding and retrieving evidence codes
-is( $gene->get_evidence_code($term1), undef, 'Get evidence code' );
+is( $gene->get_evidence_code($term1),          undef, 'Get evidence code' );
 is( $gene->add_evidence_code( 'EXP', $term1 ), undef, 'Set evidence code' );
 is( $gene->get_evidence_code($term1), 'EXP', 'Get new evidence code by term' );
 is( $gene->get_evidence_code( $term1->accession ),

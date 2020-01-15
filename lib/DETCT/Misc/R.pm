@@ -84,11 +84,12 @@ our @EXPORT_OK = qw(
                         ]
                     ],
                     ... (regions)
-                ]
+                ] or undef
   Parameters  : Hashref {
                     dir                  => String (the working directory),
                     regions              => Hashref (of arrayrefs of regions),
                     analysis             => DETCT::Analysis,
+                    pipeline             => DETCT::Pipeline,
                     r_binary             => String (the R binary),
                     deseq_script         => String (the DESeq script),
                     filter_percentile    => Int (the filter percentile) or undef,
@@ -96,6 +97,7 @@ our @EXPORT_OK = qw(
                     normalisation_method => String (the normalisation method),
                     deseq_model          => String (the DESeq model),
                     threads              => Int (the number of threads),
+                    split_output         => Boolean or undef
                 }
   Throws      : If directory is missing
                 If regions are missing
@@ -170,7 +172,7 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
     }
     open my $samples_fh, '>', $samples_file;
     write_or_die( $samples_fh, ( join "\t", @header ), "\n" );
-    write_or_die( $samples_fh, $samples_text );
+    write_or_die( $samples_fh,                         $samples_text );
     close $samples_fh;
 
     my $control_condition = q{-};
@@ -226,56 +228,55 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
         $padj_for{$region_text} = $padj;
     }
 
+    # Split output over a number of files
+    if ( defined $arg_ref->{split_output} && $arg_ref->{split_output} ) {
+        my $chunks       = $arg_ref->{analysis}->get_all_chunks();
+        my $subcomponent = 0;
+        foreach my $chunk ( @{$chunks} ) {
+            $subcomponent++;
+            my @output;
+            foreach my $sequence ( @{$chunk} ) {
+                my $seq_name = $sequence->name;
+                foreach my $region ( @{ $arg_ref->{regions}->{$seq_name} } ) {
+                    $region = add_deseq_output_to_region(
+                        {
+                            region       => $region,
+                            seq_name     => $seq_name,
+                            samples      => \@samples,
+                            conditions   => \@conditions,
+                            groups       => \@groups,
+                            size_factors => \@size_factors,
+                            pvals        => \%pval_for,
+                            padjs        => \%padj_for,
+                        }
+                    );
+                    push @output, $region;
+                }
+            }
+            my $subcomponent_file = sprintf '%s/%d.out', $arg_ref->{dir},
+              $subcomponent;
+            $arg_ref->{pipeline}
+              ->dump_serialised( $subcomponent_file, \@output );
+        }
+        return;
+    }
+
     # Reformat output into array of arrayrefs
     my @output;
     foreach my $seq_name ( nsort( keys %{ $arg_ref->{regions} } ) ) {
         foreach my $region ( @{ $arg_ref->{regions}->{$seq_name} } ) {
-            my $counts = $region->[-1];
-            my $start  = $region->[0];
-            my $end    = $region->[1];
-            ## no critic (ProhibitMagicNumbers)
-            my $strand = $region->[6];
-            ## use critic
-            my $region_text = join q{:}, $seq_name, $start, $end, $strand;
-
-            # Add sequence name to region
-            unshift @{$region}, $seq_name;
-
-            # Normalise counts and store for fold change calculation
-            my @normalised_counts;
-            my %counts_for_condition;
-            my %counts_for_group_condition;
-            my $sample_index = 0;
-            foreach my $sample (@samples) {
-                my $normalised_count =
-                  $counts->[$sample_index] / $size_factors[$sample_index];
-                push @normalised_counts, $normalised_count;
-                if ( scalar @conditions == 2 ) {
-                    push @{ $counts_for_condition{ $sample->condition } },
-                      $normalised_count;
-                    foreach my $group ( @{ $sample->groups } ) {
-                        push @{ $counts_for_group_condition{$group}
-                              { $sample->condition } }, $normalised_count;
-                    }
+            $region = add_deseq_output_to_region(
+                {
+                    region       => $region,
+                    seq_name     => $seq_name,
+                    samples      => \@samples,
+                    conditions   => \@conditions,
+                    groups       => \@groups,
+                    size_factors => \@size_factors,
+                    pvals        => \%pval_for,
+                    padjs        => \%padj_for,
                 }
-                $sample_index++;
-            }
-            push @{$region}, \@normalised_counts;
-
-            # Add p value and adjusted p value
-            push @{$region}, $pval_for{$region_text} || 'NA',
-              $padj_for{$region_text} || 'NA';
-
-            # Add condition fold change
-            push @{$region},
-              calc_condition_fold_change( \@conditions,
-                \%counts_for_condition );
-
-            # Add group fold changes
-            push @{$region},
-              calc_group_fold_changes( \@conditions, \@groups,
-                \%counts_for_group_condition );
-
+            );
             push @output, $region;
         }
     }
@@ -326,6 +327,89 @@ sub write_deseq_input {
     ## use critic
 
     return;
+}
+
+=func add_deseq_output_to_region
+
+  Usage       : $region = add_deseq_output_to_region( {
+                    region       => $region,
+                    seq_name     => q{1},
+                    samples      => \@samples,
+                    conditions   => \@conditions,
+                    groups       => \@groups,
+                    size_factors => \@size_factors,
+                    pvals        => \%pval_for,
+                    padjs        => \%padj_for,
+                } );
+  Purpose     : Add DESeq output to a region
+  Returns     : Arrayref (the region)
+  Parameters  : Hashref {
+                    region       => Arrayref (the region),
+                    seq_name     => String (the sequence name),
+                    samples      => Arrayref (the samples),
+                    conditions   => Arrayref (the conditions),
+                    groups       => Arrayref (the groups),
+                    size_factors => Arrayref (the size factors),
+                    pvals        => Hashref (the p values),
+                    padjs        => Hashref (the adjusted p values),
+                }
+  Throws      : No exceptions
+  Comments    : None
+
+=cut
+
+sub add_deseq_output_to_region {
+    my ($arg_ref) = @_;
+
+    my $region = $arg_ref->{region};
+    my $counts = $region->[-1];
+    my $start  = $region->[0];
+    my $end    = $region->[1];
+    ## no critic (ProhibitMagicNumbers)
+    my $strand = $region->[6];
+    ## use critic
+    my $region_text = join q{:}, $arg_ref->{seq_name}, $start, $end, $strand;
+
+    # Add sequence name to region
+    unshift @{$region}, $arg_ref->{seq_name};
+
+    # Normalise counts and store for fold change calculation
+    my @normalised_counts;
+    my %counts_for_condition;
+    my %counts_for_group_condition;
+    my $sample_index = 0;
+    foreach my $sample ( @{ $arg_ref->{samples} } ) {
+        my $normalised_count =
+          $counts->[$sample_index] / $arg_ref->{size_factors}->[$sample_index];
+        push @normalised_counts, $normalised_count;
+        if ( scalar @{ $arg_ref->{conditions} } == 2 ) {
+            push @{ $counts_for_condition{ $sample->condition } },
+              $normalised_count;
+            foreach my $group ( @{ $sample->groups } ) {
+                push
+                  @{ $counts_for_group_condition{$group}{ $sample->condition }
+                  }, $normalised_count;
+            }
+        }
+        $sample_index++;
+    }
+    push @{$region}, \@normalised_counts;
+
+    # Add p value and adjusted p value
+    push @{$region}, $arg_ref->{pvals}->{$region_text} || 'NA',
+      $arg_ref->{padjs}->{$region_text} || 'NA';
+
+    # Add condition fold change
+    push @{$region},
+      calc_condition_fold_change( $arg_ref->{conditions},
+        \%counts_for_condition );
+
+    # Add group fold changes
+    push @{$region},
+      calc_group_fold_changes( $arg_ref->{conditions},
+        $arg_ref->{groups}, \%counts_for_group_condition );
+
+    return $region;
 }
 
 =func condition_prefix

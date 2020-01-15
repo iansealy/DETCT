@@ -656,8 +656,8 @@ qr/Experimental condition .* not specified for any sample/ms,
 $analysis =
   DETCT::Analysis::DiffExpr->new_from_yaml('t/data/test_analysis_de1122.yaml');
 my @bam_files = $analysis->list_all_bam_files();
-is( scalar @bam_files, 2, '2 BAM files' );
-is( $bam_files[0], 't/data/test1.bam', 'Got BAM file' );
+is( scalar @bam_files, 2,                  '2 BAM files' );
+is( $bam_files[0],     't/data/test1.bam', 'Got BAM file' );
 my @tags = $analysis->list_all_tags_by_bam_file('t/data/test1.bam');
 is( scalar @tags, 2,            '2 tags' );
 is( $tags[0],     'NNNNBAGAAG', 'Got tag' );
