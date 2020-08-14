@@ -1,6 +1,5 @@
 #!/usr/bin/env Rscript
 
-suppressWarnings(library(tcltk))
 suppressPackageStartupMessages(library(Mfuzz))
 library(naturalsort)
 

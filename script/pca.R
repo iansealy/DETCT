@@ -1,6 +1,5 @@
 #!/usr/bin/env Rscript
 
-suppressWarnings(library(tcltk))
 suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(genefilter))
 suppressPackageStartupMessages(library(ggplot2))
