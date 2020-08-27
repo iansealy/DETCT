@@ -700,7 +700,7 @@ sub add_existing_gene_annotation {
         my $end        = $region->[2];
         my $strand     = $region->[7];    ## no critic (ProhibitMagicNumbers)
         my $annotation = $region->[-1];
-        my $key = join q{:}, $seq_name, $start, $end, $strand;
+        my $key        = join q{:}, $seq_name, $start, $end, $strand;
         $gene_annotation{$key} = $annotation;
     }
 

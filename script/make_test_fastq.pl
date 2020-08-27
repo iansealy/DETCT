@@ -98,7 +98,7 @@ foreach ( 1 .. $read_pair_count ) {
     write_or_die( $fh2, q{@}, $read_name, '/2', "\n" );
     write_or_die( $fh2, get_read2_seq($read_length), "\n" );
     write_or_die( $fh2, "+\n" );
-    write_or_die( $fh2, q{~} x $read_length,         "\n" );
+    write_or_die( $fh2, q{~} x $read_length, "\n" );
 
     if ( !$has_polyt ) {
         $tag = $read_tags[-1];             # Dummy tag
@@ -157,7 +157,7 @@ sub get_read1_seq {
     # 20% of reads have a single mismatch somewhere in the tag
     if ( int rand 5 ) {              ## no critic (ProhibitMagicNumbers)
         my $mismatch_base = int rand length $tag;
-        my $base          = substr $tag, $mismatch_base, 1;
+        my $base = substr $tag, $mismatch_base, 1;
         $base =~ tr/AGCT/TCGA/;
         substr $tag, $mismatch_base, 1, $base;
     }

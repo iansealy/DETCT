@@ -149,7 +149,7 @@ foreach my $slice ( sort { ncmp( $a->seq_region_name, $b->seq_region_name ) }
     foreach my $transcript (
         sort {
                  $a->seq_region_start <=> $b->seq_region_start
-              || $a->seq_region_end <=> $b->seq_region_end
+              || $a->seq_region_end   <=> $b->seq_region_end
         } @{$transcripts}
       )
     {

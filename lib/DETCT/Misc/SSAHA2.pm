@@ -276,7 +276,7 @@ sub parse_ssaha2 {
             $alignment_length, $percent_id
         ) = split /\s+/xms, $line;
         my ( $seq_name, $index ) = split /:/xms, $query_id;
-        $strand = $strand eq q{F} ? q{+} : q{-};
+        $strand     = $strand eq q{F} ? q{+} : q{-};
         $percent_id = int $percent_id + 0.5; ## no critic (ProhibitMagicNumbers)
         push @{ $alignments{$seq_name}{$index} },
           [

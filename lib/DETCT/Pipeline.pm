@@ -58,7 +58,7 @@ private sleep_time    => my %sleep_time;       # e.g. 600
 private skip_clean_up => my %skip_clean_up;    # e.g. 1
 private serialiser_format       => my %serialiser_format;          # e.g. json
 private memory_limit_multiplier => my %memory_limit_multiplier;    # e.g. 1000
-private stage_to_run => my %stage_to_run;    # DETCT::Pipeline::Stage object
+private stage_to_run     => my %stage_to_run;    # DETCT::Pipeline::Stage object
 private component_to_run => my %component_to_run;    # e.g. 5
 private all_stages_run   => my %all_stages_run;      # e.g. 1
 private jobs_running     => my %jobs_running;        # e.g. 1
@@ -1813,8 +1813,8 @@ sub num_pending_jobs {
 
     return 0 if $self->scheduler ne 'lsf';
 
-    my @output = capture('busers');
-    my @fields = split /\s+/xms, $output[1];    # Ignore header line
+    my @output           = capture('busers');
+    my @fields           = split /\s+/xms, $output[1];    # Ignore header line
     my $num_pending_jobs = $fields[4];    ## no critic (ProhibitMagicNumbers)
 
     if ( $num_pending_jobs !~ m/\A \d+ \z/xms ) {

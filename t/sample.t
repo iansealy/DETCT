@@ -41,8 +41,8 @@ is( $sample->description, undef, 'Get description' );
 is( $sample->set_description('ZMP phenotype 1.1 mutant'),
     undef, 'Set description' );
 is( $sample->description, 'ZMP phenotype 1.1 mutant', 'Get new description' );
-is( $sample->set_description(), undef, 'Set undef description' );
-is( $sample->description,       undef, 'Get undef description' );
+is( $sample->set_description(), undef,                'Set undef description' );
+is( $sample->description,       undef,                'Get undef description' );
 
 # Test condition attribute
 is( $sample->condition,                'mutant',  'Get condition' );
@@ -78,9 +78,9 @@ throws_ok { $sample->set_tag() } qr/No tag specified/ms, 'No tag';
 throws_ok { $sample->set_tag('NNNNBCAGAN') } qr/Invalid tag/ms, 'Invalid tag';
 
 # Test bam file attribute
-is( $sample->bam_file, 't/data/test1.bam', 'Get BAM file' );
+is( $sample->bam_file, 't/data/test1.bam',            'Get BAM file' );
 is( $sample->set_bam_file('t/data/test2.bam'), undef, 'Set BAM file' );
-is( $sample->bam_file, 't/data/test2.bam', 'Get new BAM file' );
+is( $sample->bam_file, 't/data/test2.bam',            'Get new BAM file' );
 throws_ok { $sample->set_bam_file() } qr/No BAM file specified/ms,
   'No BAM file';
 throws_ok { $sample->set_bam_file('nonexistent.bam') }

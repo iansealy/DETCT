@@ -26,7 +26,7 @@ my $transcript = DETCT::Transcript->new(
 isa_ok( $transcript, 'DETCT::Transcript' );
 
 # Test stable id attribute
-is( $transcript->stable_id, 'ENSDART00000133571', 'Get stable id' );
+is( $transcript->stable_id, 'ENSDART00000133571',            'Get stable id' );
 is( $transcript->set_stable_id('ENSDART00000033574'), undef, 'Set stable id' );
 is( $transcript->stable_id, 'ENSDART00000033574', 'Get new stable id' );
 throws_ok { $transcript->set_stable_id() } qr/No stable id specified/ms,
@@ -49,12 +49,12 @@ qr/longer than \d+ characters/ms, 'Invalid name';
 is( $transcript->description, undef, 'Get description' );
 is( $transcript->set_description('CXC chemokine 64'), undef,
     'Set description' );
-is( $transcript->description, 'CXC chemokine 64', 'Get new description' );
+is( $transcript->description,       'CXC chemokine 64', 'Get new description' );
 is( $transcript->set_description(), undef, 'Set undef description' );
 is( $transcript->description,       undef, 'Get undef description' );
 
 # Test biotype attribute
-is( $transcript->biotype, 'protein_coding', 'Get biotype' );
+is( $transcript->biotype, 'protein_coding',                     'Get biotype' );
 is( $transcript->set_biotype('nonsense_mediated_decay'), undef, 'Set biotype' );
 is( $transcript->biotype, 'nonsense_mediated_decay', 'Get new biotype' );
 throws_ok { $transcript->set_biotype() } qr/No biotype specified/ms,

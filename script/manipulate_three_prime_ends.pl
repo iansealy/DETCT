@@ -130,7 +130,7 @@ sub output_ends {
                 my @end_data = split /[:\/]/xms, $end, 11;
                 ## use critic
                 splice @end_data, 1, 1;    # Remove redundant strand
-                      # Split last field into transcripts and distances
+                    # Split last field into transcripts and distances
                 my @pairs = split /[|]/xms, pop @end_data;
                 @pairs = map { [ split />/xms ] } @pairs;
                 push @end_data, join q{,}, map { $_->[0] } @pairs;

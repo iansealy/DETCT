@@ -175,7 +175,7 @@ foreach my $seq_region ( 1 .. $seq_region_count ) {
         my $read_tag = $read_tags[ int rand $#read_tags + 1 ];    # Random tag
         my $sequenced_read_tag = get_sequenced_read_tag($read_tag);
         my $read1_qname        = get_qname( $qname_base, $sequenced_read_tag );
-        my $read2_qname = $read1_qname;    # Always the same
+        my $read2_qname        = $read1_qname;    # Always the same
         my ( $read1_pos, $read2_pos ) =
           get_pos( $length_of{$seq_region}, $read1_length, $read2_length );
         my ( $read1_flag, $read2_flag ) = get_flag( $read1_pos, $read2_pos );

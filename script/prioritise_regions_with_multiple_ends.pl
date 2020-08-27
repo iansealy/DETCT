@@ -139,8 +139,8 @@ sub get_genes_with_multiple_ends {
 
         ## no critic (ProhibitMagicNumbers)
         # Get region ID by joining chr, start, end and strand
-        my $region              = join q{:}, @fields[ 0, 1, 2, 4 ];
-        my $genes               = $fields[9];
+        my $region = join q{:}, @fields[ 0, 1, 2, 4 ];
+        my $genes  = $fields[9];
         my @three_prime_end_pos = split /,/xms, $fields[3];
         ## use critic
         next if !$genes;
@@ -233,7 +233,7 @@ sub get_significance_matrix {
             my $genes = $fields[9];
 
             # Get region ID by joining chr, start, end and strand
-            my $region          = join q{:}, @fields[ 0, 1, 2, 4 ];
+            my $region = join q{:}, @fields[ 0, 1, 2, 4 ];
             my $adjusted_pvalue = $fields[7];
             ## use critic
 

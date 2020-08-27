@@ -84,8 +84,8 @@ sub get_counts_by_region {
 
     open my $fh, '<', $file;          ## no critic (RequireBriefOpen)
                                       # Get range for count columns
-    my $header   = <$fh>;
-    my @headings = DETCT::Misc::Output::parse_line( $header, $extension );
+    my $header       = <$fh>;
+    my @headings     = DETCT::Misc::Output::parse_line( $header, $extension );
     my $counts_start = 15;            ## no critic (ProhibitMagicNumbers)
     my $counts_end;
     my $ordinal = $counts_start;

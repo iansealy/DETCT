@@ -33,9 +33,9 @@ throws_ok { $term->set_accession('invalid') } qr/Invalid accession/ms,
   'Invalid accession';
 
 # Test namespace attribute
-is( $term->namespace, 'cellular_component', 'Get namespace' );
+is( $term->namespace, 'cellular_component',            'Get namespace' );
 is( $term->set_namespace('molecular_function'), undef, 'Set namespace' );
-is( $term->namespace, 'molecular_function', 'Get new namespace' );
+is( $term->namespace, 'molecular_function',            'Get new namespace' );
 throws_ok { $term->set_namespace() } qr/No namespace specified/ms,
   'No namespace';
 throws_ok { $term->set_namespace('invalid') } qr/Invalid namespace/ms,

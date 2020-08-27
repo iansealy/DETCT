@@ -100,7 +100,7 @@ while ( my $line = <> ) {
     else {
         my @fields     = split /\t/xms, $line;
         my $seq_region = $fields[2];
-        my $pos = $fields[3];    ## no critic (ProhibitMagicNumbers)
+        my $pos        = $fields[3];    ## no critic (ProhibitMagicNumbers)
         my $move =
           ( int rand( $max_move * 2 + 1 ) ) - $max_move;    # e.g. -200 to 200
         $pos += $move;

@@ -172,7 +172,7 @@ sub run_deseq {    ## no critic (ProhibitExcessComplexity)
     }
     open my $samples_fh, '>', $samples_file;
     write_or_die( $samples_fh, ( join "\t", @header ), "\n" );
-    write_or_die( $samples_fh,                         $samples_text );
+    write_or_die( $samples_fh, $samples_text );
     close $samples_fh;
 
     my $control_condition = q{-};

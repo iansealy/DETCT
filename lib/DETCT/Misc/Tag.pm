@@ -73,7 +73,7 @@ sub detag_trim_fastq {
     my $tag_length = length $arg_ref->{read_tags}[0];
 
     my $min_polyt = q{T} x $arg_ref->{polyt_min_length};
-    my $polyt_re = qr/$min_polyt/xms;    # Regexp for polyT matching
+    my $polyt_re  = qr/$min_polyt/xms;    # Regexp for polyT matching
 
     my $read1_required_length    = $arg_ref->{read1_required_length};
     my $read2_required_length    = $arg_ref->{read2_required_length};

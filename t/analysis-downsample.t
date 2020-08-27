@@ -63,7 +63,7 @@ throws_ok { $analysis->set_name($long_name) } qr/longer than \d+ characters/ms,
 # Test target read count attribute
 is( $analysis->target_read_count,           undef, 'Get target read count' );
 is( $analysis->set_target_read_count(5000), undef, 'Set target read count' );
-is( $analysis->target_read_count, 5000, 'Get new target read count' );
+is( $analysis->target_read_count,           5000, 'Get new target read count' );
 throws_ok { $analysis->set_target_read_count(-5000) }
 qr/Invalid target read count/ms, 'Invalid target read count';
 
@@ -122,7 +122,7 @@ qr/does not exist or cannot be read/ms, 'Missing MergeSamFiles JAR';
 # Test SortSam JAR attribute
 is( $analysis->sort_bam_jar,                    undef, 'Get SortSam JAR' );
 is( $analysis->set_sort_bam_jar($sort_bam_jar), undef, 'Set SortSam JAR' );
-is( $analysis->sort_bam_jar, $sort_bam_jar, 'Get new SortSam JAR' );
+is( $analysis->sort_bam_jar, $sort_bam_jar,            'Get new SortSam JAR' );
 throws_ok { $analysis->set_sort_bam_jar('nonexistent') } qr/cannot be read/ms,
   'Missing SortSam JAR';
 
@@ -156,7 +156,7 @@ is( $analysis->ensembl_user, 'anonymous', 'Get new Ensembl username' );
 # Test Ensembl password attribute
 is( $analysis->ensembl_pass,               undef, 'Get Ensembl password' );
 is( $analysis->set_ensembl_pass('secret'), undef, 'Set Ensembl password' );
-is( $analysis->ensembl_pass, 'secret', 'Get new Ensembl password' );
+is( $analysis->ensembl_pass, 'secret',            'Get new Ensembl password' );
 
 # Test Ensembl database name attribute
 is( $analysis->ensembl_name, undef, 'Get Ensembl database name' );
@@ -193,7 +193,7 @@ $sample->set_always( 'bam_file',  't/data/test1.bam' );
 $sample->set_always( 'name',      'zmp_ph1_1m' );
 $sample->set_always( 'tag',       'NNNNBGAGGC' );
 $sample->set_always( 'condition', 'mutant' );
-$sample->set_always( 'groups', [] );
+$sample->set_always( 'groups',    [] );
 
 # Mock sample object with different reference sequence
 my $sample_diff = Test::MockObject->new();
@@ -201,7 +201,7 @@ $sample_diff->set_isa('DETCT::Sample');
 $sample_diff->set_always( 'bam_file', 't/data/test3.bam' );
 $sample_diff->set_always( 'name',     'zmp_ph1_1s' );
 $sample_diff->set_always( 'tag',      'NNNNBCGCAA' );
-$sample_diff->set_always( 'groups', [] );
+$sample_diff->set_always( 'groups',   [] );
 
 my $sample2 = Test::MockObject->new();
 $sample2->set_isa('DETCT::Sample');
@@ -209,7 +209,7 @@ $sample2->set_always( 'bam_file',  't/data/test2.bam' );
 $sample2->set_always( 'name',      'zmp_ph1_2m' );
 $sample2->set_always( 'tag',       'NNNNBCAGAG' );
 $sample2->set_always( 'condition', 'mutant' );
-$sample2->set_always( 'groups', [] );
+$sample2->set_always( 'groups',    [] );
 
 # Test adding and retrieving samples
 my $samples;
@@ -243,7 +243,7 @@ $sample_dupe_name->set_isa('DETCT::Sample');
 $sample_dupe_name->set_always( 'bam_file', 't/data/test1.bam' );
 $sample_dupe_name->set_always( 'name',     'zmp_ph1_1m' );
 $sample_dupe_name->set_always( 'tag',      'NNNNBAGAAG' );
-$sample_dupe_name->set_always( 'groups', [] );
+$sample_dupe_name->set_always( 'groups',   [] );
 
 throws_ok { $analysis->add_sample($sample_dupe_name) } qr/is duplicated/ms,
   'Duplicated sample name';
@@ -262,7 +262,7 @@ $sample_dupe_tag_bam->set_isa('DETCT::Sample');
 $sample_dupe_tag_bam->set_always( 'name',     'zmp_ph1_4s' );
 $sample_dupe_tag_bam->set_always( 'bam_file', 't/data/test1.bam' );
 $sample_dupe_tag_bam->set_always( 'tag',      'NNNNBGAGGC' );
-$sample_dupe_tag_bam->set_always( 'groups', [] );
+$sample_dupe_tag_bam->set_always( 'groups',   [] );
 
 throws_ok { $analysis->add_sample($sample_dupe_tag_bam) }
 qr/Multiple samples have the same tag/ms, 'Duplicated tag and BAM file';
@@ -281,7 +281,7 @@ $sample_diff_groups->set_isa('DETCT::Sample');
 $sample_diff_groups->set_always( 'name',     'zmp_ph1_2m' );
 $sample_diff_groups->set_always( 'bam_file', 't/data/test2.bam' );
 $sample_diff_groups->set_always( 'tag',      'NNNNBCAGAG' );
-$sample_diff_groups->set_always( 'groups', ['1'] );
+$sample_diff_groups->set_always( 'groups',   ['1'] );
 
 throws_ok { $analysis->add_sample($sample_diff_groups) }
 qr/Samples do not all have same number of groups/ms, 'Different groups';
@@ -297,7 +297,7 @@ $sample_dupe_group1->set_isa('DETCT::Sample');
 $sample_dupe_group1->set_always( 'name',     'zmp_ph1_1m' );
 $sample_dupe_group1->set_always( 'bam_file', 't/data/test1.bam' );
 $sample_dupe_group1->set_always( 'tag',      'NNNNBGAGGC' );
-$sample_dupe_group1->set_always( 'groups', [ '1', '2' ] );
+$sample_dupe_group1->set_always( 'groups',   [ '1', '2' ] );
 $analysis->add_sample($sample_dupe_group1);
 
 # Mock sample object with different number of groups
@@ -306,7 +306,7 @@ $sample_dupe_group2->set_isa('DETCT::Sample');
 $sample_dupe_group2->set_always( 'name',     'zmp_ph1_2m' );
 $sample_dupe_group2->set_always( 'bam_file', 't/data/test2.bam' );
 $sample_dupe_group2->set_always( 'tag',      'NNNNBCAGAG' );
-$sample_dupe_group2->set_always( 'groups', [ '2', '3' ] );
+$sample_dupe_group2->set_always( 'groups',   [ '2', '3' ] );
 
 throws_ok { $analysis->add_sample($sample_dupe_group2) }
 qr/is duplicated between groups/ms, 'Duplicate groups';
@@ -324,7 +324,7 @@ $sample_missing_tag->set_isa('DETCT::Sample');
 $sample_missing_tag->set_always( 'bam_file', 't/data/test1.bam' );
 $sample_missing_tag->set_always( 'name',     'zmp_ph1_5s' );
 $sample_missing_tag->set_always( 'tag',      'NNNNBTGAATC' );
-$sample_missing_tag->set_always( 'groups', [] );
+$sample_missing_tag->set_always( 'groups',   [] );
 
 throws_ok { $analysis->add_sample($sample_missing_tag) }
 qr/does not contain tag/ms, 'Tag missing from BAM files';
@@ -335,7 +335,7 @@ $sample_no_index->set_isa('DETCT::Sample');
 $sample_no_index->set_always( 'name',     'zmp_ph1_6s' );
 $sample_no_index->set_always( 'bam_file', 't/data/test4.bam' );
 $sample_no_index->set_always( 'tag',      'NNNNBGAGGC' );
-$sample_no_index->set_always( 'groups', [] );
+$sample_no_index->set_always( 'groups',   [] );
 
 throws_ok { $analysis->add_sample($sample_no_index) } qr/has no index/ms,
   'BAM file with no index file';

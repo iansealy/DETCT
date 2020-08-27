@@ -57,7 +57,7 @@ throws_ok { $job->set_scheduler('invalid') } qr/Invalid scheduler specified/ms,
   'Invalid scheduler';
 
 # Test base_filename attribute
-is( $job->base_filename, './run_deseq/1', 'Get base filename' );
+is( $job->base_filename, './run_deseq/1',              'Get base filename' );
 is( $job->set_base_filename('./count_reads/2'), undef, 'Set base filename' );
 is( $job->base_filename, './count_reads/2', 'Get new base filename' );
 throws_ok { $job->set_base_filename() } qr/No base filename specified/ms,

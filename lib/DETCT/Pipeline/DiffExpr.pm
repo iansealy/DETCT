@@ -421,9 +421,9 @@ sub run_summarise_read_peaks {
             bin_size          => $self->analysis->bin_size,
             peak_buffer_width => $self->analysis->peak_buffer_width,
             hmm_sig_level     => $self->analysis->hmm_sig_level,
-            total_bp    => $self->analysis->total_bp * 2,    # Two strands
-            read_length => $self->analysis->read2_length,
-            peaks       => \@merged_peaks,
+            total_bp          => $self->analysis->total_bp * 2,    # Two strands
+            read_length       => $self->analysis->read2_length,
+            peaks             => \@merged_peaks,
         }
     );
 

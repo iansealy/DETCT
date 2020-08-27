@@ -871,8 +871,7 @@ sub get_all_ensembl_db_types {
 
     return [
         sort keys %{ $ensembl_db_type{ id $self}
-              || { $DEFAULT_ENSEMBL_DB_TYPE => 1 } }
-    ];
+              || { $DEFAULT_ENSEMBL_DB_TYPE => 1 } } ];
 }
 
 =method slice_adaptor

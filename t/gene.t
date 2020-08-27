@@ -36,9 +36,9 @@ throws_ok { $gene->set_genebuild_version('#invalid#') }
 qr/Invalid genebuild version/ms, 'Invalid genebuild version';
 
 # Test stable id attribute
-is( $gene->stable_id, 'ENSDARG00000095747', 'Get stable id' );
+is( $gene->stable_id, 'ENSDARG00000095747',            'Get stable id' );
 is( $gene->set_stable_id('ENSDARG00000024771'), undef, 'Set stable id' );
-is( $gene->stable_id, 'ENSDARG00000024771', 'Get new stable id' );
+is( $gene->stable_id, 'ENSDARG00000024771',            'Get new stable id' );
 throws_ok { $gene->set_stable_id() } qr/No stable id specified/ms,
   'No stable id';
 throws_ok { $gene->set_stable_id('#invalid#') } qr/Invalid stable id/ms,
@@ -63,9 +63,9 @@ is( $gene->set_description(), undef,              'Set undef description' );
 is( $gene->description,       undef,              'Get undef description' );
 
 # Test biotype attribute
-is( $gene->biotype, 'protein_coding', 'Get biotype' );
+is( $gene->biotype, 'protein_coding',                     'Get biotype' );
 is( $gene->set_biotype('nonsense_mediated_decay'), undef, 'Set biotype' );
-is( $gene->biotype, 'nonsense_mediated_decay', 'Get new biotype' );
+is( $gene->biotype, 'nonsense_mediated_decay',            'Get new biotype' );
 throws_ok { $gene->set_biotype() } qr/No biotype specified/ms, 'No biotype';
 throws_ok { $gene->set_biotype('#invalid#') } qr/Invalid biotype/ms,
   'Invalid biotype';

@@ -302,8 +302,8 @@ is(
 # Adding gene annotation if no 3' end
 $regions = [
     [
-        '1', 1, 1000, 10, -10, undef, undef, undef,
-        undef, [], undef, undef, [], []
+        '1',   1,  1000,  10,    -10, undef, undef, undef,
+        undef, [], undef, undef, [],  []
     ],
 ];
 $annotated_regions = $gene_finder->add_gene_annotation($regions);
@@ -313,8 +313,8 @@ is( scalar keys %{ $annotated_regions->[0]->[-1] }, 0, '0 genebuilds' );
 $regions = [
     [
         '1', 1, 1000, 10, -10, '1', [ 110, 120 ],
-        1, [ 10, 20 ],
-        [], undef, undef, [], []
+        1,   [ 10, 20 ],
+        [],  undef, undef, [], []
     ],
 ];
 $annotated_regions = $gene_finder->add_gene_annotation($regions);

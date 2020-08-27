@@ -194,9 +194,9 @@ sub dump_as_table {    ## no critic (ProhibitExcessComplexity)
                       [ $transcript_stable_id, $transcript_stable_id ];
                     push @transcript_biotype, $transcript_biotype;
                 }
-                push @name, $name;
+                push @name,         $name;
                 push @name_to_link, [ $gene_stable_id, $name ];
-                push @description, $description;
+                push @description,  $description;
             }
         }
         push @row, [ \@distance ];
@@ -338,11 +338,11 @@ sub get_definition {
 
     my @def;
 
-    push @def, [ 'Chr',              $STRING, $loc_link, ];
-    push @def, [ 'Region start',     $INT,    $loc_link, ];
-    push @def, [ 'Region end',       $INT,    $loc_link, ];
-    push @def, [ q{3' end position}, $INT,    $loc_link, ];
-    push @def, [ q{3' end strand},   $INT, ];
+    push @def, [ 'Chr',                 $STRING, $loc_link, ];
+    push @def, [ 'Region start',        $INT,    $loc_link, ];
+    push @def, [ 'Region end',          $INT,    $loc_link, ];
+    push @def, [ q{3' end position},    $INT,    $loc_link, ];
+    push @def, [ q{3' end strand},      $INT, ];
     push @def, [ q{3' end read count},  $INT, ];
     push @def, [ 'p value',             $FLOAT, ];
     push @def, [ 'Adjusted p value',    $FLOAT, ];
