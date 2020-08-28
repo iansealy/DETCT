@@ -147,8 +147,10 @@ sub get_cmd_line {
     }
 
     # Remove PERL5LIB lib directories
-    foreach my $lib ( split /:/xms, $ENV{PERL5LIB} ) {
-        delete $lib{$lib};
+    if ( exists $ENV{PERL5LIB} ) {
+        foreach my $lib ( split /:/xms, $ENV{PERL5LIB} ) {
+            delete $lib{$lib};
+        }
     }
 
     # Reconstruct -I lib directories
