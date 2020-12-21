@@ -13,41 +13,41 @@ samples:
     name:        zmp_ph1_1m
     description: ZMP phenotype 1.1 mutant
     condition:   mutant
-    group:       1
+    group:       g1
     tag:         NNNNBGAGGC
     bam_file:    example/example1.bam
   -
     name:        zmp_ph1_1s
     description: ZMP phenotype 1.1 sibling
     condition:   sibling
-    group:       1
+    group:       g1
     tag:         NNNNBAGAAG
     bam_file:    example/example1.bam
   -
     name:        zmp_ph1_2m
     description: ZMP phenotype 1.2 mutant
     condition:   mutant
-    group:       2
+    group:       g2
     tag:         NNNNBGAGGC
     bam_file:    example/example2.bam
   -
     name:        zmp_ph1_2s
     description: ZMP phenotype 1.2 sibling
     condition:   sibling
-    group:       2
+    group:       g2
     tag:         NNNNBAGAAG
     bam_file:    example/example2.bam
   -
     name:        zmp_ph1_3m
     description: ZMP phenotype 1.3 mutant
     condition:   mutant
-    group:       3
+    group:       g3
     tag:         NNNNBGAGGC
     bam_file:    example/example3.bam
   -
     name:        zmp_ph1_3s
     description: ZMP phenotype 1.3 sibling
     condition:   sibling
-    group:       3
+    group:       g3
     tag:         NNNNBAGAAG
     bam_file:    example/example3.bam
