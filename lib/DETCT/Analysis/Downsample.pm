@@ -33,13 +33,13 @@ use YAML::Tiny;
 =cut
 
 # Attributes:
-private target_read_count => my %target_read_count;    # e.g. 15000000
-private read_count_type   => my %read_count_type;      # e.g. paired
-private round_down_to     => my %round_down_to;        # e.g. 1000000
-private samtools_binary   => my %samtools_binary;      # e.g. samtools
-private java_binary       => my %java_binary;          # e.g. java
+private target_read_count   => my %target_read_count;    # e.g. 15000000
+private read_count_type     => my %read_count_type;      # e.g. paired
+private round_down_to       => my %round_down_to;        # e.g. 1000000
+private samtools_binary     => my %samtools_binary;      # e.g. samtools
+private java_binary         => my %java_binary;          # e.g. java
 private mark_duplicates_jar =>
-  my %mark_duplicates_jar;                             # e.g. MarkDuplicates.jar
+  my %mark_duplicates_jar;    # e.g. MarkDuplicates.jar
 private merge_sam_files_jar => my %merge_sam_files_jar; # e.g. MergeSamFiles.jar
 private sort_bam_jar        => my %sort_bam_jar;        # e.g. SortSam.jar
 private mark_duplicates_method => my %mark_duplicates_method;    # e.g. picard

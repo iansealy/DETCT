@@ -189,7 +189,7 @@ sub extract_mark_duplicates_metrics {
                 mapped_read_pairs => $mapped_read_pairs,
                 mapped_reads      => $mapped_reads_without_mapped_mate +
                   $mapped_read_pairs * 2,
-                unmapped_reads => $unmapped_reads,
+                unmapped_reads                             => $unmapped_reads,
                 duplicate_mapped_reads_without_mapped_mate =>
                   $duplicate_mapped_reads_without_mapped_mate,
                 duplicate_mapped_read_pairs => $duplicate_mapped_read_pairs,

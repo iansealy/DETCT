@@ -1105,18 +1105,18 @@ sub get_and_check_options {
           \$keep_ends_in_simple_repeat_if_coding,
         'keep_ends_in_simple_repeat_if_other' =>
           \$keep_ends_in_simple_repeat_if_other,
-        'keep_ends_in_transposon'   => \$keep_ends_in_transposon,
-        'keep_polya_strict_ends'    => \$keep_polya_strict_ends,
-        'keep_polya_stricter_ends'  => \$keep_polya_stricter_ends,
-        'keep_ends_without_hexamer' => \$keep_ends_without_hexamer,
-        'keep_ends_without_rnaseq'  => \$keep_ends_without_rnaseq,
+        'keep_ends_in_transposon'            => \$keep_ends_in_transposon,
+        'keep_polya_strict_ends'             => \$keep_polya_strict_ends,
+        'keep_polya_stricter_ends'           => \$keep_polya_stricter_ends,
+        'keep_ends_without_hexamer'          => \$keep_ends_without_hexamer,
+        'keep_ends_without_rnaseq'           => \$keep_ends_without_rnaseq,
         'keep_ends_without_rnaseq_if_coding' =>
           \$keep_ends_without_rnaseq_if_coding,
         'keep_ends_without_rnaseq_if_other' =>
           \$keep_ends_without_rnaseq_if_other,
-        'polya_threshold=i'            => \$polya_threshold,
-        'downstream_polya_threshold=i' => \$downstream_polya_threshold,
-        'hexamer_polya_threshold=i'    => \$hexamer_polya_threshold,
+        'polya_threshold=i'                   => \$polya_threshold,
+        'downstream_polya_threshold=i'        => \$downstream_polya_threshold,
+        'hexamer_polya_threshold=i'           => \$hexamer_polya_threshold,
         'annotated_distance_threshold_coding' =>
           \$annotated_distance_threshold_coding,
         'annotated_distance_threshold_other' =>
