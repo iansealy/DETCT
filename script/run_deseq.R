@@ -24,7 +24,11 @@ if (numThreads > 1) {
 # Get data and samples
 countData     <- read.table(   countFile, header=TRUE, row.names=1 )
 samples       <- read.table( samplesFile, header=TRUE, row.names=1 )
+samples$condition <- factor(samples$condition)
 numFactors    <- ncol( samples )
+if (numFactors > 1) {
+    samples$group <- factor(samples$group)
+}
 numConditions <- nlevels( samples$condition )
 if (normalisationMethod == "spike") {
     spikeCountData <- read.table( spikeCountFile, header=TRUE, row.names=1 )
